@@ -58,4 +58,4 @@ does nothing in the background.
 
 ## Contact
 
-[OWNER: contact email or GitHub issues link]
+shashanksinghal336@gmail.com

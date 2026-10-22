@@ -40,6 +40,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 | Date | Decision | Why |
 | --- | --- | --- |
 | 2026-10-22 | Product name: Tallshot (Full edition "Tallshot Full", Lite "Tallshot") | "Page Archive" sat next to a featured "Archive Page"; "Stackshot" and "Unscroll" are taken. Only user-visible strings changed; storage keys, data attributes, folder and repo names stay |
+| 2026-10-22 | Lite real-site testing deferred to the end | Owner tests Lite once Full is final, to avoid repeat work. Lite still runs in the E2E harness |
 | 2026-10-22 | Claude Code reviews the store/privacy drafts against the code; owner signs off on facts only | Owner asked; texts verified line by line against manifest and storage keys |
 | 2026-10-22 | Small landing site (own public repo or Vercel), after the name is chosen | Owner: "we can make a small site"; main repo stays private |
 | 2026-10-22 | Start Phase 2 before Phase 1 is complete | Owner request; only store prep that does not depend on Phase 1 results or the Reddit gate |
@@ -59,7 +60,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Needs the owner's check
 - Trademark search for "Tallshot" (IP India, USPTO) before publishing.
 - Payment provider account and fees.
-- Real-site matrix runs (Phase 1): DeepSeek fix, Notion, Colab, itch.io, Reddit/X, a dashboard, DevTools open, chrome://extensions, then the main rows on Lite.
+- Real-site matrix runs (Phase 1): Notion, chrome://extensions Visible area. Lite repeats are deferred until Full is final (owner decision 2026-10-22).
 - PRIVACY.md, docs/store/permissions.md, docs/store/listing.md: drafts to review (contact line, names).
 - Popup shows the requested file name ("Generative AI Learning Plan.png") when Chrome saved it as "... (3).png" on a name clash. Cosmetic honesty issue; fix later (use the final name from chrome.downloads).
 - popup-shot: the capturing/done states show the "browser pages" banner and a
