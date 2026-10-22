@@ -38,10 +38,10 @@ test('capture target selector supports smart, document and panel modes', () => {
 test('panel-only capture hides overlapping fixed overlays outside the selected scroller on later tiles', () => {
   const content = fs.readFileSync(path.join(__dirname, '..', 'content.js'), 'utf8');
   assert.match(content, /function rectsOverlap\(/);
-  assert.match(content, /const isInsideScroller = state\.scroller && state\.scroller\.contains\(el\)/);
+  assert.match(content, /const isInsideScroller = state\.scroller && composedContains\(state\.scroller, el\)/);
   assert.match(content, /!isInsideScroller && !overlapsCrop/);
   assert.match(content, /state\.hiddenPinnedElements\.has\(el\)/);
-  assert.match(content, /el === state\.scroller \|\| \(typeof el\.contains === 'function' && el\.contains\(state\.scroller\)\)/);
+  assert.match(content, /el === state\.scroller \|\| composedContains\(el, state\.scroller\)/);
   const fixture = fs.readFileSync(path.join(__dirname, 'site-fixture', 'app-scroll-panel.html'), 'utf8');
   assert.match(fixture, /id="fixed-composer"/);
   assert.match(fixture, /should appear only in the first PNG tile/);

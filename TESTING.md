@@ -21,8 +21,9 @@ when you rename a string, update the test in the same commit.
   download, copy outputs to `.e2e/out/`, compare scroll position, html style
   attribute and temporary nodes before and after (must be identical).
 - Case options: `settings`, `mode` ("full" | "visible"), `switchAway`,
-  `viewport`, `lite: false` (skip in Lite), `expect.engineIncludes`,
-  `expect.titleUnchanged`, `expect.phase`.
+  `viewport`, `dpr`, `lite: false` (skip in Lite), `expect.engineIncludes`,
+  `expect.titleUnchanged`, `expect.phase`, and pixel checks `expect.absentColor`,
+  `expect.presentColor`, `expect.solidEdge`, `expect.maxTrailingBlank`.
 - Exit code 1 on any failure. Open `.e2e/out/` and look at images when a
   change affects rendering; a pass only proves no error and restored state.
 
@@ -41,6 +42,7 @@ when you rename a string, update the test in the same commit.
 | reveal-lazy.html | IntersectionObserver lazy images + fixed full-screen backdrop |
 | fixed-art-backdrop.html | `background-attachment: fixed` cover art |
 | chat-preset.html | Claude-like layout where the side panel is the biggest scroller |
+| shadow-cells.html | Notebook cells with run buttons in shadow DOM (Colab); they must stay |
 | abs-shell.html | App in an absolute layer inside a 0px overflow:hidden body (DeepSeek) |
 | floating-badge.html | Fixed badge 14px above the bottom-right corner (reCAPTCHA on Reddit) |
 | end-spacer.html | Chat list ending in a spacer sized to the viewport (Claude split view); `?last=1`: last turn with a script-set min-height (Gemini) |
@@ -94,5 +96,5 @@ Never commit captures of real accounts.
 | itch.io game page with comments | Smart | Background art once, "View rest" expanded |
 | Reddit thread, X profile | Smart | Lazy content, no endless growth past Max height |
 | A web app dashboard | Smart, then Document | Honest warnings, no gaps |
-| Any page with DevTools open | Smart | Clean fallback to stitch with warning |
+| Any page with DevTools open | Smart | Full render still works (Chrome 2026 allows several debugger clients); if it cannot attach, a clean fallback to stitch with a warning |
 | chrome://extensions | Visible | Viewport only, Full disabled |

@@ -98,7 +98,7 @@ test('panel pin hides paintless end spacers that grow with the viewport', () => 
 });
 
 test('panel render hides bars pinned to the bottom edge inside the panel', () => {
-  assert.match(content, /if \(state\.scroller\.contains\(el\)\) \{\s*\/\/[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*if \(!isBottomPinnedInPanel\(el, cs, r, panelRect\)\) continue;/);
+  assert.match(content, /if \(composedContains\(state\.scroller, el\)\) \{\s*\/\/[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*if \(!isBottomPinnedInPanel\(el, cs, r, panelRect\)\) continue;/);
   const fn = content.slice(content.indexOf('function isBottomPinnedInPanel'), content.indexOf('function renderHideFloating'));
   assert.match(fn, /cs\.bottom === 'auto' \|\| cs\.top !== 'auto'/, 'top-pinned sticky headers must be kept');
   assert.match(fn, /r\.height <= 320 && r\.height < panelRect\.h \* 0\.5/, 'only bar-sized elements may be hidden');
@@ -186,4 +186,20 @@ test('panel clip check follows CSS containing blocks (absolute app shells are no
   const suite = JSON.parse(fs.readFileSync(path.join(__dirname, 'e2e', 'suite.json'), 'utf8'));
   assert.ok(suite.some(c => c.name === 'abs-shell' && c.expect.engineIncludes === 'Full render'));
   assert.ok(suite.some(c => c.name === 'offscreen'), 'a genuinely clipped panel stays covered');
+});
+
+test('popup warnings wrap long unbroken tokens instead of widening the popup', () => {
+  const css = fs.readFileSync(path.join(root, 'popup.css'), 'utf8');
+  assert.match(css, /\.warnings div \{[^}]*grid-template-columns: 12px minmax\(0, 1fr\)/);
+  assert.match(css, /\.warnings span \{ min-width: 0; overflow-wrap: anywhere; \}/);
+  assert.match(fs.readFileSync(path.join(root, 'tools', 'popup-shot.mjs'), 'utf8'), /yt3\.ggpht\.com\//, 'popup-shot covers a long URL warning');
+});
+
+test('hide rules see through shadow DOM when deciding inside or outside the panel', () => {
+  assert.match(content, /function composedContains\(ancestor, el\) \{[\s\S]{0,200}n\.parentNode \|\| \(n instanceof ShadowRoot \? n\.host : null\)/);
+  const hide = content.slice(content.indexOf('function renderHideFloating'), content.indexOf('// ---- Expand collapsed content'));
+  assert.doesNotMatch(hide, /state\.scroller\.contains\(el\)|el\.contains\(state\.scroller\)/, 'plain contains() misses shadow roots');
+  assert.match(hide, /if \(composedContains\(state\.scroller, el\)\) \{/);
+  const suite = JSON.parse(fs.readFileSync(path.join(__dirname, 'e2e', 'suite.json'), 'utf8'));
+  assert.ok(suite.some(c => c.name === 'shadow-cells' && c.expect.presentColor));
 });

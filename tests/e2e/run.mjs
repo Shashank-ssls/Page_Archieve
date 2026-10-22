@@ -194,6 +194,26 @@ for (const c of cases) {
         if (hits) problems.push(`${hits} pixels of colour ${color.join(',')} in ${path.basename(file)}`);
       }
     }
+    if (expect.presentColor) {
+      // At least `minPixels` pixels of this colour (marks content that must stay).
+      const { color, minPixels = 1, tolerance = 12 } = expect.presentColor;
+      let total = 0;
+      for (const file of files.filter(f => f.endsWith('.png'))) {
+        total += await page.evaluate(async ({ url, color, tolerance }) => {
+          const img = new Image(); img.src = url; await img.decode();
+          const canvas = new OffscreenCanvas(img.width, img.height);
+          const g = canvas.getContext('2d');
+          g.drawImage(img, 0, 0);
+          const d = g.getImageData(0, 0, img.width, img.height).data;
+          let n = 0;
+          for (let i = 0; i < d.length; i += 4) {
+            if (Math.abs(d[i] - color[0]) <= tolerance && Math.abs(d[i + 1] - color[1]) <= tolerance && Math.abs(d[i + 2] - color[2]) <= tolerance) n++;
+          }
+          return n;
+        }, { url: 'data:image/png;base64,' + fs.readFileSync(file).toString('base64'), color, tolerance });
+      }
+      if (total < minPixels) problems.push(`only ${total} pixels of colour ${color.join(',')} (need ${minPixels})`);
+    }
     if (expect.solidEdge) {
       // Every row of a margin column must match the page background: catches
       // blank or seamed rows between render chunks.

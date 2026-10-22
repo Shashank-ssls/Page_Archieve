@@ -9,6 +9,10 @@
 
 # Unreleased - Phase 1 fixes
 
+- Fix: Colab captures hid the notebook's own run buttons, execution markers and show/hide toggles ("Hid 60 floating elements"). Colab keeps them in shadow DOM, and plain contains() reported them as outside the panel. The hide rules now use a shadow-aware composedContains(). Fixture `shadow-cells.html`, E2E case `shadow-cells` with a new "colour must be present" pixel check.
+- Fix (popup): a warning with a long unbroken token (an image URL from YouTube's image audit) widened the popup by 179px and clipped its border. Warning text now wraps anywhere; popup-shot covers it.
+- Wording: the hide-floating warning now says "over the captured panel (message boxes, toolbars, floating buttons)" instead of "conversation panel", which was wrong on notebooks.
+
 - Fix: Full render gave up on DeepSeek ("panel could not be fully exposed ... clipped 5103px") although nothing was clipped. DeepSeek's app is an absolutely positioned layer inside a 0px tall overflow:hidden body; the clip check now follows CSS containing blocks (absolute boxes escape static ancestors, fixed boxes escape all). Fixture `abs-shell.html`, E2E case `abs-shell`.
 
 - Fix (Lite and the stitch fallback): scroll-and-stitch kept chat composers, floating buttons and bottom bars on the first screen, drawn over content (seen on DeepSeek). It now runs the same hide rules as Full render on every tile. New E2E cases `chatgpt-composer-stitch`, `end-fab-stitch` run on both editions.

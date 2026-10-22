@@ -379,7 +379,7 @@ async function runRender(job, report) {
     if (!truncated && !G.panelFullyExposed(measure)) {
       throw new Error(`The panel could not be fully exposed (overflow ${Math.round(p.overflow)}px, clipped ${Math.round(p.ancestorClip || 0)}px).`);
     }
-    if (settled.hidden) report.warnings.push(`Hid ${settled.hidden} floating element(s) that covered the conversation panel (for example a message composer).`);
+    if (settled.hidden) report.warnings.push(`Hid ${settled.hidden} floating element(s) over the captured panel (message boxes, toolbars, floating buttons).`);
     report.warnings.push('Captured the main scrollable panel, not the surrounding app shell. Choose Entire document in Target to capture the page shell instead.');
     const height = Math.min(Math.floor(p.height), settings.maxHeight);
     plan = {

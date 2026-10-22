@@ -7,8 +7,8 @@ Update this at the end of every phase. Newest entries at the top of each section
 - Current phase: Phase 1 - Real-site validation (in progress, owner-assisted rows left)
   and Phase 2 - Store-ready free launch (started early at the owner's request,
   2026-10-22; only parts that do not depend on Phase 1 or the gate)
-- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-22): `npm run check` 112/112,
-  `npm run e2e` 24/24 (Full), `npm run e2e:lite` 19/19 (Lite), popup-shot and
+- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-22): `npm run check` 115/115,
+  `npm run e2e` 26/26 (Full), `npm run e2e:lite` 20/20 (Lite), popup-shot and
   build OK. No Windows-specific fixes were needed.
 - Not yet verified: any real logged-in site, HiDPI screens.
 
@@ -21,7 +21,10 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Real-site results (Phase 1)
 | Date | Site | Edition | Result | Notes |
 | --- | --- | --- | --- | --- |
-| 2026-10-22 | DeepSeek chat | Full (stitch) | Pass after fix; Full render recapture pending | Recapture (build 1022-1739): stitch result clean, composer gone. Full render had given up: false "clipped 5103px" from a 0px overflow:hidden body around DeepSeek's absolute app layer; clip check now follows CSS containing blocks (fixture abs-shell). Earlier: stitch kept the composer on the first tile (fixed). |
+| 2026-10-22 | DeepSeek chat | Full | Pass (after 3 fixes) | Recapture (build 1022-1902): clean, composer gone, no scrollbar strip. Fixed: stitch kept floating UI on the first tile; false "clipped 5103px" from a 0px overflow:hidden body around the absolute app layer (fixture abs-shell). |
+| 2026-10-22 | YouTube watch page | Full | Pass (popup fix) | 1 PNG: player frame, description, 244 comments, recommendations column. Popup was widened by a long image URL in a warning (fixed). Slow on a heavy page (127 images), expected. |
+| 2026-10-22 | Google Colab notebook | Full | Pass (after fix) | 2 parts, all cells, outputs, tables and charts. "Hid 60 floating elements": Colab's own run buttons and toggles (shadow DOM) were wrongly hidden; fixed (fixture shadow-cells). |
+| 2026-10-22 | DevTools open (Miruro; ChatGPT share page with device toolbar) | Full | Pass | Full render still worked with DevTools docked (Chrome allows several debugger clients); captures match the emulated layout. TESTING.md expectation updated. |
 | 2026-10-22 | itch.io game page (Rulehouse) | Full | Pass | 2 parts, background art once at the top, comments and devlog complete, 1 folded section expanded. Honest note: some CSS assets unverified. |
 | 2026-10-22 | Higgsfield blog (Zombie dog prompts) | Full | Pass | 2 parts, 13 "show more" expanded, images and comments present, sticky table of contents once. |
 | 2026-10-22 | Reddit thread (r/cyberpunkgame) | Full | Pass | 1 PNG, post, comments (folded sections expanded), sidebars once, reCAPTCHA badge hidden. Honest notes: image time budget and audit limit reached. |

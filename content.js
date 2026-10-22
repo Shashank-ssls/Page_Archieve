@@ -521,6 +521,15 @@
     return found;
   }
 
+  // contains() across shadow roots: Colab's cells keep their run buttons in
+  // shadow DOM, which plain contains() reports as outside the panel.
+  function composedContains(ancestor, el) {
+    for (let n = el; n; n = n.parentNode || (n instanceof ShadowRoot ? n.host : null)) {
+      if (n === ancestor) return true;
+    }
+    return false;
+  }
+
   function rectsOverlap(a, b) {
     return !!a && !!b && a.right > b.x && a.left < b.x + b.w && a.bottom > b.y && a.top < b.y + b.h;
   }
@@ -538,8 +547,8 @@
         // Keep the selected scroller and any ancestor containing it. However,
         // fixed/sticky UI overlays outside the scroller (e.g. ChatGPT's composer)
         // can still overlap the crop and would otherwise repeat in every tile.
-        if (el === state.scroller || (typeof el.contains === 'function' && el.contains(state.scroller))) continue;
-        const isInsideScroller = state.scroller && state.scroller.contains(el);
+        if (el === state.scroller || composedContains(el, state.scroller)) continue;
+        const isInsideScroller = state.scroller && composedContains(state.scroller, el);
         let overlapsCrop = false;
         try { overlapsCrop = rectsOverlap(el.getBoundingClientRect(), crop); } catch (_) {}
         if (!isInsideScroller && !overlapsCrop) continue;
@@ -885,8 +894,8 @@
       const r = el.getBoundingClientRect();
       if (r.width < 1 || r.height < 1) continue;
       if (panelRect) {
-        if (el === state.scroller || el.contains(state.scroller)) continue;
-        if (state.scroller.contains(el)) {
+        if (el === state.scroller || composedContains(el, state.scroller)) continue;
+        if (composedContains(state.scroller, el)) {
           // Bars pinned to the bottom edge inside the panel itself (e.g.
           // ChatGPT's composer: a sticky bottom-0 wrapper inside the thread
           // scroller). Top-pinned headers are kept.

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Archive Test Fixture - Shadow DOM Notebook Cells</title>
+<style>
+  /* Like Google Colab (2026-10): notebook cells are custom elements whose run
+     buttons live in shadow roots, absolutely positioned. They are inside the
+     scroll panel (in the composed tree) and must NOT be hidden as floating
+     overlays. Lime so the harness can require them. */
+  html, body { margin: 0; height: 100%; overflow: hidden; font: 14px/1.5 system-ui, sans-serif; background: #222; }
+  .app { display: flex; flex-direction: column; height: 100vh; }
+  .top { height: 64px; flex: none; background: #333; }
+  .nb { flex: 1; overflow-y: auto; background: #1e1e1e; padding: 12px 24px; }
+  nb-cell { display: block; position: relative; margin: 10px 0 10px 40px; padding: 12px; min-height: 80px; background: #2a2a2a; color: #ddd; }
+</style>
+</head>
+<body>
+<div class="app"><div class="top"></div><main class="nb" id="nb"></main></div>
+<script>
+  customElements.define('nb-cell', class extends HTMLElement {
+    constructor() {
+      super();
+      const root = this.attachShadow({ mode: 'open' });
+      root.innerHTML = '<style>.run{position:absolute;left:-36px;top:8px;width:28px;height:28px;background:#00ff00}</style><div class="run"></div><slot></slot>';
+    }
+  });
+  const nb = document.getElementById('nb');
+  for (let i = 1; i <= 30; i++) { const c = document.createElement('nb-cell'); c.textContent = 'print(' + i + ')'; nb.append(c); }
+</script>
+</body>
+</html>
