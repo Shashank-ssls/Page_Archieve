@@ -72,7 +72,8 @@ test('ChatGPT preset uses the 2026-10 turn markers first and skips hidden thread
 
 test('panel pin hides paintless end spacers that grow with the viewport', () => {
   const pin = content.slice(content.indexOf('function renderPinPanel'), content.indexOf('function isBottomPinnedInPanel'));
-  assert.match(pin, /state\.endSpacersHidden = hideTrailingSpacers\(el\);/, 'spacers must be hidden before the content height is measured');
+  assert.match(pin, /const el = state\.scroller;\s*renderFreeEndSpacers\(\);/, 'spacers must be hidden before the content height is measured');
+  assert.match(content, /state\.endSpacersHidden = hideTrailingSpacers\(state\.scroller\);/);
   const walk = content.slice(content.indexOf('function hideTrailingSpacers'), content.indexOf('function renderPinPanel'));
   assert.match(walk, /if \(isPaintlessBox\(child\)\)/, 'only boxes that paint nothing may be hidden');
   assert.match(walk, /snapshotStyleOnce\(child, 'display'\)/, 'hidden spacers must be restored');
@@ -82,6 +83,13 @@ test('panel pin hides paintless end spacers that grow with the viewport', () => 
   assert.match(paint, /backgroundImage !== 'none'/);
   const suite = JSON.parse(fs.readFileSync(path.join(__dirname, 'e2e', 'suite.json'), 'utf8'));
   assert.ok(suite.some(c => c.name === 'end-spacer' && c.expect.maxTrailingBlank));
+  // Gemini: script-set inline min-height on the last turn is overridden by an
+  // !important rule, before the first viewport growth, and unmarked on restore.
+  assert.match(walk, /child\.style\.minHeight && !child\.hasAttribute\('data-page-archive-free-height'\)/);
+  assert.match(content, /\[data-page-archive-free-height\] \{ min-height: 0 !important; \}/);
+  assert.match(content, /PAC_RENDER_MEASURE'\) \{\s*if \(!state\)[^\n]*\n\s*renderFreeEndSpacers\(\);/);
+  assert.match(content, /el\.removeAttribute\('data-page-archive-free-height'\)/);
+  assert.ok(suite.some(c => c.name === 'end-min-height' && c.url.includes('gemini.google.com') && c.expect.maxTrailingBlank));
   assert.ok(fs.existsSync(path.join(__dirname, 'site-fixture', 'end-spacer.html')));
 });
 

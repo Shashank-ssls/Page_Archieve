@@ -84,7 +84,7 @@ const server = http.createServer((req, res) => {
 // chatgpt.com and chat.openai.com are HSTS-preloaded, so Chromium forces HTTPS
 // and a host-resolver mapping to the plain HTTP server cannot work. Serve them
 // from the fixture folder through request interception instead (offline).
-const HTTPS_FIXTURE_HOSTS = /^https:\/\/(chatgpt\.com|chat\.openai\.com)\//;
+const HTTPS_FIXTURE_HOSTS = /^https:\/\/(chatgpt\.com|chat\.openai\.com|gemini\.google\.com)\//;
 
 const headed = process.env.PAC_HEADED === '1';
 const results = [];

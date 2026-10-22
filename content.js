@@ -497,6 +497,7 @@
       * { caret-color: transparent !important; }
       * { transition-duration: 0s !important; transition-delay: 0s !important; }
       * { content-visibility: visible !important; }
+      [data-page-archive-free-height] { min-height: 0 !important; }
     `;
     (document.head || root).appendChild(style);
     state.tempStyle = style;
@@ -767,6 +768,11 @@
   // blank band. Hide paintless in-flow boxes after the last content, walking
   // only through wrappers that hold most of the panel. display:none rather than
   // min-height: the page rewrites min-height on resize.
+  // Gemini (2026-10) instead gives the last turn itself an inline min-height of
+  // "panel height minus 112px". A turn has content, so it is not hidden; its
+  // script-set inline min-height is overridden by an !important rule in the
+  // temporary stylesheet (a page script rewriting the inline value on resize
+  // cannot beat it). The marker attribute is removed on restore.
   function hideTrailingSpacers(scroller) {
     const contentH = Math.max(1, scroller.scrollHeight);
     let hidden = 0;
@@ -785,6 +791,11 @@
           }
           continue;
         }
+        if (child.style.minHeight && !child.hasAttribute('data-page-archive-free-height')) {
+          child.setAttribute('data-page-archive-free-height', '');
+          (state.freedHeights || (state.freedHeights = [])).push(child);
+          hidden++;
+        }
         if (child.getBoundingClientRect().height >= contentH * 0.5) next = child;
         break;
       }
@@ -793,10 +804,17 @@
     return hidden;
   }
 
+  // Once per capture, before the worker first grows the viewport.
+  function renderFreeEndSpacers() {
+    if (!state || state.endSpacersChecked || state.scrollerType !== 'inner' || !state.scroller || !state.scroller.isConnected) return;
+    state.endSpacersChecked = true;
+    state.endSpacersHidden = hideTrailingSpacers(state.scroller);
+  }
+
   function renderPinPanel() {
     if (!state || state.scrollerType !== 'inner' || !state.scroller || !state.scroller.isConnected) return false;
     const el = state.scroller;
-    state.endSpacersHidden = hideTrailingSpacers(el);
+    renderFreeEndSpacers();
     for (const p of ['height', 'max-height', 'min-height', 'overflow-y']) snapshotStyleOnce(el, p);
     // scrollHeight never reports less than the box height, so collapse the box
     // first to read the true content height (including padding).
@@ -1035,6 +1053,7 @@
     for (let i = previous.inlineSnapshots.length - 1; i >= 0; i--) {
       try { restoreStyle(previous.inlineSnapshots[i]); } catch (_) {}
     }
+    for (const el of previous.freedHeights || []) { try { el.removeAttribute('data-page-archive-free-height'); } catch (_) {} }
     try { if (previous.tempStyle && previous.tempStyle.isConnected) previous.tempStyle.remove(); } catch (_) {}
     for (const d of previous.openedDetails || []) { try { if (d.isConnected) d.open = false; } catch (_) {} }
     try {
@@ -1617,6 +1636,7 @@
       }
       if (message.type === 'PAC_RENDER_MEASURE') {
         if (!state) throw new Error('The page capture session is not active.');
+        renderFreeEndSpacers();
         return { ok: true, measure: renderMeasure() };
       }
       if (message.type === 'PAC_RENDER_VH_SNAPSHOT') {
