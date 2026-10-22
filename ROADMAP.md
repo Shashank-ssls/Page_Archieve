@@ -44,31 +44,9 @@ Goal: v2.3 works on the sites people actually use.
 
 Acceptance: every matrix row passes or has a documented, honest limitation.
 
-OWNER TASK before Phase 2: record a 20-second before/after clip of a long Claude
+OWNER TASK before the final phase: record a 20-second before/after clip of a long Claude
 or ChatGPT thread and post it (r/ChatGPT, r/ClaudeAI, X).
 GATE: 50+ upvotes or several "link?" replies. If not, revisit the pitch first.
-
----
-
-## Phase 2 - Store-ready free launch (1 week)
-
-Goal: Lite public on Chrome and Edge stores, Full available unlisted.
-
-- [x] Rename decision recorded: Tallshot (2026-10-22). "Page Archive" clashed with
-      a featured "Archive Page". User-visible names updated; internal ids kept.
-- [ ] (PRIVACY.md drafted 2026-10-22; web page pending) `PRIVACY.md` and a matching web page: local-only, the exact network calls,
-      what is stored locally, how to delete it.
-- [x] Permission justification text for each permission, for the store form (docs/store/permissions.md, draft).
-- [ ] (copy drafted in docs/store/listing.md; assets pending) Store listing copy (no competitor names), 5 screenshots at 1280x800, a
-      440x280 promo tile, all in the DESIGN.md style.
-- [x] One-time rating prompt after the 3rd successful capture, dismissible, never repeated.
-- [ ] Simple landing page (GitHub Pages is fine) in the DESIGN.md style, with the
-      before/after clip, install links and the privacy page.
-- [ ] (zips: `npm run package`; version bump at release) `npm run build` output zipped per edition; version 2.4.0.
-
-Acceptance: both zips pass the store's automated checks; listings ready to submit.
-GATE (2 to 3 weeks after publishing): 200 installs and at least 40% still active
-after one week (store dashboard). If not, stop and review positioning.
 
 ---
 
@@ -140,6 +118,32 @@ owner's laptop; the file plays on Android and in X/Instagram uploads [VERIFY ON 
       ($19 launch price for the first 500, then $29; about INR 499 regionally).
 - [ ] Launch posts: Product Hunt, Show HN, Indie Hackers, the subreddits.
 - [ ] Support email and FAQ live.
+
+---
+
+## Final phase - Store launch (was Phase 2; moved last by the owner, 2026-10-22)
+
+The owner held the store launch until the product is complete, so Phases 3-7
+run before it. Work already done here stays done. Phase 7 store and launch
+items are done together with this phase.
+
+Goal: Lite public on Chrome and Edge stores, Full available unlisted.
+
+- [x] Rename decision recorded: Tallshot (2026-10-22). "Page Archive" clashed with
+      a featured "Archive Page". User-visible names updated; internal ids kept.
+- [ ] (PRIVACY.md drafted 2026-10-22; web page pending) `PRIVACY.md` and a matching web page: local-only, the exact network calls,
+      what is stored locally, how to delete it.
+- [x] Permission justification text for each permission, for the store form (docs/store/permissions.md, draft).
+- [ ] (copy drafted in docs/store/listing.md; assets pending) Store listing copy (no competitor names), 5 screenshots at 1280x800, a
+      440x280 promo tile, all in the DESIGN.md style.
+- [x] One-time rating prompt after the 3rd successful capture, dismissible, never repeated.
+- [ ] Simple landing page (GitHub Pages is fine) in the DESIGN.md style, with the
+      before/after clip, install links and the privacy page.
+- [ ] (zips: `npm run package`; version bump at release) `npm run build` output zipped per edition; version 2.4.0.
+
+Acceptance: both zips pass the store's automated checks; listings ready to submit.
+GATE (2 to 3 weeks after publishing): 200 installs and at least 40% still active
+after one week (store dashboard). If not, stop and review positioning.
 
 ---
 

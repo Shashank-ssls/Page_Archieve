@@ -4,9 +4,9 @@ Update this at the end of every phase. Newest entries at the top of each section
 
 ## Current status
 - Version: 2.3.0 (on GitHub: Shashank-ssls/Page_Archieve, private)
-- Current phase: Phase 1 - Real-site validation (in progress, owner-assisted rows left)
-  and Phase 2 - Store-ready free launch (started early at the owner's request,
-  2026-10-22; only parts that do not depend on Phase 1 or the gate)
+- Current phase: Phase 1 done for Full (2026-10-22). Next: Phase 3 - Living PDF.
+  Store launch (old Phase 2) moved to the final phase by the owner; its finished
+  parts stay done. Lite real-site repeats deferred until Full is final.
 - Last green run (Windows, GEHRMAN_SPARROW, 2026-10-22): `npm run check` 116/116,
   `npm run e2e` 27/27 (Full), `npm run e2e:lite` 20/20 (Lite), popup-shot and
   build OK. No Windows-specific fixes were needed.
@@ -15,6 +15,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Phase log
 | Date | Phase | Result | Notes |
 | --- | --- | --- | --- |
+| 2026-10-22 | Phase 1 | Done (Full) | All Full rows pass after fixes; Lite rows deferred. Store launch moved to the final phase. Report: docs/sessions/2026-10-22-phase0-1.md |
 | 2026-10-22 | Phase 0 | Done | git init + .gitattributes (LF). Chromium in .local/ms-playwright, nothing written to C:. chrome-devtools MCP attached to the test Chrome (example.com screenshot). Pushed with plain git (no gh). |
 | 2026-10-22 | v2.3 delivered | Done | Editions, site presets, searchable PDF, auto-expand, naming. |
 
@@ -46,6 +47,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 | --- | --- | --- |
 | 2026-10-22 | Product name: Tallshot (Full edition "Tallshot Full", Lite "Tallshot") | "Page Archive" sat next to a featured "Archive Page"; "Stackshot" and "Unscroll" are taken. Only user-visible strings changed; storage keys, data attributes, folder and repo names stay |
 | 2026-10-22 | Lite real-site testing deferred to the end | Owner tests Lite once Full is final, to avoid repeat work. Lite still runs in the E2E harness |
+| 2026-10-22 | Store launch (old Phase 2) moved to the final phase | Owner wants to launch once, with the product complete. Phases 3-7 run first. The Phase 1 social-post gate and the install gate are deferred with it, so Pro is built before demand is measured |
 | 2026-10-22 | Claude Code reviews the store/privacy drafts against the code; owner signs off on facts only | Owner asked; texts verified line by line against manifest and storage keys |
 | 2026-10-22 | Small landing site (own public repo or Vercel), after the name is chosen | Owner: "we can make a small site"; main repo stays private |
 | 2026-10-22 | Start Phase 2 before Phase 1 is complete | Owner request; only store prep that does not depend on Phase 1 results or the Reddit gate |
