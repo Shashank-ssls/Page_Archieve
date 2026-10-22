@@ -12,8 +12,10 @@ let running = false;
 const defaults = { engine: 'auto', format: 'png', prepareImages: true, autoLoadMore: false, hideFloating: true, expandContent: true, nameTemplate: '{title}', folder: '', maxHeight: 200000, waitMs: 3500, captureTarget: 'auto' };
 let restrictedActiveTab = false;
 
+// Shared with the worker (url-policy.js): browser-internal pages and the
+// extension stores, which Chrome never lets extensions script.
 function isRestrictedBrowserUrl(url) {
-  return /^(chrome|edge|devtools|chrome-extension|view-source|about):/i.test(String(url || ''));
+  return typeof url === 'string' && url.length > 0 && PageArchiveUrlPolicy.isRestrictedUrl(url);
 }
 
 function updateTargetHint(url) {
@@ -24,7 +26,10 @@ function updateTargetHint(url) {
   // instead of offering an operation that is guaranteed to fail after injection.
   restrictedActiveTab = knownRestricted || urlHidden;
   const hint = $('context-hint');
-  if (knownRestricted) {
+  if (knownRestricted && PageArchiveUrlPolicy.isStorePage(url)) {
+    hint.textContent = 'Chrome doesn\u2019t let extensions into its store pages, so full-page capture is off here. Visible area PNG captures the current viewport only.';
+    hint.hidden = false;
+  } else if (knownRestricted) {
     hint.textContent = 'Browser pages can\u2019t be scrolled by extensions, so full-page capture is off here. Visible area PNG captures the current viewport only.';
     hint.hidden = false;
   } else if (urlHidden) {

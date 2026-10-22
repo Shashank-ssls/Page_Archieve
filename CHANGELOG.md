@@ -7,6 +7,10 @@
 
 # Unreleased - Phase 1 fixes
 
+- Fix (Lite and the stitch fallback): scroll-and-stitch kept chat composers, floating buttons and bottom bars on the first screen, drawn over content (seen on DeepSeek). It now runs the same hide rules as Full render on every tile. New E2E cases `chatgpt-composer-stitch`, `end-fab-stitch` run on both editions.
+- Fix: fixed badges floating up to 32 px above the bottom edge (reCAPTCHA's badge on Reddit, toasts) are hidden in document captures. Fixture `floating-badge.html`.
+- Fix: extension store pages (Chrome Web Store, Edge Add-ons) are treated like chrome:// pages: full-page capture is off up front with a clear hint, instead of a failed attempt and a confusing "Full render was unavailable" warning. The popup now uses the shared `url-policy.js`. Removed a doubled period in the inspection error.
+
 - Fix: Claude captures with an artifact open in split view ended in about 13,000 px of blank background. Claude ends the message list with an empty flex-grow spacer sized by script to "viewport minus the last turn"; Full render grows the viewport, so the spacer grew with it. Panel pinning now hides paintless in-flow boxes after the last content (display:none, restored afterwards). Fixture `end-spacer.html`, E2E case `end-spacer` with a new "trailing blank rows" pixel check.
 - Fix: Full render failed on Gemini ("The panel could not be fully exposed") and fell back to scroll-and-stitch. Gemini gives the last turn an inline min-height of "panel height minus 112px", so the panel always overflowed by the same amount however far the viewport grew. A script-set inline min-height on the last content box is now overridden by an !important rule in the temporary stylesheet (marker attribute removed on restore), applied before the first viewport growth. Fixture `end-spacer.html?last=1`, E2E case `end-min-height`; the harness now also serves gemini.google.com from fixtures.
 - Fix: panel captures now also hide button-sized (at most 120 px) absolute overlays outside the panel that overlap it, such as Gemini's "Scroll to bottom" button, which hangs from the input area over the panel's bottom edge.

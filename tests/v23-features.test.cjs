@@ -160,3 +160,20 @@ test('one-time review prompt: after the 3rd success, shown once, local link only
   assert.match(html, /<div id="rate" class="rate" hidden>/);
   assert.match(fs.readFileSync(path.join(root, 'PRIVACY.md'), 'utf8'), /Capture count and review flag/);
 });
+
+test('scroll-and-stitch hides floating UI on every tile, like Full render', () => {
+  assert.match(content, /state\.hideFloating = settings\.hideFloating !== false;/);
+  const tile = content.slice(content.indexOf("message.type === 'PAC_SET_TILE'"), content.indexOf('const imageAudit = await waitForVisibleImages', content.indexOf("message.type === 'PAC_SET_TILE'")));
+  assert.match(tile, /if \(state\.hideFloating && !state\.renderEngine\) renderHideFloating\(\);/, 'composers must not stay on the first tile');
+  assert.match(tile, /if \(Number\(message\.index\) > 0\) hidePinnedOnLaterTiles\(\);/);
+  const suite = JSON.parse(fs.readFileSync(path.join(__dirname, 'e2e', 'suite.json'), 'utf8'));
+  for (const name of ['chatgpt-composer-stitch', 'end-fab-stitch', 'floating-badge']) {
+    const c = suite.find(x => x.name === name);
+    assert.ok(c && c.expect.absentColor && c.lite !== false, `${name} must run on Lite too`);
+  }
+});
+
+test('document mode hides fixed badges floating just above the bottom edge', () => {
+  const hide = content.slice(content.indexOf('function renderHideFloating'), content.indexOf('// ---- Expand collapsed content'));
+  assert.match(hide, /const bottomAnchored = r\.bottom >= vh - 32 && r\.top > vh \* 0\.45 && r\.height < vh \* 0\.5;/);
+});

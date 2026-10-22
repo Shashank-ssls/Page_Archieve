@@ -468,7 +468,7 @@ async function runStitch(job, report) {
       job.contentReady = false;
     }
     if (job.cancel || /cancelled/i.test(errorText(error))) throw new Error('Capture cancelled.');
-    throw new Error(`Full-page capture could not inspect this tab: ${errorText(error).slice(0, 220)}. No image was exported. Try a regular http(s) webpage and reload the extension if necessary.`);
+    throw new Error(`Full-page capture could not inspect this tab: ${errorText(error).slice(0, 220).replace(/\.+$/, '')}. No image was exported. Try a regular http(s) webpage and reload the extension if necessary.`);
   }
 
   if (prepared.warnings) report.warnings.push(...prepared.warnings);
@@ -591,7 +591,7 @@ async function startCapture(tabId, mode, userSettings) {
   const tab = await getTab(tabId);
   const restrictedPage = URL_POLICY.isRestrictedUrl(tab.url);
   if (restrictedPage && mode !== 'visible') {
-    throw new Error('Full-page capture cannot inspect or scroll Chrome/Edge internal pages. Use Visible area for a viewport screenshot, or open a regular webpage for full-page capture.');
+    throw new Error('Full-page capture cannot inspect or scroll Chrome/Edge internal pages or extension store pages. Use Visible area for a viewport screenshot, or open a regular webpage for full-page capture.');
   }
   const settings = normalizeSettings(userSettings, tabId);
 

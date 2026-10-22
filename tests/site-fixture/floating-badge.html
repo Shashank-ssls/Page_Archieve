@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Archive Test Fixture - Floating Badge</title>
+<style>
+  /* A long document with a fixed badge floating 14px above the bottom-right
+     corner, like Google's reCAPTCHA badge on Reddit (2026-10). Magenta so the
+     harness can check it was hidden. */
+  body { margin: 0; font: 16px/1.6 system-ui, sans-serif; background: #f4f4f4; color: #222; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px; }
+  p { margin: 0 0 18px; }
+  .badge { position: fixed; right: 14px; bottom: 14px; width: 256px; height: 60px; background: #ff00ff; }
+</style>
+</head>
+<body>
+<main id="main"></main>
+<div class="badge"></div>
+<script>
+  const main = document.getElementById('main');
+  for (let i = 1; i <= 120; i++) { const p = document.createElement('p'); p.textContent = 'Paragraph ' + i + ' of a long article that scrolls well past one screen.'; main.append(p); }
+</script>
+</body>
+</html>

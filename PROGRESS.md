@@ -7,8 +7,8 @@ Update this at the end of every phase. Newest entries at the top of each section
 - Current phase: Phase 1 - Real-site validation (in progress, owner-assisted rows left)
   and Phase 2 - Store-ready free launch (started early at the owner's request,
   2026-10-22; only parts that do not depend on Phase 1 or the gate)
-- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-22): `npm run check` 109/109,
-  `npm run e2e` 21/21 (Full), `npm run e2e:lite` 16/16 (Lite), popup-shot and
+- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-22): `npm run check` 112/112,
+  `npm run e2e` 24/24 (Full), `npm run e2e:lite` 19/19 (Lite), popup-shot and
   build OK. No Windows-specific fixes were needed.
 - Not yet verified: any real logged-in site, HiDPI screens.
 
@@ -21,7 +21,9 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Real-site results (Phase 1)
 | Date | Site | Edition | Result | Notes |
 | --- | --- | --- | --- | --- |
-| 2026-10-22 | DeepSeek chat (no preset) | Full? | FAIL | Single PNG; the "Message DeepSeek" composer is drawn over the first answer near the top and hides about 2 lines. Needs the chat open in the test Chrome to inspect the DOM; then fixture + fix. Engine line not recorded. |
+| 2026-10-22 | DeepSeek chat (no preset) | Full (stitch) | Fixed, recapture pending | Composer drawn over the first answer. Live DOM: sticky bottom-0 composer inside the virtual-list scroller; Full render would hide it, so the capture came from scroll-and-stitch, which kept floating UI on the first tile. Stitch now applies the Full render hide rules on every tile (affects Lite on every chat site). |
+| 2026-10-22 | itch.io, Higgsfield, Reddit feed, Vercel article (probe only) | Full | Probe OK | Read-only probe in the test Chrome with a Full-render-like tall viewport: all converge (no endless growth), no viewport-sized spacers. Reddit reCAPTCHA badge and a Vercel toast float above the bottom edge: now hidden. Owner captures pending. |
+| 2026-10-22 | Chrome Web Store page | Full | Fixed | Capture attempt failed with a confusing double message; store pages are now blocked up front like chrome:// pages. |
 | 2026-10-22 | Perplexity | - | Skipped | Thread locked behind sign-in; owner has no account. |
 | 2026-10-22 | Gemini long thread with code (DPR 1.2) | Full | Pass (after 2 fixes) | First run: Full render failed (last turn's min-height = panel height - 112) and fell back to stitch with an honest warning. After fix (build 1022-1620): 3 parts, first message to last reply, no blank end. Remaining: "Scroll to bottom" button once at the end; fixed (build 1022-1635), recapture shows it gone. |
 | 2026-10-22 | Claude long thread, artifact open (DPR 1.2) | Full | Pass | Conversation only, all turns, composer hidden, header once, seams clean (3 PNG parts); PDF 3 pages, 1,161 runs, 0 unmapped (starts with Claude's hidden screen-reader hint, harmless). Second run had the Progress/Outputs side panel open: kept once at the top, overlaps no text (owner to decide if it should be hidden). With an artifact open (split view): chat column only, artifact excluded, all turns, but ~13,600 px blank at the end (Claude's end spacer is sized to the viewport); fixed; recapture (build 1022-1553) ends about 280 px below the last reply, 2 parts, artifact excluded. |
@@ -31,6 +33,9 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Decisions log
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-22 | Rename away from "Page Archive" (owner search found "Archive Page", featured, at the top) | Confusing next to a featured extension; candidates to check: Tallshot, Pagestack |
+| 2026-10-22 | Claude Code reviews the store/privacy drafts against the code; owner signs off on facts only | Owner asked; texts verified line by line against manifest and storage keys |
+| 2026-10-22 | Small landing site (own public repo or Vercel), after the name is chosen | Owner: "we can make a small site"; main repo stays private |
 | 2026-10-22 | Start Phase 2 before Phase 1 is complete | Owner request; only store prep that does not depend on Phase 1 results or the Reddit gate |
 | 2026-10-22 | Review prompt link built from the extension's own store id | No hard-coded URL to update after publishing; opens a tab only on click |
 | 2026-10-22 | Keep Claude's Progress/Outputs card in captures | Owner: it is on screen and covers no messages |

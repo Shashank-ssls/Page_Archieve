@@ -891,7 +891,9 @@
         }
       } else {
         if (cs.position !== 'fixed') continue;
-        const bottomAnchored = r.bottom >= vh - 4 && r.top > vh * 0.45 && r.height < vh * 0.5;
+        // Within 32px of the bottom: badges and chat bubbles float a little
+        // above the edge (reCAPTCHA's badge sits 14px up).
+        const bottomAnchored = r.bottom >= vh - 32 && r.top > vh * 0.45 && r.height < vh * 0.5;
         if (!bottomAnchored) continue;
       }
       snapshotStyleOnce(el, 'visibility');
@@ -1571,6 +1573,7 @@
         };
         const renderEngine = settings.engine === 'render';
         state.renderEngine = renderEngine;
+        state.hideFloating = settings.hideFloating !== false;
         prepareStyles();
         let expandWarning = null;
         if (settings.expandContent !== false) {
@@ -1620,6 +1623,13 @@
         setScroll(message.x, message.y);
         await waitForSettle(message.waitMs || 800);
         throwIfCancelled();
+        // Scroll-and-stitch (Lite, and the Full fallback) hides the same
+        // floating UI as Full render: chat composers inside or over the panel,
+        // floating buttons, bottom bars. Before this the first tile kept them,
+        // drawn over the first screen of content. Checked on every tile: a
+        // sticky bar near the end of a chat (ChatGPT's disclaimer) only pins
+        // to the panel bottom once the end scrolls into view.
+        if (state.hideFloating && !state.renderEngine) renderHideFloating();
         if (Number(message.index) > 0) hidePinnedOnLaterTiles();
         const imageAudit = await waitForVisibleImages(message.waitMs || 800);
         throwIfCancelled();
