@@ -126,6 +126,16 @@ function formatBytes(n) {
   return `${(n / 1024 / 1024).toFixed(1)}MB`;
 }
 
+// Built copies carry "2.3.0 build MMDD-HHMM <commit>" in version_name (set by
+// tools/build-editions.mjs); show it so a tester can confirm a reload took.
+function showBuildStamp() {
+  const name = String(chrome.runtime.getManifest().version_name || '');
+  const m = name.match(/\bbuild (.+)$/);
+  if (!m) return;
+  $('build').textContent = `Build ${m[1]}`;
+  $('build').hidden = false;
+}
+
 // Splits a file name into [head, tail] for middle truncation. The tail is the
 // "_part-NN-of-NN.ext" suffix when present, else the last 12 characters.
 function splitFileName(filename) {
@@ -295,6 +305,7 @@ chrome.runtime.onMessage.addListener(message => {
   $('expand-content').checked = settings.expandContent !== false;
   $('name-template').value = settings.nameTemplate || '{title}';
   $('folder').value = settings.folder || '';
+  showBuildStamp();
   if (!IS_FULL_EDITION) {
     $('engine-row').hidden = true;
     const ver = document.querySelector('.ver');

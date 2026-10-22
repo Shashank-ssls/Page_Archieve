@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.resolve(process.argv[2] || path.join(root, 'dist'));
@@ -18,10 +19,30 @@ function copyRuntime(dest) {
   for (const item of RUNTIME) fs.cpSync(path.join(root, item), path.join(dest, item), { recursive: true });
 }
 
+// Build stamp: local build time plus git commit ("*" = uncommitted changes).
+// Shown on chrome://extensions (version_name) and in the popup footer, so a
+// tester can confirm the loaded extension is the latest build after a reload.
+export function buildStamp(now = new Date(), commit = gitCommit()) {
+  const p = n => String(n).padStart(2, '0');
+  const time = `${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}`;
+  return commit ? `${time} ${commit}` : time;
+}
+function gitCommit() {
+  try {
+    const opts = { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] };
+    const hash = execFileSync('git', ['rev-parse', '--short', 'HEAD'], opts).toString().trim();
+    const dirty = execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], opts).toString().trim() !== '';
+    return hash + (dirty ? '*' : '');
+  } catch (_) { return ''; }
+}
+
 const base = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
+const stamp = buildStamp();
+base.version_name = `${base.version} build ${stamp}`;
 
 const fullDir = path.join(out, 'full');
 copyRuntime(fullDir);
+fs.writeFileSync(path.join(fullDir, 'manifest.json'), JSON.stringify(base, null, 2));
 
 const liteDir = path.join(out, 'lite');
 copyRuntime(liteDir);
@@ -34,4 +55,4 @@ fs.rmSync(path.join(liteDir, 'cdp.js'));
 // The worker imports cdp.js; Lite ships a stub that reports the API as unavailable.
 fs.writeFileSync(path.join(liteDir, 'cdp.js'), "/* Lite edition: no debugger engine. */\n(function (root) { 'use strict'; class Session { static available() { return false; } } root.PageArchiveCdp = { Session }; })(globalThis);\n");
 
-console.log(`Built:\n  ${fullDir}\n  ${liteDir}`);
+console.log(`Built (build ${stamp}):\n  ${fullDir}\n  ${liteDir}`);

@@ -62,6 +62,13 @@ In that window: log in to ChatGPT, Claude, Gemini, Notion; open
 later `dist\lite`). Chrome only allows remote debugging on a non-default
 profile, which is why this profile exists.
 
+Confirming a reload: every `npm run build` stamps the built copies with the
+build time and git commit, e.g. `Build 1022-1301 4f2c9ab`. After clicking the
+reload arrow on `chrome://extensions`, the popup footer (and the version line on
+`chrome://extensions`) must show the stamp Claude Code reported for the latest
+build. A trailing `*` means the build included uncommitted changes. If the
+stamp is older, the extension did not reload: click reload again.
+
 Claude Code then attaches with the Chrome DevTools MCP (configured with
 `--browser-url=http://127.0.0.1:9222`, see SETUP_CLAUDE_CODE.md) to navigate,
 screenshot and read console errors. [VERIFY ON FIRST RUN] whether the MCP's own

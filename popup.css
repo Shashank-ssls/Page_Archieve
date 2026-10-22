@@ -231,6 +231,7 @@ select:hover { box-shadow: 2px 2px 0 var(--shadow); }
 .line-btn:hover { background: var(--ink); color: var(--paper); }
 .line-btn.danger:hover { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 
+.build { margin: 6px 0 0; padding: 0 2px; text-align: right; font: 900 11px/1 "Doto", monospace; color: var(--muted); }
 footer { display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); padding: 0 2px; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

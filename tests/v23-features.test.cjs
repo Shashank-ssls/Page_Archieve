@@ -105,3 +105,16 @@ test('popup file rows truncate in the middle and never widen the popup', () => {
   // A height cap with hidden scrollbars cut the last warning mid-sentence.
   assert.doesNotMatch(css.match(/\n\.warnings \{[^}]*\}/)[0], /max-height/);
 });
+
+test('built editions carry a build stamp the popup shows, so testers can confirm a reload', () => {
+  const build = fs.readFileSync(path.join(root, 'tools', 'build-editions.mjs'), 'utf8');
+  const popupJs = fs.readFileSync(path.join(root, 'popup.js'), 'utf8');
+  const html = fs.readFileSync(path.join(root, 'popup.html'), 'utf8');
+  assert.match(build, /base\.version_name = `\$\{base\.version\} build \$\{stamp\}`;/);
+  assert.match(build, /\['rev-parse', '--short', 'HEAD'\]/);
+  // The source manifest stays clean; only built copies are stamped.
+  assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8')).version_name, undefined);
+  assert.match(html, /<p class="build" id="build" hidden><\/p>/);
+  assert.match(popupJs, /chrome\.runtime\.getManifest\(\)\.version_name/);
+  assert.match(popupJs, /\$\('build'\)\.hidden = false;/);
+});
