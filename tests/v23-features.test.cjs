@@ -145,3 +145,18 @@ test('built editions carry a build stamp the popup shows, so testers can confirm
   assert.match(popupJs, /chrome\.runtime\.getManifest\(\)\.version_name/);
   assert.match(popupJs, /\$\('build'\)\.hidden = false;/);
 });
+
+test('one-time review prompt: after the 3rd success, shown once, local link only', () => {
+  const popup = fs.readFileSync(path.join(root, 'popup.js'), 'utf8');
+  const background = fs.readFileSync(path.join(root, 'background.js'), 'utf8');
+  const html = fs.readFileSync(path.join(root, 'popup.html'), 'utf8');
+  assert.match(background, /if \(phase === 'done'\) \{\s*chrome\.storage\.local\.get\('pageArchiveCaptureCount'\)/);
+  assert.match(popup, /const RATE_AFTER = 3;/);
+  const fn = popup.slice(popup.indexOf('async function maybeShowRating'), popup.indexOf("$('rate-yes')"));
+  assert.match(fn, /if \(s\.pageArchiveRatingAsked \|\| \(Number\(s\.pageArchiveCaptureCount\) \|\| 0\) < RATE_AFTER\) return;/);
+  assert.ok(fn.indexOf('pageArchiveRatingAsked: true') < fn.indexOf("$('rate').hidden = false"), 'marked as asked before it is shown');
+  assert.match(popup, /chromewebstore\.google\.com\/detail\/\$\{id\}\/reviews/);
+  assert.match(popup, /if \(phase === 'done'\) maybeShowRating\(\);/);
+  assert.match(html, /<div id="rate" class="rate" hidden>/);
+  assert.match(fs.readFileSync(path.join(root, 'PRIVACY.md'), 'utf8'), /Capture count and review flag/);
+});

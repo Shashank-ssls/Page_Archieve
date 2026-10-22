@@ -78,6 +78,14 @@ for (const scheme of ['light', 'dark']) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   if (overflow > 0) console.warn(`${scheme}: popup content is ${overflow}px wider than the 372px popup (horizontal overflow).`);
   await page.screenshot({ path: path.join(OUT, `${edition}-${scheme}-4-busy.png`), fullPage: true });
+  // The one-time review prompt under a finished capture.
+  await page.evaluate(() => {
+    // eslint-disable-next-line no-undef
+    renderProgress({ phase: 'done', percent: 100, message: 'PNG saved.', engineLabel: 'Full render', files: [{ filename: 'History of the Internet - Wikipedia.png', bytes: 3100000 }], warnings: [] });
+    document.getElementById('rate').hidden = false;
+  });
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: path.join(OUT, `${edition}-${scheme}-5-rate.png`), fullPage: true });
 }
 await ctx.close();
 console.log(`Popup screenshots written to ${OUT}`);

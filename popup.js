@@ -136,6 +136,29 @@ function showBuildStamp() {
   $('build').hidden = false;
 }
 
+// One-time review prompt (ROADMAP Phase 2): after the 3rd successful capture,
+// shown once ever. It is marked as asked when it first appears, so closing the
+// popup also dismisses it. The link uses this extension's own store id; it
+// only opens a tab when the user clicks.
+const RATE_AFTER = 3;
+function reviewUrl() {
+  const id = chrome.runtime.id;
+  return /\bEdg\//.test(navigator.userAgent)
+    ? `https://microsoftedge.microsoft.com/addons/detail/${id}`
+    : `https://chromewebstore.google.com/detail/${id}/reviews`;
+}
+async function maybeShowRating() {
+  const s = await chrome.storage.local.get(['pageArchiveCaptureCount', 'pageArchiveRatingAsked']).catch(() => ({}));
+  if (s.pageArchiveRatingAsked || (Number(s.pageArchiveCaptureCount) || 0) < RATE_AFTER) return;
+  await chrome.storage.local.set({ pageArchiveRatingAsked: true }).catch(() => {});
+  $('rate').hidden = false;
+}
+$('rate-yes').addEventListener('click', () => {
+  chrome.tabs.create({ url: reviewUrl() }).catch(() => {});
+  $('rate').hidden = true;
+});
+$('rate-no').addEventListener('click', () => { $('rate').hidden = true; });
+
 // Splits a file name into [head, tail] for middle truncation. The tail is the
 // "_part-NN-of-NN.ext" suffix when present, else the last 12 characters.
 function splitFileName(filename) {
@@ -203,6 +226,7 @@ function renderProgress(message) {
   if (message.warnings) renderWarnings(message.warnings);
   renderFiles(phase === 'done' ? message.files : []);
   folderButton.hidden = phase !== 'done';
+  if (phase === 'done') maybeShowRating();
 }
 
 async function activeTab() {

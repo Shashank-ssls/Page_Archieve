@@ -56,15 +56,15 @@ Goal: Lite public on Chrome and Edge stores, Full available unlisted.
 
 - [ ] Rename decision recorded (owner checks "Page Archive" against store and
       trademark search; update names everywhere if it changes).
-- [ ] `PRIVACY.md` and a matching web page: local-only, the exact network calls,
+- [ ] (PRIVACY.md drafted 2026-10-22; web page pending) `PRIVACY.md` and a matching web page: local-only, the exact network calls,
       what is stored locally, how to delete it.
-- [ ] Permission justification text for each permission, for the store form.
-- [ ] Store listing copy (no competitor names), 5 screenshots at 1280x800, a
+- [x] Permission justification text for each permission, for the store form (docs/store/permissions.md, draft).
+- [ ] (copy drafted in docs/store/listing.md; assets pending) Store listing copy (no competitor names), 5 screenshots at 1280x800, a
       440x280 promo tile, all in the DESIGN.md style.
-- [ ] One-time rating prompt after the 3rd successful capture, dismissible, never repeated.
+- [x] One-time rating prompt after the 3rd successful capture, dismissible, never repeated.
 - [ ] Simple landing page (GitHub Pages is fine) in the DESIGN.md style, with the
       before/after clip, install links and the privacy page.
-- [ ] `npm run build` output zipped per edition; version 2.4.0.
+- [ ] (zips: `npm run package`; version bump at release) `npm run build` output zipped per edition; version 2.4.0.
 
 Acceptance: both zips pass the store's automated checks; listings ready to submit.
 GATE (2 to 3 weeks after publishing): 200 installs and at least 40% still active

@@ -1,3 +1,10 @@
+# Unreleased - Phase 2 store preparation (started early)
+
+- New: `PRIVACY.md` (draft): no network requests, exactly what is stored locally, permissions, how to delete.
+- New: `docs/store/permissions.md` (single purpose, permission justifications, data-usage answers) and `docs/store/listing.md` (Lite and Full listing copy, screenshot list). Drafts.
+- New: `npm run package` builds and zips each edition (`dist/page-archive-<edition>-<version>.zip`) with a dependency-free ZIP writer; the testing build stamp is left out of store zips.
+- New: one-time review prompt. After the 3rd successful capture the result card shows a short note with "Leave a review" and "No thanks"; it is marked as shown the first time it appears and never repeats. The link is built from the extension's own id (Chrome Web Store, or Edge Add-ons in Edge) and only opens a tab on click. Stores a local success counter.
+
 # Unreleased - Phase 1 fixes
 
 - Fix: Claude captures with an artifact open in split view ended in about 13,000 px of blank background. Claude ends the message list with an empty flex-grow spacer sized by script to "viewport minus the last turn"; Full render grows the viewport, so the spacer grew with it. Panel pinning now hides paintless in-flow boxes after the last content (display:none, restored afterwards). Fixture `end-spacer.html`, E2E case `end-spacer` with a new "trailing blank rows" pixel check.

@@ -37,6 +37,13 @@ function progress(tabId, phase, percent, message, extra = {}) {
   // Persist status so a closed action popup cannot erase the error that explains
   // why a capture failed. Store no page contents or screenshot data here.
   chrome.storage.local.set({ pageArchiveLastProgress: snapshot }).catch(() => {});
+  // A plain counter of successful captures, read by the popup's one-time
+  // review prompt. Local only.
+  if (phase === 'done') {
+    chrome.storage.local.get('pageArchiveCaptureCount')
+      .then(s => chrome.storage.local.set({ pageArchiveCaptureCount: (Number(s.pageArchiveCaptureCount) || 0) + 1 }))
+      .catch(() => {});
+  }
   if (phase === 'error') console.error('[Page Archive Capture]', message, extra.warnings || []);
   chrome.action.setBadgeBackgroundColor({ tabId, color: phase === 'error' ? '#c2410c' : phase === 'done' ? '#1c1a16' : '#ff6b1a' }).catch(() => {});
   chrome.action.setBadgeText({ tabId, text: phase === 'done' ? 'OK' : phase === 'error' ? '!' : phase === 'cancelled' ? '' : `${bounded}%` }).catch(() => {});
