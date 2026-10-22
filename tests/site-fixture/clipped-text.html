@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Archive Test Fixture - Clipped Text Over Blank Gaps</title>
+<style>
+  /* Collapsed message boxes (Claude's "Show more" with Expand off): each box
+     clips 40 lines to 60px, and the hidden lines lie over a blank gap. The
+     render paint check must not count clipped lines as unpainted text, or the
+     capture would fall back to scroll-and-stitch for nothing. */
+  body { margin: 0; padding: 24px; background: #1b1b1b; color: #eee; font: 15px/1.5 system-ui, sans-serif; }
+  .box { max-height: 60px; overflow: hidden; background: #2d2d2d; padding: 8px; margin-bottom: 700px; }
+</style>
+</head>
+<body>
+<script>
+  for (let b = 1; b <= 6; b++) {
+    const box = document.createElement('div'); box.className = 'box';
+    for (let i = 1; i <= 40; i++) { const p = document.createElement('div'); p.textContent = `Box ${b} line ${i} of a long collapsed message`; box.append(p); }
+    document.body.append(box);
+  }
+  const end = document.createElement('p'); end.textContent = 'END OF CLIPPED TEXT FIXTURE'; document.body.append(end);
+</script>
+</body>
+</html>

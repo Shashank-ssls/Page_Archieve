@@ -307,6 +307,75 @@
     return parts.findIndex(p => py >= p.y && py < p.y + p.h && px >= p.x && px < p.x + p.w);
   }
 
+  // PDF pages in a readable proportion (height = width x ratio, A4 by default)
+  // instead of 14000 px strips. Each break moves up, by at most 30% of a page,
+  // to the nearest y that crosses no text line, so no line is cut in half.
+  // lines: [[top, height], ...] in capture CSS px. Too-wide captures keep the
+  // plain grid of buildParts.
+  function pdfPageParts(pageWidthCss, pageHeightCss, scale, lines, maxDimensionPx, maxPixels, ratio = 1.414) {
+    if (!(pageWidthCss > 0) || !(pageHeightCss > 0)) return [];
+    const size = partSize(pageWidthCss, pageHeightCss, scale, maxDimensionPx, maxPixels);
+    if (size.width < pageWidthCss) return buildParts(pageWidthCss, pageHeightCss, scale, maxDimensionPx, maxPixels);
+    const target = Math.max(200, Math.min(size.height, Math.round(pageWidthCss * ratio)));
+    const merged = [];
+    (lines || [])
+      .map(l => [Number(l[0]) - 1, Number(l[0]) + Number(l[1]) + 1])
+      .filter(l => Number.isFinite(l[0]) && Number.isFinite(l[1]) && l[1] > l[0])
+      .sort((a, b) => a[0] - b[0])
+      .forEach(l => {
+        const last = merged[merged.length - 1];
+        if (last && l[0] < last[1]) last[1] = Math.max(last[1], l[1]);
+        else merged.push(l);
+      });
+    // Merged interval containing y strictly inside, or null.
+    const inside = y => {
+      let lo = 0, hi = merged.length - 1;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (merged[mid][1] <= y) lo = mid + 1;
+        else if (merged[mid][0] >= y) hi = mid - 1;
+        else return merged[mid];
+      }
+      return null;
+    };
+    const out = [];
+    for (let y = 0, row = 0; y < pageHeightCss; row++) {
+      let h = Math.min(target, pageHeightCss - y);
+      // Fold a sliver (under 15% of a page) into this page instead of a page of its own.
+      if (pageHeightCss - y - h < target * 0.15 && pageHeightCss - y <= size.height) h = pageHeightCss - y;
+      if (y + h < pageHeightCss) {
+        const hit = inside(y + h);
+        if (hit && hit[0] - y >= target * 0.7) h = Math.floor(hit[0] - y);
+      }
+      out.push({ x: 0, y, w: pageWidthCss, h, row, col: 0 });
+      y += h;
+    }
+    return out;
+  }
+
+  // Paint check for one render screenshot. rowPlain[i] is 1 when device row i
+  // of the screenshot is a single flat colour; bands are [top, bottom] CSS px
+  // within the chunk where the DOM has visible text; scale = device px per CSS
+  // px. A text band whose rows are (almost) all flat was not painted. Chrome
+  // can return a tall chunk before it has rastered all of it (Claude, 2026-10:
+  // 6,100 blank rows ending exactly at the chunk edge).
+  function unpaintedInk(rowPlain, bands, scale) {
+    const s = Number(scale) > 0 ? Number(scale) : 1;
+    const rows = rowPlain ? rowPlain.length : 0;
+    let missingBands = 0, missingPx = 0, checked = 0;
+    for (const [top, bottom] of bands || []) {
+      // Skip 2 CSS px at each edge: antialiasing and rounding at band borders.
+      const y0 = Math.max(0, Math.ceil((top + 2) * s));
+      const y1 = Math.min(rows, Math.floor((bottom - 2) * s));
+      if (y1 - y0 < 2) continue;
+      checked++;
+      let plain = 0;
+      for (let y = y0; y < y1; y++) plain += rowPlain[y] ? 1 : 0;
+      if (plain >= (y1 - y0) * 0.95) { missingBands++; missingPx += (y1 - y0) / s; }
+    }
+    return { checked, missingBands, missingPx: Math.round(missingPx), unpainted: missingBands >= 3 || missingPx >= 150 };
+  }
+
   // ---- Render engine planning ------------------------------------------------
   // Height of one render chunk in CSS px so each screenshot stays well inside
   // GPU texture limits (16384 device px) on HiDPI screens.
@@ -363,7 +432,7 @@
     return Math.max(1, Math.min(width, 16000));
   }
 
-  const api = { applyNameTemplate, safeFolder, asciiFilename, renderChunkHeight, renderChunks, panelGrowthNeeded, panelFullyExposed, renderDocumentWidth, rootPageSize, anchorCorrection, isHeavilyClippedPanel, shouldUseInnerScroller, axisPositions, safeTileDriftTolerance, adjustedFinalPanelHeight, intersectRect, partSize, filenameBase, buildParts, partAt, validateTileCoverage, tileDrawMapping };
+  const api = { applyNameTemplate, safeFolder, asciiFilename, renderChunkHeight, renderChunks, panelGrowthNeeded, panelFullyExposed, renderDocumentWidth, rootPageSize, anchorCorrection, isHeavilyClippedPanel, shouldUseInnerScroller, axisPositions, safeTileDriftTolerance, adjustedFinalPanelHeight, intersectRect, partSize, filenameBase, buildParts, pdfPageParts, partAt, unpaintedInk, validateTileCoverage, tileDrawMapping };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.PageArchiveGeometry = api;
 })(globalThis);

@@ -121,10 +121,18 @@
   // Cover page (US Letter) with visible text in the standard Helvetica/Courier
   // fonts. Those fonts are WinAnsi only, so non-ASCII characters show as "?";
   // the outline and the text layer keep full Unicode.
+  // Returns one content stream per cover page: the hash list continues on
+  // further pages rather than being cut short.
   function coverOps(cover, pageCount, H) {
+    const pages = [];
     let y = H - 72;
     let ops = '0.1 0.1 0.1 rg\n';
     const line = (font, size, text, gap) => {
+      if (y < 72) {
+        pages.push(ops);
+        ops = '0.1 0.1 0.1 rg\n';
+        y = H - 72;
+      }
       ops += `BT /${font} ${size} Tf 72 ${num(y)} Td ${asciiLit(text)} Tj ET\n`;
       y -= gap || size * 1.5;
     };
@@ -137,15 +145,14 @@
     line('FH', 9, 'CAPTURED');
     line('FC', 9, cover.captured || '-', 12);
     y -= 10;
-    line('FH', 9, `PAGES AFTER THIS COVER: ${pageCount}`, 24);
-    const hashes = Array.isArray(cover.hashes) ? cover.hashes : [];
+    line('FH', 9, `CAPTURED PAGES (after the cover): ${pageCount}`, 24);
+    const hashes = (Array.isArray(cover.hashes) ? cover.hashes : []).slice(0, 5000);
     if (hashes.length) {
       line('FH', 9, 'SHA-256 OF EACH PAGE IMAGE (the JPEG bytes embedded on that page)');
-      const shown = hashes.slice(0, 40);
-      shown.forEach((h, i) => line('FC', 8, `${String(i + 1).padStart(3, ' ')}  ${String(h).replace(/[^0-9a-f]/gi, '').slice(0, 64)}`, 11));
-      if (hashes.length > shown.length) line('FC', 8, `... ${hashes.length - shown.length} more not listed`, 11);
+      hashes.forEach((h, i) => line('FC', 8, `${String(i + 1).padStart(4, ' ')}  ${String(h).replace(/[^0-9a-f]/gi, '').slice(0, 64)}`, 11));
     }
-    return ops;
+    pages.push(ops);
+    return pages;
   }
 
   /**
@@ -190,7 +197,11 @@
     // Object ids: 1 catalog, 2 pages, 3 info, then allocated in writing order.
     let nextId = 4;
     const cover = meta.cover && typeof meta.cover === 'object' ? meta.cover : null;
-    const coverIds = cover ? { page: nextId++, content: nextId++, fonts: [nextId++, nextId++, nextId++] } : null;
+    const coverStreams = cover ? coverOps(cover, pages.length, 792) : [];
+    const coverIds = cover ? {
+      pages: coverStreams.map(() => { const id = nextId; nextId += 2; return id; }), // page, content
+      fonts: [nextId++, nextId++, nextId++]
+    } : null;
     const pageIds = pages.map(() => { const id = nextId; nextId += 3; return id; }); // page, content, image
     const hasText = pages.some(p => Array.isArray(p.text) && p.text.length);
     const fontId = hasText ? nextId : 0;
@@ -201,18 +212,19 @@
     const outlineRoot = outline.length ? nextId++ : 0;
     const outlineIds = outline.map(() => nextId++);
     const total = nextId;
-    const kids = [...(coverIds ? [coverIds.page] : []), ...pageIds];
+    const kids = [...(coverIds ? coverIds.pages : []), ...pageIds];
 
     startObj(1); push(`<< /Type /Catalog /Pages 2 0 R${outlineRoot ? ` /Outlines ${outlineRoot} 0 R /PageMode /UseOutlines` : ''} >>\nendobj\n`);
     startObj(2); push(`<< /Type /Pages /Count ${kids.length} /Kids [${kids.map(id => `${id} 0 R`).join(' ')}] >>\nendobj\n`);
-    const esc = s => String(s || '').replace(/[^\x20-\x7E]/g, '?').replace(/([\\()])/g, '\\$1').slice(0, 200);
-    startObj(3); push(`<< /Title (${esc(meta.title)}) /Producer (Tallshot) /Subject (${esc(meta.subject)}) >>\nendobj\n`);
+    startObj(3); push(`<< /Title ${asciiLit(meta.title, 200)} /Producer (Tallshot) /Subject ${asciiLit(meta.subject, 200)} >>\nendobj\n`);
 
     if (coverIds) {
       const [fh, fb, fc] = coverIds.fonts;
-      startObj(coverIds.page);
-      push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /FH ${fh} 0 R /FB ${fb} 0 R /FC ${fc} 0 R >> >> /Contents ${coverIds.content} 0 R >>\nendobj\n`);
-      writeStream(coverIds.content, coverOps(cover, pages.length, 792));
+      coverIds.pages.forEach((id, i) => {
+        startObj(id);
+        push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /FH ${fh} 0 R /FB ${fb} 0 R /FC ${fc} 0 R >> >> /Contents ${id + 1} 0 R >>\nendobj\n`);
+        writeStream(id + 1, coverStreams[i]);
+      });
       [[fh, 'Helvetica'], [fb, 'Helvetica-Bold'], [fc, 'Courier']].forEach(([id, name]) => {
         startObj(id); push(`<< /Type /Font /Subtype /Type1 /BaseFont /${name} /Encoding /WinAnsiEncoding >>\nendobj\n`);
       });

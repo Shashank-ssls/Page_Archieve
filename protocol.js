@@ -13,7 +13,9 @@
     'PAC_RENDER_SETTLE',
     'PAC_RENDER_VH_SNAPSHOT',
     'PAC_RENDER_VH_PIN',
-    'PAC_COLLECT_TEXT'
+    'PAC_COLLECT_TEXT',
+    'PAC_INK_BANDS',
+    'PAC_RENDER_TRIM_END'
   ]);
   const stitcherCommands = new Set([
     'PAC_PING',

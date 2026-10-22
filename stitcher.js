@@ -380,12 +380,15 @@
       throw new Error(`Capture incomplete: screenshot tile validation failed (${validation.reason}). Nothing was exported.`);
     }
 
-    const parts = G.buildParts(width, height, scale, MAX_DIMENSION_PX, MAX_PART_PIXELS);
+    const format = FORMATS.includes(message.format) ? message.format : 'png';
+    // PDFs get readable pages broken between text lines; images keep the largest parts.
+    const parts = format === 'pdf'
+      ? G.pdfPageParts(width, height, scale, (textRuns.get(message.captureId) || []).map(r => [r[1], r[3]]), MAX_DIMENSION_PX, MAX_PART_PIXELS)
+      : G.buildParts(width, height, scale, MAX_DIMENSION_PX, MAX_PART_PIXELS);
     if (!parts.length) throw new Error('Could not create output PNG dimensions.');
     const baseName = G.filenameBase(message.baseName, 'page-capture');
     const folder = G.safeFolder(message.folder || '');
     const withFolder = name => folder ? `${folder}/${name}` : name;
-    const format = FORMATS.includes(message.format) ? message.format : 'png';
     const results = [];
     const pdfPages = [];
     const warnings = [...(session.warnings || [])];

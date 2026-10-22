@@ -37,6 +37,16 @@
     t.textContent = (i % 2 ? 'User asks question ' : 'Claude answers with sentence number ') + i;
     list.append(t); lastTurn = t;
   }
+  if (/[?&]doc=1/.test(location.search)) {
+    // Claude captured with Target = Document (2026-10): the document itself
+    // scrolls and the spacer below is sized to the window, so every growth
+    // round added the whole thread again (12 blank PDF pages at Max height).
+    document.documentElement.style.cssText = 'height:auto;overflow:visible';
+    document.body.style.cssText = 'height:auto;overflow:visible';
+    document.querySelector('.app').style.height = 'auto';
+    document.querySelector('.chat').style.overflow = 'visible';
+    side.style.display = 'none';
+  }
   let size = () => {};
   if (/[?&]pad=1/.test(location.search)) {
     // Notion (2026-10): no spacer; the page column has an inline

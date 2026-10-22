@@ -1008,6 +1008,30 @@
     return { details, clamps, clicks };
   }
 
+  // Vertical clip [top, bottom] that overflow ancestors apply to an element,
+  // memoised per call site. Text in a collapsed "Show more" box still has
+  // rects below the box; they never paint, so they are neither ink, nor
+  // searchable PDF text, nor clickable.
+  function makeClipper() {
+    const clips = new WeakMap();
+    const clipOf = el => {
+      if (!el || el === document.documentElement) return [-Infinity, Infinity];
+      if (clips.has(el)) return clips.get(el);
+      const parent = el.parentElement || (el.getRootNode && el.getRootNode().host) || null;
+      let clip = clipOf(parent);
+      try {
+        const cs = getComputedStyle(el);
+        if (cs.overflowY !== 'visible' || cs.overflowX !== 'visible') {
+          const r = el.getBoundingClientRect();
+          clip = [Math.max(clip[0], r.top), Math.min(clip[1], r.bottom)];
+        }
+      } catch (_) {}
+      clips.set(el, clip);
+      return clip;
+    };
+    return clipOf;
+  }
+
   // ---- Text layer, links and outline ------------------------------------------
   // Collect visible text as positioned runs (one per word group on a line) so
   // the PDF can carry an invisible, searchable/selectable text layer, plus link
@@ -1030,6 +1054,8 @@
       return null;
     };
     let lastTurn = null;
+    const clipOf = makeClipper();
+    const shown = (r, clip) => r.top >= clip[0] - 1 && r.bottom <= clip[1] + 1;
     let words = 0;
     const range = document.createRange();
     const visible = new WeakMap();
@@ -1069,7 +1095,7 @@
           const rects = range.getClientRects();
           if (!rects.length) continue;
           const r = rects[0];
-          if (r.width <= 0 || r.height <= 0) continue;
+          if (r.width <= 0 || r.height <= 0 || !shown(r, clipOf(parent))) continue;
           if (line && Math.abs(r.top - line.y) < 1 && r.left >= line.x + line.w - 1 && r.left - (line.x + line.w) < fontPx * 1.5) {
             line.text += ' ' + m[0];
             line.w = r.right - line.x;
@@ -1101,7 +1127,8 @@
           dest = target && firstRect(target);
           if (!dest) return;
         } else if (!/^(https?:|mailto:)/i.test(abs)) return;
-        const rects = Array.from(el.getClientRects()).filter(r => r.width > 0 && r.height > 0).slice(0, 8);
+        const clip = clipOf(el);
+        const rects = Array.from(el.getClientRects()).filter(r => r.width > 0 && r.height > 0 && shown(r, clip)).slice(0, 8);
         for (const r of rects) links.push(dest ? [r.left, r.top, r.width, r.height, '', dest.left, dest.top] : [r.left, r.top, r.width, r.height, abs]);
         return;
       }
@@ -1121,6 +1148,76 @@
         if (text) headings.push([r.left, r.top, Number(tag[1]), text]);
       }
     }
+  }
+
+  // Vertical bands (viewport CSS px, merged) where visible text is drawn, plus
+  // the bottom of the last visible text or media. The worker uses the bands to
+  // prove each render screenshot was painted (Chrome can return a tall chunk
+  // before it has rastered all of it) and the bottom to spot pages that add
+  // blank space growing with the window. Media is left out of the bands: an
+  // image may legitimately be one flat colour.
+  function inkBands(maxNodes = 80000) {
+    const rootNode = state && state.scrollerType === 'inner' && state.scroller ? state.scroller : document.body;
+    const raw = [];
+    let bottom = 0;
+    if (!rootNode) return { bands: [], bottom };
+    const range = document.createRange();
+    const visible = new WeakMap();
+    const isVisible = el => {
+      if (visible.has(el)) return visible.get(el);
+      let ok = true;
+      try { ok = typeof el.checkVisibility === 'function' ? el.checkVisibility({ opacityProperty: true, visibilityProperty: true }) : true; } catch (_) {}
+      visible.set(el, ok);
+      return ok;
+    };
+    const clipOf = makeClipper();
+    const roots = [rootNode];
+    let nodes = 0;
+    for (let ri = 0; ri < roots.length && nodes < maxNodes; ri++) {
+      const walker = document.createTreeWalker(roots[ri], NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+      let node;
+      while ((node = walker.nextNode()) && nodes < maxNodes) {
+        nodes++;
+        if (node.nodeType === 1) {
+          if (node.shadowRoot) roots.push(node.shadowRoot);
+          if (/^(IMG|CANVAS|VIDEO|svg|PICTURE|IFRAME)$/.test(node.tagName) && isVisible(node)) {
+            const r = node.getBoundingClientRect();
+            if (r.width > 4 && r.height > 4) bottom = Math.max(bottom, r.bottom);
+          }
+          continue;
+        }
+        if (!/\S/.test(node.nodeValue || '')) continue;
+        const parent = node.parentElement;
+        if (!parent || /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|TEXTAREA)$/.test(parent.tagName) || !isVisible(parent)) continue;
+        range.selectNodeContents(node);
+        const clip = clipOf(parent);
+        for (const r of range.getClientRects()) {
+          // Screen-reader-only text is clipped to 1px; it never paints.
+          if (r.height < 6 || r.width < 2) continue;
+          const top = Math.max(r.top, clip[0]), bot = Math.min(r.bottom, clip[1]);
+          if (bot - top < 6) continue;
+          raw.push([top, bot]);
+          bottom = Math.max(bottom, bot);
+        }
+      }
+    }
+    raw.sort((a, b) => a[0] - b[0]);
+    const bands = [];
+    for (const b of raw) {
+      const last = bands[bands.length - 1];
+      if (last && b[0] <= last[1] + 2) last[1] = Math.max(last[1], b[1]);
+      else bands.push([b[0], b[1]]);
+    }
+    return { bands: bands.slice(0, 20000).map(b => [Math.round(b[0] * 10) / 10, Math.round(b[1] * 10) / 10]), bottom: Math.round(bottom) };
+  }
+
+  // Document target: hide paintless end spacers under <body> (same rules as the
+  // panel path). Once per capture; the worker calls it only when the page
+  // shows more than a viewport of nothing after its last content.
+  function renderTrimDocumentEnd() {
+    if (!state || state.docEndTrimmed || !document.body) return 0;
+    state.docEndTrimmed = true;
+    return hideTrailingSpacers(document.body);
   }
 
   function restoreAll() {
@@ -1763,6 +1860,16 @@
           marks: marks.map(m => [r1(m[0]), r1(m[1]), m[2], m[3]]),
           runs: runs.map(r => [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text])
         };
+      }
+      if (message.type === 'PAC_INK_BANDS') {
+        if (!state) throw new Error('The page capture session is not active.');
+        return { ok: true, ...inkBands() };
+      }
+      if (message.type === 'PAC_RENDER_TRIM_END') {
+        if (!state) throw new Error('The page capture session is not active.');
+        const hidden = renderTrimDocumentEnd();
+        await waitForSettle(150);
+        return { ok: true, hidden, measure: renderMeasure() };
       }
       if (message.type === 'PAC_RENDER_PIN') {
         if (!state) throw new Error('The page capture session is not active.');

@@ -174,6 +174,7 @@ for (const c of cases) {
     if (r.restored !== true) problems.push('page not restored');
     if ((expect.phase || 'done') === 'done' && !files.length) problems.push('no file downloaded');
     if (expect.engineIncludes && !String(r.engine || '').includes(expect.engineIncludes)) problems.push(`engine "${r.engine}"`);
+    for (const text of [].concat(expect.warningAbsent || [])) if (r.warnings.some(w => w.includes(text))) problems.push('warning contains "' + text + '"');
     if (expect.titleUnchanged && r.titleAfter !== expect.titleUnchanged) problems.push(`title changed to "${r.titleAfter}"`);
     if (expect.absentColor) {
       // No pixel of this colour may appear (marks UI that must be hidden).

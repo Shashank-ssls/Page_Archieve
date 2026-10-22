@@ -49,8 +49,17 @@ Fallback chain: Full render (document grow) -> Full render (captureBeyondViewpor
 - Grow the viewport to the document height (loop up to 6 rounds while it grows,
   capped at Max height). Now every element is "on screen": IntersectionObserver
   lazy images, reveal animations and virtualised feeds render.
+- End spacers: each round compares the document height with the bottom of the
+  last visible text or media (`PAC_INK_BANDS`). If that blank tail grows by at
+  least half of the viewport growth (a window-sized spacer, Claude 2026-10),
+  `PAC_RENDER_TRIM_END` hides paintless end spacers and the capture ends 64 px
+  below the content, with a warning.
 - Settle (images and fonts, at least 3 s), hide bottom-anchored floating bars,
   screenshot in chunks of 8192 device px.
+- Paint check (all render chunks): Chrome can return a tall chunk before it
+  has rastered all of it. Each screenshot is reduced to per-row "flat" flags and
+  checked against the DOM text bands (`G.unpaintedInk`); flat text bands -> wait
+  and retake (4 tries), then throw, which falls back to stitch.
 - Failure -> captureBeyondViewport at the original viewport size.
 
 ### 3b. Full render, panel target (chat apps, notebooks)
@@ -78,7 +87,11 @@ background); without it, `captureVisibleTab` (2 per second, tab must stay active
 
 ## 5. Output
 - Stitcher splits output into parts of at most 14000 px per side and 24 MP.
-- PNG, JPEG (quality 0.92) or one PDF (a JPEG page per part).
+- PNG, JPEG (quality 0.92) or one PDF. PDF pages use `G.pdfPageParts`: A4
+  proportion of the capture width, breaks moved up (at most 30%) to a gap
+  between text lines, slivers under 15% folded into the last page. Line
+  positions come from the text layer, so scroll-and-stitch PDFs (and Lite)
+  break at fixed heights and can cut a line.
 - PDF text layer (Full render only): `PAC_COLLECT_TEXT` returns word-line runs
   `[x, y, w, h, fontSize, text]`; the worker offsets them into capture
   coordinates and sends `PAC_STORE_TEXT`; `pdf.js` writes invisible text

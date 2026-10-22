@@ -96,8 +96,8 @@ test('cover page comes first, lists SHA-256 hashes and keeps the xref valid', ()
   const content = objs[Number(objs[coverId].match(/\/Contents (\d+)/)[1])];
   assert.match(content, /\(My \\\(page\\\)\) Tj/);
   assert.match(content, /\(https:\/\/example\.com\/x\) Tj/);
-  assert.match(content, new RegExp(`\\(  1  ${hash}\\) Tj`));
-  assert.match(content, /PAGES AFTER THIS COVER: 2/);
+  assert.ok(content.includes(`(   1  ${hash}) Tj`));
+  assert.ok(content.includes('(CAPTURED PAGES \\(after the cover\\): 2) Tj'));
   assert.match(objs[firstImagePage], /\/XObject << \/Im0/);
   assert.ok(Object.values(objs).some(b => /\/BaseFont \/Helvetica-Bold/.test(b)));
 });
@@ -128,4 +128,61 @@ test('links and outline marks travel content -> worker -> stitcher', () => {
   assert.match(background, /cover: settings\.pdfCover, capturedAt: job\.startedAt/);
   assert.match(stitcher, /crypto\.subtle\.digest\('SHA-256', page\.jpeg\)/);
   assert.match(stitcher, /PDF\.buildPdf\(pdfPages, \{[^}]*outline, cover \}\)/);
+});
+
+test('unpaintedInk flags text bands drawn as flat rows and ignores painted ones', () => {
+  const rows = new Uint8Array(8192);
+  // Text every 30 px; rows 2080-8192 are flat (never painted), like the Claude capture.
+  for (let y = 0; y < 2080; y++) rows[y] = y % 30 < 18 ? 0 : 1;
+  for (let y = 2080; y < 8192; y++) rows[y] = 1;
+  const bands = [];
+  for (let y = 0; y + 18 < 8192; y += 30) bands.push([y, y + 18]);
+  const bad = G.unpaintedInk(rows, bands, 1);
+  assert.equal(bad.unpainted, true);
+  assert.ok(bad.missingBands > 150);
+  const good = G.unpaintedInk(rows.map((v, y) => y % 30 < 18 ? 0 : 1), bands, 1);
+  assert.equal(good.unpainted, false);
+  // One flat band (white-on-white text, an empty code line) is tolerated.
+  const one = new Uint8Array(rows.length).map((v, y) => y % 30 < 18 && y >= 30 ? 0 : 1);
+  assert.equal(G.unpaintedInk(one, bands, 1).unpainted, false);
+  // Scale maps CSS bands onto device rows (DPR 1.25).
+  assert.equal(G.unpaintedInk(new Uint8Array(1000).fill(1), [[0, 100], [200, 300], [400, 500]], 1.25).unpainted, true);
+});
+
+test('pdfPageParts makes A4-proportioned pages that break between text lines', () => {
+  const lines = [];
+  for (let y = 10; y < 9000; y += 24) lines.push([y, 20]);
+  const parts = G.pdfPageParts(1000, 9000, 1.2, lines, 14000, 24e6);
+  assert.equal(parts[0].y, 0);
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i];
+    assert.ok(p.h <= 1414 && p.h > 1414 * 0.7 - 1 || (i === parts.length - 1 && p.h <= 1414 * 1.15), `page ${i} height ${p.h}`);
+    if (i) assert.equal(p.y, parts[i - 1].y + parts[i - 1].h);
+    const cut = p.y + p.h;
+    if (i < parts.length - 1) assert.ok(!lines.some(l => cut > l[0] && cut < l[0] + l[1]), `page ${i} cuts a line at ${cut}`);
+  }
+  assert.equal(parts[parts.length - 1].y + parts[parts.length - 1].h, 9000);
+  // No text: plain A4 steps. Too wide: the image grid.
+  assert.deepEqual(G.pdfPageParts(1000, 3000, 1, [], 14000, 24e6).map(p => p.h), [1414, 1586]);
+  assert.ok(G.pdfPageParts(20000, 3000, 1, [], 14000, 24e6).some(p => p.x > 0));
+});
+
+test('render screenshots are paint-checked and document growth stops at a chasing end spacer', () => {
+  const background = read('background.js');
+  assert.match(background, /G\.unpaintedInk\(rows, inChunk/);
+  assert.match(background, /attempt >= 3\) throw new Error/);
+  assert.match(background, /tail - prev\.tail >= \(viewportH - prev\.viewportH\) \* 0\.5/);
+  assert.match(read('stitcher.js'), /format === 'pdf'\s*\? G\.pdfPageParts/);
+});
+
+test('a long hash list continues on further cover pages instead of being cut', () => {
+  const hashes = Array.from({ length: 120 }, (_, i) => i.toString(16).padStart(64, '0'));
+  const pages = Array.from({ length: 120 }, () => ({ jpeg: fakeJpeg(10, 10) }));
+  const { objs } = objects(PDF.buildPdf(pages, { cover: { title: 'T', url: 'https://e.x', captured: 'now', hashes } }));
+  const kids = kidsOf(objs);
+  const coverPages = kids.filter(id => objs[id].includes('/MediaBox [0 0 612 792]'));
+  assert.ok(coverPages.length >= 2, 'cover spans more than one page');
+  assert.equal(kids.length, 120 + coverPages.length);
+  const text = coverPages.map(id => objs[Number(objs[id].match(/\/Contents (\d+)/)[1])]).join('');
+  for (let i = 0; i < 120; i++) assert.ok(text.includes(`${String(i + 1).padStart(4, ' ')}  ${hashes[i]}) Tj`), `hash ${i + 1} listed`);
 });

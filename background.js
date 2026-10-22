@@ -234,6 +234,33 @@ function floatingWarning(report, hidden) {
   if (hidden) report.warnings.push(`Hid ${hidden} floating bar(s) pinned to the bottom of the window (composers, cookie banners, chat widgets) so they do not cover content. Turn off \u201cHide floating bars\u201d to keep them.`);
 }
 
+// One flag per device row of a screenshot: 1 when the row is a single flat
+// colour. Drawn at reduced width to stay cheap; text strokes keep enough
+// contrast after averaging.
+async function plainRows(dataUrl) {
+  const bitmap = await createImageBitmap(await (await fetch(dataUrl)).blob());
+  try {
+    const w = Math.max(1, Math.min(bitmap.width, 480));
+    const h = bitmap.height;
+    const g = new OffscreenCanvas(w, h).getContext('2d', { willReadFrequently: true });
+    g.drawImage(bitmap, 0, 0, w, h);
+    const d = g.getImageData(0, 0, w, h).data;
+    const rows = new Uint8Array(h);
+    for (let y = 0, i = 0; y < h; y++) {
+      let lo = 255, hi = 0;
+      for (let x = 0; x < w; x++, i += 4) {
+        const l = (d[i] * 3 + d[i + 1] * 6 + d[i + 2]) / 10;
+        if (l < lo) lo = l;
+        if (l > hi) hi = l;
+      }
+      rows[y] = hi - lo < 10 ? 1 : 0;
+    }
+    return rows;
+  } finally {
+    bitmap.close();
+  }
+}
+
 // Preferred document path: grow the emulated viewport to the full document so
 // on-screen-only loaders fire and fixed backdrops cover the whole page. Elements
 // sized from the viewport are pinned first so 100vh sections keep their size.
@@ -252,10 +279,35 @@ async function renderDocumentGrow(job, report, settleMsg) {
   let viewportH = baseH + NUDGE;
   let grew = false;
   let settled = null;
+  // Some apps end the page with empty space sized to the window (Claude's end
+  // spacer, 2026-10): every growth round then adds the whole content height
+  // again until Max height. When the blank tail after the last visible text
+  // or media is taller than a viewport AND grew by at least half of the
+  // viewport growth since the last measurement, hide paintless end spacers
+  // once and end the capture just below the content. A tall but static
+  // section without text is never cut.
+  let endCut = 0;
+  let lastTail = null;
+  const targetHeight = async () => {
+    const docH = Math.ceil(measure.docH);
+    const ink = await getContentMessage(tabId, { type: 'PAC_INK_BANDS' }).catch(() => null);
+    if (!ink || !(ink.bottom > 0)) return Math.min(cap, endCut || docH);
+    if (!endCut) {
+      const tail = docH - ink.bottom;
+      const prev = lastTail;
+      lastTail = { tail, viewportH };
+      const chasing = prev && viewportH - prev.viewportH > 200 && tail > baseH + 200 && tail - prev.tail >= (viewportH - prev.viewportH) * 0.5;
+      if (!chasing) return Math.min(cap, docH);
+      await getContentMessage(tabId, { type: 'PAC_RENDER_TRIM_END' }).catch(() => null);
+    }
+    // Re-measured every round: images that load during settle may extend the content.
+    endCut = Math.max(endCut, baseH, Math.ceil(ink.bottom + 64));
+    return Math.min(cap, endCut);
+  };
   for (let round = 0; round < 6; round++) {
     checkCancel(job);
-    const target = Math.min(cap, Math.ceil(measure.docH));
-    if (target > viewportH + 1 || !grew) {
+    const target = await targetHeight();
+    if (target > viewportH + 1 || (endCut && target < viewportH - 1) || !grew) {
       viewportH = Math.max(baseH, target);
       grew = true;
       progress(tabId, 'prepare', 8, `Laying out the full page (${viewportH.toLocaleString()} px)\u2026`);
@@ -267,7 +319,8 @@ async function renderDocumentGrow(job, report, settleMsg) {
     // Stable: let images that just became "visible" load, then re-check growth.
     settled = await getContentMessage(tabId, { ...settleMsg, imageWaitMs: Math.max(3000, settings.waitMs) });
     measure = settled.measure;
-    if (Math.min(cap, Math.ceil(measure.docH)) <= viewportH + 1) break;
+    const after = await targetHeight();
+    if (after <= viewportH + 1 && !(endCut && after < viewportH - 1)) break;
     settled = null;
   }
   if (!settled) {
@@ -279,8 +332,11 @@ async function renderDocumentGrow(job, report, settleMsg) {
   const lm2 = await cdp.layoutMetrics();
   const content = lm2.cssContentSize || lm2.contentSize;
   const width = G.renderDocumentWidth(content.width, measure.docW, baseW);
-  const fullH = Math.ceil(Math.max(measure.docH, content.height));
+  // After an end cut the document height still includes the window-sized
+  // spacer, which is not content: do not report the capture as truncated.
+  const fullH = endCut ? Math.min(endCut, Math.ceil(Math.max(measure.docH, content.height))) : Math.ceil(Math.max(measure.docH, content.height));
   const height = Math.min(viewportH, fullH, settings.maxHeight);
+  if (endCut) report.warnings.push('The page adds empty space that grows with the window after its last content (an end spacer). The capture ends 64 px below the last visible text or image.');
   return { width, height, fullH, x: 0, y: 0, beyondViewport: width > baseW + 1, dpr: measure.dpr, title: measure.title, url: measure.url };
 }
 
@@ -441,11 +497,32 @@ async function runRender(job, report) {
     }
   }
 
+  // Text bands for the paint check, in capture CSS px.
+  const ink = await getContentMessage(tabId, { type: 'PAC_INK_BANDS' }).catch(() => null);
+  const bands = ink && Array.isArray(ink.bands) ? ink.bands.map(b => [b[0] - plan.y, b[1] - plan.y]) : [];
   for (let i = 0; i < chunks.length; i++) {
     checkCancel(job);
     const c = chunks[i];
     progress(tabId, 'capture', 10 + (i / Math.max(1, chunks.length)) * 65, `Rendering section ${i + 1} of ${chunks.length}\u2026`, { current: i + 1, total: chunks.length });
-    const dataUrl = await cdp.screenshot({ x: plan.x, y: plan.y + c.y, width: plan.width, height: c.h }, plan.beyondViewport);
+    const inChunk = bands.filter(b => b[1] > c.y && b[0] < c.y + c.h).map(b => [b[0] - c.y, b[1] - c.y]);
+    let dataUrl;
+    for (let attempt = 0; ; attempt++) {
+      dataUrl = await cdp.screenshot({ x: plan.x, y: plan.y + c.y, width: plan.width, height: c.h }, plan.beyondViewport);
+      if (!inChunk.length) break;
+      let check = null;
+      try {
+        const rows = await plainRows(dataUrl);
+        check = G.unpaintedInk(rows, inChunk, rows.length / c.h);
+      } catch (error) {
+        console.warn('[Tallshot] paint check unavailable:', errorText(error));
+      }
+      if (!check || !check.unpainted) break;
+      // Never export a chunk with text the browser has not drawn yet. Throwing
+      // falls back to scroll-and-stitch with a warning.
+      if (attempt >= 3) throw new Error(`Chrome returned section ${i + 1} of ${chunks.length} before painting it (${check.missingPx.toLocaleString()} px of text still blank after 4 tries)`);
+      progress(tabId, 'capture', 10 + (i / Math.max(1, chunks.length)) * 65, `Waiting for Chrome to paint section ${i + 1} of ${chunks.length}\u2026`, { current: i + 1, total: chunks.length });
+      await sleep(600 * (attempt + 1));
+    }
     await storeTiles(job, [{
       dataUrl,
       tile: { index: i, tileX: 0, tileY: c.y, tileW: plan.width, tileH: c.h, cropX: 0, cropY: 0, viewportW: plan.width, viewportH: c.h }
