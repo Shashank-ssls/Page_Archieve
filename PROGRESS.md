@@ -26,6 +26,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 | 2026-10-22 | Colab recapture | Full | Pass | 2 PNG parts; shadow-DOM fix holds, 2 floating elements hidden instead of 60. |
 | 2026-10-22 | Dashboard (Amizone), Smart and Document | Full | Pass | 1 PNG each. Smart hides a fixed bottom-right notice; Document keeps it as on screen. |
 | 2026-10-22 | Notion page | Full | Fail, fixed | 6 PNG parts, parts 5-6 blank: inline padding-bottom 30vh grew with the viewport. Recapture needed. |
+| 2026-10-22 | Notion recapture | Full | Pass | 4 PNG parts (was 6); ends right after the last image and caption with only the on-screen 30vh padding. |
 | 2026-10-22 | chrome://extensions, Visible area | Full | Pass | Popup greys out full-page capture (Chrome hides the URL); Visible area PNG correct. |
 | 2026-10-22 | Google Colab notebook | Full | Pass (after fix) | 2 parts, all cells, outputs, tables and charts. "Hid 60 floating elements": Colab's own run buttons and toggles (shadow DOM) were wrongly hidden; fixed (fixture shadow-cells). |
 | 2026-10-22 | DevTools open (Miruro; ChatGPT share page with device toolbar) | Full | Pass | Full render still worked with DevTools docked (Chrome allows several debugger clients); captures match the emulated layout. TESTING.md expectation updated. |
@@ -64,7 +65,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Needs the owner's check
 - Trademark search for "Tallshot" (IP India, USPTO) before publishing.
 - Payment provider account and fees.
-- Real-site matrix runs (Phase 1): Notion, chrome://extensions Visible area. Lite repeats are deferred until Full is final (owner decision 2026-10-22).
+- Phase 1 Full rows complete (2026-10-22). Lite real-site repeats deferred until Full is final (owner decision).
 - PRIVACY.md, docs/store/permissions.md, docs/store/listing.md: drafts to review (contact line, names).
 - Popup shows the requested file name ("Generative AI Learning Plan.png") when Chrome saved it as "... (3).png" on a name clash. Cosmetic honesty issue; fix later (use the final name from chrome.downloads).
 - popup-shot: the capturing/done states show the "browser pages" banner and a
