@@ -1,0 +1,18 @@
+[
+  { "name": "index", "url": "/fx/", "settings": { "waitMs": 1000 } },
+  { "name": "app-panel", "url": "/fx/app-scroll-panel.html", "settings": { "waitMs": 1000 } },
+  { "name": "moving-panel", "url": "/fx/moving-panel.html", "settings": { "waitMs": 1000 } },
+  { "name": "offscreen", "url": "/fx/offscreen-panel.html", "settings": { "waitMs": 1000 } },
+  { "name": "notebook", "url": "/fx/notebook-reflow.html", "settings": { "waitMs": 1000 } },
+  { "name": "image-audit", "url": "/fx/image-audit.html", "settings": { "waitMs": 1000 } },
+  { "name": "body-scroller", "url": "/fx/body-scroller.html", "settings": { "waitMs": 1000 } },
+  { "name": "virtual-pdf", "url": "/fx/virtual-chat.html", "settings": { "waitMs": 1000, "format": "pdf" } },
+  { "name": "reveal-lazy", "url": "/fx/reveal-lazy.html", "settings": { "waitMs": 1000 } },
+  { "name": "fixed-art", "url": "/fx/fixed-art-backdrop.html", "settings": { "waitMs": 1000 } },
+  { "name": "viewport-hero", "url": "/fx/viewport-hero.html", "settings": { "waitMs": 1000 } },
+  { "name": "claude-preset", "url": "http://claude.ai/fx/chat-preset.html", "settings": { "waitMs": 1000, "format": "pdf" }, "expect": { "engineIncludes": "Claude" }, "lite": false },
+  { "name": "expand", "url": "/fx/expand-content.html", "settings": { "waitMs": 1000 }, "expect": { "titleUnchanged": "Page Archive Test Fixture - Collapsed Content" } },
+  { "name": "stitch-jpeg", "url": "/fx/app-scroll-panel.html", "settings": { "engine": "stitch", "format": "jpeg", "waitMs": 1000 } },
+  { "name": "switch-away", "url": "/fx/virtual-chat.html", "switchAway": true, "settings": { "waitMs": 1000 }, "lite": false },
+  { "name": "visible", "url": "/fx/", "mode": "visible" }
+]

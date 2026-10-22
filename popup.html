@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Page Archive</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 128 128" aria-hidden="true"><rect class="lg-line" x="37" y="11" width="84" height="84"/><rect class="lg-mid" x="25" y="23" width="84" height="84"/><rect class="lg-front" x="13" y="35" width="84" height="84"/><rect class="lg-ink" x="51" y="44" width="8" height="18"/><polygon class="lg-ink" points="40,58 70,58 55,80"/></svg>
+        <div>
+          <h1>Page <em>Archive</em></h1>
+          <p class="tag">Whole pages. Kept local.</p>
+        </div>
+      </div>
+      <div class="top-tools">
+        <span class="ver" title="Version">2.3</span>
+        <button id="theme" class="icon-btn" type="button" title="Toggle light / dark" aria-label="Toggle light or dark theme">
+          <svg class="px sun" viewBox="0 0 12 12" aria-hidden="true"><path d="M5 0h2v1h-2zM1 1h1v1h-1zM5 1h2v1h-2zM10 1h1v1h-1zM2 2h1v1h-1zM9 2h1v1h-1zM4 3h4v1h-4zM3 4h6v1h-6zM0 5h2v1h-2zM3 5h6v1h-6zM10 5h2v1h-2zM0 6h2v1h-2zM3 6h6v1h-6zM10 6h2v1h-2zM3 7h6v1h-6zM4 8h4v1h-4zM2 9h1v1h-1zM9 9h1v1h-1zM1 10h1v1h-1zM5 10h2v1h-2zM10 10h1v1h-1zM5 11h2v1h-2z"/></svg>
+          <svg class="px moon" viewBox="0 0 12 12" aria-hidden="true"><path d="M4 0h4v1h-4zM2 1h3v1h-3zM1 2h3v1h-3zM1 3h2v1h-2zM0 4h2v1h-2zM0 5h2v1h-2zM0 6h2v1h-2zM0 7h2v1h-2zM11 7h1v1h-1zM1 8h2v1h-2zM10 8h2v1h-2zM1 9h4v1h-4zM8 9h3v1h-3zM2 10h8v1h-8zM4 11h4v1h-4z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div id="context-hint" class="hint" hidden role="status"></div>
+
+    <section class="actions" aria-label="Capture">
+      <button id="capture-full" class="cta" type="button">
+        <svg class="px" viewBox="0 0 12 12" aria-hidden="true"><path d="M1 0h6v1h-6zM1 1h1v1h-1zM6 1h2v1h-2zM1 2h1v1h-1zM3 2h2v1h-2zM6 2h1v1h-1zM8 2h1v1h-1zM1 3h1v1h-1zM6 3h4v1h-4zM1 4h1v1h-1zM3 4h4v1h-4zM9 4h1v1h-1zM1 5h1v1h-1zM9 5h1v1h-1zM1 6h1v1h-1zM3 6h4v1h-4zM9 6h1v1h-1zM1 7h1v1h-1zM9 7h1v1h-1zM1 8h1v1h-1zM3 8h3v1h-3zM9 8h1v1h-1zM1 9h1v1h-1zM9 9h1v1h-1zM1 10h9v1h-9z"/></svg>
+        <span class="cta-text">
+          <span class="cta-title">Capture full page</span>
+          <span id="cta-meta" class="cta-meta">Full render &#xb7; PNG &#xb7; Smart</span>
+        </span>
+        <kbd>Alt&#x21e7;P</kbd>
+      </button>
+      <button id="capture-visible" class="ghost-btn" type="button">
+        <svg class="px" viewBox="0 0 12 12" aria-hidden="true"><path d="M0 1h12v1h-12zM0 2h1v1h-1zM11 2h1v1h-1zM0 3h1v1h-1zM2 3h4v1h-4zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM2 5h6v1h-6zM11 5h1v1h-1zM0 6h1v1h-1zM11 6h1v1h-1zM0 7h12v1h-12zM5 8h2v1h-2zM3 9h6v1h-6z"/></svg>
+        <span>Visible area only</span>
+      </button>
+    </section>
+
+    <section class="group" aria-label="Output format">
+      <div class="group-label">Format</div>
+      <div class="seg" role="radiogroup" aria-label="Output format">
+        <label><input type="radio" name="format" value="png" checked><span>PNG</span></label>
+        <label><input type="radio" name="format" value="jpeg"><span>JPEG</span></label>
+        <label><input type="radio" name="format" value="pdf"><span>PDF</span></label>
+      </div>
+    </section>
+
+    <section class="group" aria-label="Capture target">
+      <div class="group-label">Target</div>
+      <div class="seg" role="radiogroup" aria-label="Capture target">
+        <label title="Picks the document, or the main scroll panel in apps like chats and notebooks"><input type="radio" name="target" value="auto" checked><span>Smart</span></label>
+        <label title="The whole document, including the app shell"><input type="radio" name="target" value="document"><span>Document</span></label>
+        <label title="Force the largest scrollable panel"><input type="radio" name="target" value="panel"><span>Panel</span></label>
+      </div>
+    </section>
+
+    <details class="more" id="more">
+      <summary><span>More options</span><span class="chev" aria-hidden="true"></span></summary>
+      <div class="more-body">
+        <label class="row" for="engine" id="engine-row">
+          <span class="row-text"><strong>Engine</strong><small id="engine-note">Full render draws the whole page in one pass. Chrome shows a &#x201c;debugging this browser&#x201d; bar while it runs.</small></span>
+          <select id="engine">
+            <option value="auto" selected>Full render</option>
+            <option value="stitch">Scroll &amp; stitch</option>
+          </select>
+        </label>
+        <label class="row" for="hide-floating">
+          <span class="row-text"><strong>Hide floating bars</strong><small>Composers, cookie banners and chat bubbles that would cover content.</small></span>
+          <input id="hide-floating" class="switch" type="checkbox" checked>
+        </label>
+        <label class="row" for="expand-content">
+          <span class="row-text"><strong>Expand collapsed text</strong><small>Opens &#x201c;show more&#x201d;, &#x201c;view rest&#x201d; and folded sections before capturing.</small></span>
+          <input id="expand-content" class="switch" type="checkbox" checked>
+        </label>
+        <label class="row" for="prepare-images">
+          <span class="row-text"><strong>Load lazy images</strong><small>Scroll through first so late images arrive.</small></span>
+          <input id="prepare-images" class="switch" type="checkbox" checked>
+        </label>
+        <label class="row" for="auto-load">
+          <span class="row-text"><strong>Auto-load more</strong><small>Bounded visits to the top and bottom to pull in older chat history or feed items.</small></span>
+          <input id="auto-load" class="switch" type="checkbox">
+        </label>
+        <div class="row stack">
+          <label class="row-text" for="name-template"><strong>File name</strong><small>Tokens: <code>{title}</code> <code>{site}</code> <code>{date}</code> <code>{time}</code></small></label>
+          <input id="name-template" class="text-in" type="text" spellcheck="false" maxlength="120" value="{title}" placeholder="{title}">
+          <label class="row-text" for="folder"><strong>Save to folder</strong><small>Inside your Downloads folder. Leave empty for Downloads itself.</small></label>
+          <input id="folder" class="text-in" type="text" spellcheck="false" maxlength="120" placeholder="Page Archive/{site}">
+          <div class="name-preview" id="name-preview"></div>
+        </div>
+        <label class="row" for="max-height">
+          <span class="row-text"><strong>Max height</strong><small>Longer pages are cut here.</small></span>
+          <select id="max-height">
+            <option value="15000">15k px</option>
+            <option value="30000">30k px</option>
+            <option value="50000">50k px</option>
+            <option value="100000">100k px</option>
+            <option value="200000" selected>200k px</option>
+            <option value="300000">300k px</option>
+          </select>
+        </label>
+        <label class="row" for="wait-ms">
+          <span class="row-text"><strong>Settle wait</strong><small>Longer helps slow pages.</small></span>
+          <select id="wait-ms">
+            <option value="500">0.5 s</option>
+            <option value="1000">1 s</option>
+            <option value="1500">1.5 s</option>
+            <option value="2500">2.5 s</option>
+            <option value="3500" selected>3.5 s</option>
+            <option value="5000">5 s</option>
+          </select>
+        </label>
+      </div>
+    </details>
+
+    <section id="progress-panel" class="status" data-phase="ready" aria-live="polite">
+      <div class="status-head">
+        <div>
+          <div id="status-title" class="status-title">Ready</div>
+          <div id="engine-label" class="status-engine"></div>
+        </div>
+        <div class="pct"><span id="percent">000</span><i>%</i></div>
+      </div>
+      <div id="cells" class="cells" aria-hidden="true"></div>
+      <progress id="progress" class="sr" max="100" value="0"></progress>
+      <p id="status-message" class="status-msg">Nothing leaves this browser.</p>
+      <ul id="files" class="files" hidden></ul>
+      <div id="warnings" class="warnings" hidden></div>
+      <div class="status-actions">
+        <button id="cancel" class="line-btn danger" type="button" hidden>Cancel</button>
+        <button id="open-folder" class="line-btn" type="button" hidden>
+          <svg class="px" viewBox="0 0 12 12" aria-hidden="true"><path d="M1 1h4v1h-4zM1 2h1v1h-1zM4 2h6v1h-6zM1 3h1v1h-1zM9 3h2v1h-2zM1 4h10v1h-10zM1 5h1v1h-1zM10 5h1v1h-1zM1 6h1v1h-1zM10 6h1v1h-1zM1 7h1v1h-1zM10 7h1v1h-1zM1 8h1v1h-1zM10 8h1v1h-1zM1 9h10v1h-10z"/></svg>
+          Show in folder
+        </button>
+      </div>
+    </section>
+
+    <footer>
+      <span>Local only &#xb7; no uploads</span>
+      <span>No backend</span>
+    </footer>
+  </main>
+  <template id="bang-icon"><svg class="px" viewBox="0 0 12 12" aria-hidden="true"><path d="M5 0h2v1h-2zM5 1h2v1h-2zM5 2h2v1h-2zM5 3h2v1h-2zM5 4h2v1h-2zM5 5h2v1h-2zM5 7h2v1h-2zM5 8h2v1h-2z"/></svg></template>
+  <script src="popup.js"></script>
+</body>
+</html>

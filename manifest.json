@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Page Archive Capture",
+  "version": "2.3.0",
+  "description": "Capture whole webpages and app scroll panels (chats, notebooks) as PNG, JPEG or PDF. Full-render engine with scroll-and-stitch fallback. Local processing only.",
+  "minimum_chrome_version": "116",
+  "action": {
+    "default_title": "Page Archive: capture full page",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "downloads",
+    "storage",
+    "debugger"
+  ],
+  "commands": {
+    "capture-full-page": {
+      "suggested_key": {
+        "default": "Alt+Shift+P"
+      },
+      "description": "Capture the full page as PNG"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

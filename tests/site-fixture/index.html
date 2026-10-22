@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Archive Test Fixture &#x2014; Long Page</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #19263b; }
+  header { position: sticky; top: 0; z-index: 10; background: #123d75; color: white; padding: 16px 24px; }
+  main { max-width: 920px; margin: auto; padding: 24px; }
+  .card { display: grid; grid-template-columns: 160px 1fr; gap: 18px; margin: 20px 0; padding: 18px; border: 1px solid #cad5e2; border-radius: 12px; background: #f7faff; }
+  .card img { width: 160px; height: 120px; object-fit: cover; background: #dbeafe; }
+  .spacer { height: 220px; background: repeating-linear-gradient(0deg,#fff 0 48px,#eef3fa 48px 49px); }
+  .inner-wrap { height: 520px; margin: 26px 0; border: 3px solid #b45309; overflow: hidden; }
+  .inner { height: 100%; overflow: auto; padding: 18px; background: #fffaf0; }
+  .inner-row { height: 240px; margin: 10px 0; border: 1px dashed #b45309; display: grid; place-content: center; }
+</style>
+</head>
+<body>
+<header><strong>Sticky header &#x2014; should appear once in the stitched image</strong></header>
+<main>
+  <h1>Long-page capture regression fixture</h1>
+  <p>Serve this folder on localhost. This page tests repeated sections, lazy images, sticky furniture and an inner scrolling region.</p>
+  <div id="cards"></div>
+  <section class="inner-wrap"><div class="inner" id="inner"><h2>Inner scroll region</h2><div class="inner-row">Inner panel row 1</div><div class="inner-row">Inner panel row 2</div><div class="inner-row">Inner panel row 3</div><div class="inner-row">Inner panel row 4</div></div></section>
+  <div id="tail"></div>
+</main>
+<script>
+(function(){
+ const cards=document.getElementById('cards');
+ for(let i=1;i<=16;i++){
+   const card=document.createElement('section'); card.className='card';
+   const img=document.createElement('img'); img.loading='lazy'; img.alt='Fixture image '+i;
+   const title=document.createElement('h2'); title.textContent='Section '+i;
+   const p=document.createElement('p'); p.textContent='This is a repeated content block used to verify scroll position, capture ordering and overlap. Each section has a different image and heading.';
+   const text=document.createElement('div'); text.append(title,p);
+   card.append(img,text); cards.append(card);
+   if(i%4===0){const spacer=document.createElement('div');spacer.className='spacer';spacer.textContent='Large layout gap';cards.append(spacer);}
+   // A tiny local data image, assigned only as the image enters the viewport.
+   const color=['%23dbeafe','%23dcfce7','%23fce7f3','%23fef3c7'][i%4];
+   img.dataset.src='data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240"><rect width="100%" height="100%" fill="${decodeURIComponent(color)}"/><text x="50%" y="50%" font-size="32" text-anchor="middle" dominant-baseline="middle" fill="#234">IMAGE ${i}</text></svg>`);
+ }
+ const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){const img=e.target;img.src=img.dataset.src;observer.unobserve(img);}}),{rootMargin:'250px'});
+ document.querySelectorAll('img[data-src]').forEach(img=>observer.observe(img));
+ const tail=document.getElementById('tail'); for(let i=0;i<4;i++){const p=document.createElement('p');p.textContent='End section '+(i+1)+' &#x2014; verify that the final content is present.';p.style.margin='100px 0';tail.append(p);}
+})();
+</script>
+</body>
+</html>

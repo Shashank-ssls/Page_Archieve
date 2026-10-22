@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Archive Test Fixture - Fixed Art Backdrop</title>
+<style>
+  /* itch.io-style theme: dark colour plus a large artwork that is pinned to the
+     window (background-attachment: fixed) and, by CSS default, repeats. In the
+     browser the art is seen once; a capture must not tile it down the page. */
+  body {
+    margin: 0; color: #eee; font: 16px/1.5 system-ui, sans-serif;
+    background: #120a0a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1280' height='700'%3E%3Crect width='1280' height='700' fill='%23301414'/%3E%3Ccircle cx='160' cy='350' r='150' fill='%23c03a3a'/%3E%3Ccircle cx='1120' cy='350' r='150' fill='%23c03a3a'/%3E%3Ctext x='640' y='60' fill='%23ffb' font-size='40' text-anchor='middle'%3EART TILE%3C/text%3E%3C/svg%3E") center top / cover fixed;
+  }
+  .column { width: 620px; margin: 0 auto; padding: 30px; background: rgba(0,0,0,.55); }
+  .c { margin: 18px 0; padding: 12px; border-left: 3px solid #e55; min-height: 140px; }
+</style>
+</head>
+<body>
+<div class="column" id="col"></div>
+<script>
+  const col = document.getElementById('col');
+  for (let i = 1; i <= 30; i++) { const d = document.createElement('div'); d.className = 'c'; d.textContent = `Comment ${i}`; col.append(d); }
+  const end = document.createElement('p'); end.textContent = 'FIXED ART FINAL MARKER'; col.append(end);
+</script>
+</body>
+</html>

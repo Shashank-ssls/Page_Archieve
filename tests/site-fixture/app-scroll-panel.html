@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Archive Test Fixture &#x2014; Clipped App Scroll Panel</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; font: 16px/1.5 system-ui, sans-serif; }
+  .app-header { position: fixed; z-index: 10; top: 0; left: 0; right: 0; height: 64px; padding: 16px 24px; background: #123d75; color: white; }
+  .app-sidebar { position: fixed; left: 0; top: 64px; bottom: 0; width: 190px; padding: 20px; background: #e9eff8; border-right: 1px solid #9aabc2; }
+  /* Intentionally 180px taller than the viewport, reproducing an app panel
+     which is clipped at the bottom. Capture should temporarily normalize it. */
+  .conversation { position: fixed; left: 190px; right: 0; top: 64px; height: calc(100vh + 180px); overflow-y: auto; overflow-x: hidden; padding: 18px 28px; background: #fffaf0; }
+  .test-composer { position: fixed; z-index: 30; left: 225px; right: 28px; bottom: 14px; min-height: 44px; padding: 11px 16px; border-radius: 16px; border: 1px solid #999; background: #f3e8d3; color: #222; box-shadow: 0 3px 12px #0004; }
+  .message { min-height: 230px; margin: 12px 0; padding: 18px; border: 1px solid #d3c6a3; border-radius: 12px; background: white; }
+  .message strong { color: #123d75; }
+  .message img { width: 140px; height: 90px; object-fit: cover; margin-top: 8px; background: #e8e8e8; }
+  .tail { margin: 40px 0 100px; padding: 20px; background: #d8f2e2; }
+</style>
+</head>
+<body>
+<header class="app-header">Synthetic Chat App &#x2014; fixed application header</header>
+<aside class="app-sidebar">Sidebar stays outside the scroll panel in this test.</aside>
+<main class="conversation" id="conversation">
+  <h1>Conversation test</h1>
+  <p>The scroll panel is intentionally taller than the browser viewport.</p>
+</main>
+<div class="test-composer" id="fixed-composer">SYNTHETIC FIXED COMPOSER &#x2014; should appear only in the first PNG tile.</div>
+<script>
+ const host=document.getElementById('conversation');
+ for(let i=1;i<=36;i++){
+   const row=document.createElement('section'); row.className='message';
+   row.innerHTML=`<strong>Message ${i}</strong><p>Testing long conversation capture. This section should appear in order, including the first and final message.</p>`;
+   if(i%7===0){const img=document.createElement('img'); img.loading='lazy'; img.alt=`Lazy image ${i}`; img.src='data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="280" height="180"><rect width="100%" height="100%" fill="#d8f2e2"/><text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-size="20">IMAGE ${i}</text></svg>`); row.append(img);}
+   host.append(row);
+ }
+ const tail=document.createElement('p'); tail.className='tail'; tail.id='final-message'; tail.textContent='FINAL MESSAGE &#x2014; verify that the capture includes this exact final marker.'; host.append(tail);
+</script>
+</body>
+</html>

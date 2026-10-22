@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Archive Test Fixture - Body Scroller</title>
+<style>
+  /* html is locked; <body> is the element that scrolls. document.scrollingElement
+     reports no overflow here, which used to make full-page capture give up. */
+  html { height: 100%; overflow: hidden; }
+  body { height: 100%; margin: 0; overflow-y: auto; font: 16px/1.5 system-ui, sans-serif; background: #f6f3ea; }
+  .block { margin: 24px; padding: 24px; min-height: 420px; background: #fff; border: 2px solid #222; }
+  .block:nth-child(odd) { background: #e8f0ff; }
+  .end { margin: 24px; padding: 24px; background: #c9f2d4; border: 2px solid #222; }
+</style>
+</head>
+<body>
+<main id="content"></main>
+<p class="end" id="final">BODY SCROLLER FINAL MARKER</p>
+<script>
+  const host = document.getElementById('content');
+  for (let i = 1; i <= 14; i++) {
+    const s = document.createElement('section'); s.className = 'block';
+    s.innerHTML = `<h2>Block ${i}</h2><p>CHECKPOINT ${String(i).padStart(2, '0')}</p>`;
+    host.append(s);
+  }
+</script>
+</body>
+</html>

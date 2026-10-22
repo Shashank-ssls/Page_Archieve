@@ -1,0 +1,160 @@
+# Unreleased - Claude Code handoff (tooling only, no behaviour change)
+
+- Source converted to pure ASCII (Unicode via \u escapes and HTML entities); `scripts/check-ascii.mjs` enforces it in `npm run check`.
+- Windows-safe E2E harness `tests/e2e/run.mjs` with `tests/e2e/suite.json`, edition switch, pass/fail exit code, all profiles and downloads inside `.e2e/`.
+- `tools/popup-shot.mjs` (popup screenshots, light and dark) and `tools/pixel-icon.mjs` (ASCII art to SVG icon).
+- New project docs: CLAUDE.md, PROGRESS.md, ROADMAP.md, ARCHITECTURE.md, PRODUCT.md, DESIGN.md, TESTING.md, SETUP_CLAUDE_CODE.md. v1 documents moved to `docs/archive-v1/`.
+- Playwright pinned as the only dev dependency.
+
+# Page Archive Capture v2.3.0
+
+## 2.3.0 - Editions, chat presets, searchable PDF, auto-expand, file naming
+
+- **Two editions** (`node tools/build-editions.mjs`): **Full** (Full render engine, `debugger` permission) and **Lite** (no `debugger` permission: no install warning, no debugging bar; scroll-and-stitch only; Engine row hidden; "LITE" badge). Chrome does not allow `debugger` as an optional permission, so a separate build is the only way to offer both.
+- **Site presets** for ChatGPT, Claude, Gemini, Perplexity, Copilot, DeepSeek, Google Colab and Jupyter: locate a message/cell by stable markers (data attributes, custom tags), then walk up to the element that really scrolls. Falls back to Smart heuristics. Status shows e.g. "Full render - Claude".
+- **Searchable PDF**: Full render PDFs carry an invisible Unicode text layer (Type0/Identity-H + ToUnicode, render mode 3), horizontally scaled to match on-screen text, so text can be searched, selected and copied, including Hindi, CJK and accented text. Stitch PDFs stay image-only (noted in warnings).
+- **Expand collapsed text** (default on): opens `<details>` (closed again afterwards), lifts CSS line clamps (restored), and clicks clearly labelled "show more / view rest / read more" controls, max 40 clicks over 3 rounds. Never clicks real links, form submits or labels mentioning delete, remove, buy, subscribe, log out, report and similar.
+- **File name template + folder**: tokens `{title}` `{site}` `{date}` `{time}` `{datetime}`; optional subfolder inside Downloads (sanitized, no `..`), with a live preview in the popup.
+- New fixtures `chat-preset.html` (served as claude.ai via host mapping) and `expand-content.html` (includes traps that must not be clicked). 96 tests.
+
+# Page Archive Capture v2.2.0
+
+## 2.2.0 - Window-anchored backgrounds, new mark, UI polish
+
+- Fix: backgrounds laid out against the window (`background-attachment: fixed`, or full-window fixed layers) were re-scaled or tiled down the grown page (reported on an itch.io page). They are now frozen at the exact pixel size and position they had in the real window, drawn once, with the background colour filling the rest. New fixture `fixed-art-backdrop.html`.
+- New logo: stacked pages with an orange front sheet and download arrow; new 16/32/48/128 icons.
+- Toggle switches use integer geometry (2px border, 12px knob, 2px gutters); popup scrollbars hidden.
+- Verified: Full render captures continue when the user switches to another tab (classic stitch still requires the tab to stay active).
+
+# Page Archive Capture v2.1.0
+
+## 2.1.0 - Lazy images, fixed backdrops, new logo
+
+- **Document "grow" render.** Documents are now captured by growing the emulated viewport to the full page height, so IntersectionObserver lazy images, scroll-reveal animations and virtualized feeds all load and stay rendered, and full-screen `position: fixed` backdrops (site themes with light text on a dark backdrop) cover the whole page. Viewport-sized elements (100vh heroes, height:100% chains) are found by nudging the viewport 240 px and pinned to their original height first. `background-attachment: fixed` is switched to `scroll` during capture. The v2.0 captureBeyondViewport path remains as an automatic fallback.
+- `content-visibility: auto` sections are forced visible during capture (Chrome skips painting them off-screen).
+- Grown documents get a longer image settle budget (at least 3 s).
+- New fixture `reveal-lazy.html` reproducing both reported failures; 2 new tests (90 total).
+- New logo: page inside orange viewfinder corners, drawn on a 16 px pixel grid; new 16/32/48/128 toolbar icons.
+
+# Page Archive Capture v2.0.0
+
+## 2.0.0 - Full render engine, JPEG/PDF output, new UI
+
+- **New default engine: Full render** (`chrome.debugger`, `cdp.js`). Documents are captured with `Page.captureScreenshot` + `captureBeyondViewport` in 8192-device-px chunks: fixed headers render once, `100vh` sections keep their size, cross-origin iframes are painted, and there is no 2-per-second screenshot quota.
+- **App panels** (chat apps, notebooks, dashboards) are exposed by growing the *emulated viewport* until the panel stops overflowing, then the panel rectangle is screenshotted. Virtualized lists render every row because every row is on screen. Panels that do not grow with the viewport are pinned to their content height. If a panel still cannot be fully exposed, capture falls back automatically.
+- **Fallback chain:** Full render -> scroll-and-stitch using debugger screenshots (no throttle) -> classic `captureVisibleTab` stitching. A failed full-page capture still never becomes a viewport screenshot.
+- **Hide floating bars** (default on): bottom-pinned bars on documents and fixed overlays covering a panel (composers, cookie banners, chat bubbles) are hidden during render and restored afterwards.
+- `<body>`-as-scroller pages (html locked, body scrolls) are now detected.
+- **Output formats:** PNG, JPEG (q 0.92) and single-file PDF via a dependency-free writer (`pdf.js`, one page per image part).
+- Downloads retry with an ASCII-safe filename when Chrome rejects non-ASCII punctuation in the page title.
+- Restoring styles no longer leaves an empty `style=""` attribute behind.
+- **New popup UI**: neo-brutalist app dialect (paper/char palette, single orange accent, hard borders, solid offset shadows), bundled Outfit + Doto fonts, pixel icons, light/dark with toggle, format/target segmented controls, file list and "Show in folder".
+- New fixtures: `body-scroller.html`, `virtual-chat.html`, `viewport-hero.html`. New tests: `render-engine.test.cjs`, `pdf.test.cjs` (88 total).
+- **Real-browser E2E harness** `tests/e2e/run.mjs` (Playwright + Chromium) loads the unpacked extension and runs start -> capture -> stitch -> download -> restore on every fixture.
+- Permission added: `debugger` (required by Chrome; it cannot be optional). See docs/SECURITY_AND_PRIVACY.md.
+
+# Page Archive Capture v1.2.6
+
+## 1.2.6 - Sticky composer overlays and severely clipped panels
+
+- Hide fixed/sticky elements that overlap the selected inner panel's capture crop even when the overlay lives outside the scroller subtree. Preserve the selected scroll container and its ancestors; restore original visibility after capture.
+- Move pinned-overlay suppression until after each later tile is scrolled and settled, so the overlap test uses the current crop.
+- Add `isHeavilyClippedPanel()` and make Smart reject a nested panel when its origin is far outside the viewport and less than 45% of its area is visible. Use the document if it scrolls; otherwise report an actionable message instead of starting tile zero at a large offset. Explicit Main scrollable panel remains deliberate and reports the clipping issue clearly.
+- Add the fixed-composer app-scroll fixture, the offscreen-panel fixture, and regression checks.
+- Validation: 72 Node regression tests pass. A Chromium DOM/content-script harness confirmed the fixed composer is visible on tile 1, hidden on tile 2, and restored by `PAC_RESTORE`. This does not substitute for full Chrome screenshot/download testing.
+
+## Previous release history (v1.2.5 and earlier)
+
+- Handles small, bounded scroll-position drift on notebook-style pages such as Google Colab: uses measured tile coordinates, emits a warning, and relies on final coverage validation instead of aborting immediately at a 2px mismatch.
+- When the last inner-panel tile reaches the live bottom and the panel shrinks by only a bounded amount, adjusts output height to the final measured scroll extent; real coverage gaps still block export.
+- Added safe tile-drift tolerance helper and regression tests.
+
+# Changelog
+
+## 1.2.4 - Best-effort image completeness audit
+
+- Added per-capture tracking of unique visible HTML `img` elements, including whether each source was incomplete/undecodable during capture.
+- Added sampled visible-viewport discovery of CSS `background-image`, border/mask/list images, generated pseudo-element images, SVG `image` sources, video posters, and image inputs.
+- Added bounded image resource probes for discovered CSS/embedded URLs, with separate confirmed-failure and timeout/unverified results; logs show host/path labels without URL query strings.
+- Added final popup status summary reporting the number of HTML images observed and CSS/embedded URLs checked, plus a warning for failed sources.
+- Added `tests/site-fixture/image-audit.html` with valid data-image cases and intentionally broken HTML/CSS/pseudo/SVG/poster assets.
+- Limits are explicit: the visual audit samples visible element stacks and caps work per tile/capture; canvas pixels, video frames, closed shadow roots, cross-origin iframe internals and CSS `image-set()` variants are not fully verified.
+
+## 1.2.3 - Anchor baseline captured before preparation scrolling
+
+- Fixes a reproduced inner-panel failure where image preparation scrolled the panel far enough to trigger a one-time parent shift (e.g. 152 px) before the anchor was recorded.
+- Records the normalized panel anchor before lazy-image/infinite-feed preparation, then re-anchors after preparation before measuring the page and planning tiles.
+- Adds regression coverage asserting the anchor is recorded before `preloadPage()` and that stabilization runs after preload. Updates the fixture to model a reversible app-shell collapse and restoration.
+
+## 1.2.2 - Inner-panel position stabilization
+
+- Anchor the selected inner scroller to its settled viewport rectangle after image preparation.
+- Re-lock the outer document to its original scroll position while capturing an inner panel; this counters scroll anchoring and app-shell movement caused by nested scroll interactions.
+- Re-measure the selected panel after scrolling and image/font settling. When the panel moves, compensate using CSS individual translate before returning tile coordinates to the stitching pipeline.
+- Preserve one original inline-style snapshot for each changed property and restore the original panel/document scroll offsets at the end.
+- Fail with a specific error if the panel is replaced, changes dimensions materially, or cannot be stabilized; coverage validation remains strict rather than accepting a potentially gapped image.
+- Add a moving-panel fixture that deliberately shifts an app shell by 152 CSS pixels, plus regression tests for anchor correction.
+- This release has not been verified by a complete Chrome extension screenshot/download run in the build environment. An isolated Chromium DOM harness did verify that the moved panel is re-anchored and the tile coordinate matches the requested offset.
+
+## 1.2.1 - Conservative Smart target and improved diagnostics
+
+- Changed Smart target selection to favor the document on ordinary tall websites, even if a large nested overflow element exists. This prevents app widgets and swap/modal panels from being mistaken for the entire page; known conversation hosts remain an exception.
+- Added an early inner-panel coordinate-drift guard so a clipped/repositioned target reports an actionable error before the stitcher reports a difficult-to-diagnose page coverage gap.
+- Raised the default screenshot wait to 3.5 seconds and migrated the previous common defaults; the user can still choose waits up to 5 seconds.
+- Image warnings now include up to two source host/path examples and clarify that unavailable source pixels cannot be reconstructed.
+- Increased the inter-capture delay to 600 ms to stay conservatively below Chrome's documented two `captureVisibleTab` calls-per-second ceiling.
+- Added regression tests for tall-root false positives, recognized chat scrollers, manual panel selection, coordinate drift, and image diagnostics.
+- Chrome-internal pages: use **Visible area PNG** for the viewport. Full-page scrolling/injection remains restricted by Chrome; this is not fixed by adding more scroll heuristics.
+
+## 1.1.3 - Fractional page-edge coverage fix
+
+- Corrected false `coverage-gap` errors caused by subpixel rounding at the final page edge. Screenshot scroll coordinates and the measured page extent can be represented as fractional CSS pixels; the validator now snaps only a page boundary that is within its existing 0.5 CSS-pixel tolerance.
+- Retained strict failure for gaps larger than the boundary tolerance; a regression test checks a 0.25 CSS-pixel bottom remainder is accepted while a 2 CSS-pixel gap is still rejected.
+- Added a regression case matching the reported 1601 x 5480 CSS-pixel, nine-tile page.
+- This patch addresses the observed validator false-positive. It does not constitute a real-Chrome end-to-end test; repeat the local fixture test to verify the complete capture/download pipeline.
+
+## 1.1.2 - Scroll-extent correction and explicit capture modes
+
+- Measure document dimensions from `document.scrollingElement` instead of combining `html` and `body` dimensions, avoiding unreachable bottom offsets and false coverage-gap failures on layouts where those values diverge.
+- Use the scrolling element's actual `scrollTop`/`scrollLeft` as root-tile coordinates.
+- Reject Chrome/Edge internal pages before opening the image-assembly tab; never silently convert a full-page capture into a viewport image when full-page inspection fails.
+- Make visible-area capture an explicit mode that does not need page-script injection.
+- Include page dimensions and final tile positions in coverage-gap errors for easier diagnosis.
+- Add regression tests for root-scroll planning and the capture-entry URL/mode guards.
+
+## 1.1.1 - Diagnostics and restricted-page handling
+
+- Persist the last capture status locally so errors remain visible when the popup is reopened.
+- Log capture failures in the extension service-worker console for easier diagnosis.
+- Added a URL-policy helper and unit tests for Chrome/Edge internal pages; the next release wires that guard into the capture entry point.
+- Preserve previous v1.1.0 tile-validation, message-routing, cancellation, and restoration hardening.
+
+# Changelog
+
+## 1.1.0 - Capture integrity hardening
+
+- Fixed message-handler collisions by separating page commands from assembly-page commands.
+- Bound assembly-page responses to the capture ID in that page's URL.
+- Added complete tile-index and rectangle-coverage validation before any PNG export.
+- Changed tile decode/crop errors from silent skips to explicit capture failures.
+- Corrected source clipping calculations to preserve destination proportions at scaled edges.
+- Ensured canvas and bitmap resources are released on success and error paths.
+- Added active-tab checks immediately before screenshot capture to reduce accidental capture of another tab.
+- Added cancellation checkpoints during lazy-image preparation and capture waits.
+- Improved page scroll/style restoration, including the case where a site replaces an inner scroll element.
+- Added protocol and tile-integrity regression tests.
+
+## Validation boundary
+
+The code and unit tests can be checked locally without browser installation, but this release has not passed an end-to-end Chrome/Edge run in the build environment because that environment prohibits loading unpacked extensions. Use `tests/MANUAL_TEST.md` in Chrome to complete integration validation.
+
+
+## 1.2.0
+
+- Raised the configurable capture-height ceiling to 300,000 CSS px and the hard screenshot tile limit to 800, with a 200,000 px default and migration from old defaults.
+- Added Smart / Entire document / Main scrollable panel targets and semantic main/thread/message detection for common chat-style hosts.
+- Fixed bounded auto-load stopping too early when virtualized app DOMs changed without increasing scrollHeight.
+- Added clipped-panel normalization with restoration, open-shadow-root image tracking, two-pass checks for late-added images, longer image/decode waits, and pending-font settling.
+- Restricted browser-internal pages now show guidance in the popup and disable Full page PNG there; Visible area PNG remains available through the supported captureVisibleTab API.
+- Raised the page-edge rounding tolerance to 1.25 CSS pixels for independent integer rounding, while retaining hard failure for materially larger gaps.
+- Expanded automated coverage for large multi-part exports, internal-page UI behavior, panel detection signals and image readiness.

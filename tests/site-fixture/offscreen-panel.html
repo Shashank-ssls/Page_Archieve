@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Archive Test Fixture &#x2014; Offscreen nested panel</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 10000px; font: 16px/1.5 system-ui, sans-serif; background: #f4f6fa; color: #1b2430; }
+  .page-shell { position: relative; min-height: 10000px; padding: 24px; }
+  .page-head { min-height: 120px; padding: 22px; background: #16365c; color: white; border-radius: 12px; }
+  .nested-panel { position: absolute; top: 0; left: 24px; right: 24px; height: 8000px; overflow: auto; border: 2px solid #5279a9; background: white; padding: 20px; }
+  .panel-content { height: 10500px; }
+  .panel-block { margin: 12px 0; padding: 16px; min-height: 260px; background: #e9f1fb; border: 1px solid #c5d5e8; border-radius: 10px; }
+  .outer-tail { position: absolute; top: 8300px; left: 24px; right: 24px; padding: 24px; min-height: 900px; background: #dff4e7; }
+  .outer-tail strong { font-size: 24px; }
+</style>
+</head>
+<body>
+<div class="page-shell">
+  <header class="page-head"><h1>Offscreen panel regression fixture</h1><p>The document itself scrolls; the large nested panel may be mostly outside the viewport if the outer page is scrolled far down.</p></header>
+  <main id="nested-panel" class="nested-panel" role="main" aria-label="Conversation panel">
+    <h2>Nested panel content</h2>
+    <div class="panel-content" id="panel-content"></div>
+  </main>
+  <section class="outer-tail"><strong>OUTER DOCUMENT FINAL MARKER</strong><p>Smart mode should prefer the whole scrolling document when the nested panel is mostly offscreen. Look for this final marker in the exported PNG.</p></section>
+</div>
+<script>
+  const content = document.getElementById('panel-content');
+  for (let i = 1; i <= 30; i++) {
+    const item = document.createElement('section');
+    item.className = 'panel-block';
+    item.innerHTML = `<strong>Nested panel section ${i}</strong><p>Intentionally tall inner content to exercise panel detection and root-document fallback.</p>`;
+    content.append(item);
+  }
+</script>
+</body>
+</html>

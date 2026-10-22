@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Archive Test Fixture - Claude-style Chat with Side Panel</title>
+<style>
+  /* Served as claude.ai by the E2E harness. The side "artifact" panel is the
+     LARGEST scroller, so generic heuristics pick it; the Claude preset must
+     find the conversation via data-testid="user-message" instead. */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; font: 15px/1.5 system-ui, sans-serif; }
+  .app { display: flex; height: 100vh; }
+  .chat { width: 38%; overflow-y: auto; padding: 16px; background: #faf7f0; }
+  .side { flex: 1; overflow-y: auto; padding: 16px; background: #eef2f8; }
+  .turn { margin: 10px 0; padding: 12px; border-radius: 10px; background: #fff; border: 1px solid #ddd; min-height: 90px; }
+  .art { height: 300px; margin: 12px 0; background: #d5deea; }
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="chat" id="chat"></main>
+  <aside class="side" id="side"></aside>
+</div>
+<script>
+  const chat = document.getElementById('chat'), side = document.getElementById('side');
+  for (let i = 1; i <= 40; i++) {
+    const t = document.createElement('div'); t.className = 'turn';
+    if (i % 2) t.setAttribute('data-testid', 'user-message'); else t.className += ' font-claude-message';
+    t.textContent = (i % 2 ? 'User asks question ' : 'Claude answers with searchable sentence number ') + i;
+    chat.append(t);
+  }
+  const end = document.createElement('p'); end.textContent = 'CLAUDE PRESET FINAL TURN'; chat.append(end);
+  for (let i = 1; i <= 30; i++) { const a = document.createElement('div'); a.className = 'art'; a.textContent = 'Artifact block ' + i; side.append(a); }
+</script>
+</body>
+</html>

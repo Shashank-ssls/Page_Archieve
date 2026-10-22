@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Archive Capture &#x2014; Moving Inner Panel Regression</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; font: 16px/1.45 system-ui, sans-serif; color: #18304a; }
+  #app-shell { position: absolute; inset: 0; width: 100%; height: 100%; background: #eef4fb; }
+  #conversation-thread { width: 100%; height: 100%; overflow: auto; overscroll-behavior: contain; padding: 22px; background: white; border: 3px solid #2458a6; }
+  .intro { padding: 18px; background: #e8f0ff; border-radius: 10px; margin-bottom: 18px; }
+  .entry { min-height: 300px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 24px; margin: 18px 0; background: #fff; }
+  .entry:nth-child(even) { background: #f8fafc; }
+  .mark { color: #b45309; font-weight: 700; }
+  #final-marker { min-height: 360px; display: grid; place-items: center; background: #dcfce7; border: 3px dashed #15803d; font-size: 28px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="app-shell">
+  <main id="conversation-thread" role="main" aria-label="Conversation thread">
+    <section class="intro">
+      <h1>Moving scroll panel test</h1>
+      <p>This controlled page intentionally shifts its scroll-panel parent by 152 px after you scroll beyond section 1. The extension should anchor the panel before capturing later tiles and restore the page style afterward.</p>
+      <p><strong>Expected:</strong> complete PNG, no missing band near the shift, final marker present.</p>
+    </section>
+    <div id="entries"></div>
+    <section id="final-marker">FINAL MARKER &#x2014; capture reached the end</section>
+  </main>
+</div>
+<script>
+(() => {
+  const entries = document.getElementById('entries');
+  for (let i = 1; i <= 18; i++) {
+    const section = document.createElement('section');
+    section.className = 'entry';
+    section.innerHTML = `<h2>Section ${i}</h2><p>This content block verifies panel scroll order and stitching coverage.</p><p class="mark">UNIQUE CHECKPOINT ${String(i).padStart(2, '0')}</p><p>${'Repeated regression text. '.repeat(20)}</p>`;
+    entries.append(section);
+  }
+  const panel = document.getElementById('conversation-thread');
+  const shell = document.getElementById('app-shell');
+  panel.addEventListener('scroll', () => {
+    const shifted = panel.scrollTop > 380;
+    // Simulate a collapsible app shell: crossing section 1 translates the parent
+    // by 152px, and returning to the top lets the shell return to its start state.
+    // Keeping this reversible lets the fixture also verify state restoration.
+    shell.style.transform = shifted ? 'translateY(-152px)' : '';
+    document.body.dataset.panelShifted = String(shifted);
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>
