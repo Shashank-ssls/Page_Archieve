@@ -3,8 +3,8 @@
 Update this at the end of every phase. Newest entries at the top of each section.
 
 ## Current status
-- Version: 2.3.0 (delivered from the planning chat, not yet on GitHub)
-- Current phase: Phase 0 - Repo and environment gate (all checks green on Windows; GitHub push pending)
+- Version: 2.3.0 (on GitHub: Shashank-ssls/Page_Archieve, private)
+- Current phase: Phase 0 done, awaiting owner review before Phase 1
 - Last green run (Windows, GEHRMAN_SPARROW, 2026-10-22): `npm run check` 96/96,
   `npm run e2e` 16/16 (Full), `npm run e2e:lite` 14/14 (Lite), popup-shot and
   build OK. No Windows-specific fixes were needed.
@@ -13,7 +13,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Phase log
 | Date | Phase | Result | Notes |
 | --- | --- | --- | --- |
-| 2026-10-22 | Phase 0 | Green, push pending | git init + .gitattributes (LF). Chromium in .local/ms-playwright, nothing written to C:. chrome-devtools MCP attached to the test Chrome (example.com screenshot). gh not found on PATH, so no remote yet. |
+| 2026-10-22 | Phase 0 | Done | git init + .gitattributes (LF). Chromium in .local/ms-playwright, nothing written to C:. chrome-devtools MCP attached to the test Chrome (example.com screenshot). Pushed with plain git (no gh). |
 | 2026-10-22 | v2.3 delivered | Done | Editions, site presets, searchable PDF, auto-expand, naming. |
 
 ## Real-site results (Phase 1)
@@ -23,6 +23,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Decisions log
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-22 | Remote is Shashank-ssls/Page_Archieve, pushed with plain git | Owner created the repo on the web; gh CLI not installed |
 | 2026-10-22 | Lite public listing, Full unlisted | Avoid store duplicate rule; Lite has no scary permission |
 | 2026-10-22 | One-time Pro license, $19 then $29, INR 499 regional | Local tool with no server cost; low-price market |
 | 2026-10-22 | Dodo Payments preferred | Merchant of record with INR payouts for Indian sellers |

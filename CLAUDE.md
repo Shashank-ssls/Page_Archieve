@@ -117,7 +117,7 @@ After UI changes, run `npm run popup-shot` and LOOK at the images before saying 
 
 ## 5. Git
 
-- Repo: `github.com/Shashank-ssls/page-archive` (private for now).
+- Repo: `github.com/Shashank-ssls/Page_Archieve` (private for now; remote `origin`).
 - Hard rule: commit AND push at the end of every phase, and before any risky
   refactor. A previous project was lost entirely without a remote backup.
 - Commit messages: ASCII, imperative, short subject line, body explaining why.
