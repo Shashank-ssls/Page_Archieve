@@ -23,6 +23,8 @@ Update this at the end of every phase. Newest entries at the top of each section
 | --- | --- | --- | --- | --- |
 | 2026-10-22 | DeepSeek chat | Full | Pass (after 3 fixes) | Recapture (build 1022-1902): clean, composer gone, no scrollbar strip. Fixed: stitch kept floating UI on the first tile; false "clipped 5103px" from a 0px overflow:hidden body around the absolute app layer (fixture abs-shell). |
 | 2026-10-22 | YouTube watch page | Full | Pass (popup fix) | 1 PNG: player frame, description, 244 comments, recommendations column. Popup was widened by a long image URL in a warning (fixed). Slow on a heavy page (127 images), expected. |
+| 2026-10-22 | Colab recapture | Full | Pass | 2 PNG parts; shadow-DOM fix holds, 2 floating elements hidden instead of 60. |
+| 2026-10-22 | Dashboard (Amizone), Smart and Document | Full | Pass | 1 PNG each. Smart hides a fixed bottom-right notice; Document keeps it as on screen. |
 | 2026-10-22 | Google Colab notebook | Full | Pass (after fix) | 2 parts, all cells, outputs, tables and charts. "Hid 60 floating elements": Colab's own run buttons and toggles (shadow DOM) were wrongly hidden; fixed (fixture shadow-cells). |
 | 2026-10-22 | DevTools open (Miruro; ChatGPT share page with device toolbar) | Full | Pass | Full render still worked with DevTools docked (Chrome allows several debugger clients); captures match the emulated layout. TESTING.md expectation updated. |
 | 2026-10-22 | itch.io game page (Rulehouse) | Full | Pass | 2 parts, background art once at the top, comments and devlog complete, 1 folded section expanded. Honest note: some CSS assets unverified. |
