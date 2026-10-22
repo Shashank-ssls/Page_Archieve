@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Archive Test Fixture - Living PDF Article</title>
+<style>
+  /* Long article for the Living PDF: a table of contents with same-page links,
+     h1-h3 headings, external links (one wrapping over two lines) and a
+     javascript: link that must not become a PDF link. */
+  body { margin: 0 auto; max-width: 720px; padding: 24px; font: 16px/1.6 system-ui, sans-serif; background: #fff; color: #222; }
+  h2 { margin-top: 48px; }
+  .filler { height: 900px; background: linear-gradient(#f2f2f2, #dcdcdc); margin: 12px 0; }
+  .narrow { width: 160px; }
+</style>
+</head>
+<body>
+<h1>Living PDF article</h1>
+<nav id="toc"></nav>
+<p>External: <a href="https://example.com/living-one">first external link</a>,
+  <a href="mailto:test@example.com">mail link</a>,
+  <a href="javascript:void(0)">script link</a>.</p>
+<p class="narrow"><a href="https://example.com/wrapping">a long link that wraps over lines</a></p>
+<main id="main"></main>
+<script>
+  const main = document.getElementById('main'), toc = document.getElementById('toc');
+  for (let i = 1; i <= 6; i++) {
+    const h2 = document.createElement('h2'); h2.id = 'section-' + i; h2.textContent = 'Section ' + i; main.append(h2);
+    const a = document.createElement('a'); a.href = '#section-' + i; a.textContent = 'Go to section ' + i; toc.append(a, document.createElement('br'));
+    const h3 = document.createElement('h3'); h3.textContent = 'Detail ' + i; main.append(h3);
+    const f = document.createElement('div'); f.className = 'filler'; main.append(f);
+    const p = document.createElement('p'); p.innerHTML = 'Read <a href="https://example.com/s' + i + '">source ' + i + '</a>.'; main.append(p);
+  }
+</script>
+</body>
+</html>

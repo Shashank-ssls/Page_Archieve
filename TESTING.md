@@ -89,6 +89,7 @@ Never commit captures of real accounts.
 | --- | --- | --- |
 | Long article (Wikipedia, a news site, a blog) | Smart | Full height, images, no repeated header |
 | ChatGPT long thread | Smart (preset) | All turns, no sidebar/composer, PDF text searchable |
+| Living PDF: long article and a chat, PDF with cover page | Smart | Open in Chrome PDF viewer and Acrobat Reader: links open, same-page links jump, bookmarks (headings or one per prompt) jump, text selectable, cover hashes listed |
 | Claude long thread, with an artifact open | Smart (preset) | Conversation only, all turns |
 | Gemini, Perplexity | Smart (preset) | All turns |
 | Notion page with images and toggles | Smart | Toggles expanded, images present |

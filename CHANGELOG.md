@@ -1,3 +1,10 @@
+# Unreleased - Phase 3 Living PDF
+
+- New: clickable links in PDFs. Web and mail links become PDF link annotations over their on-screen rectangles (multi-line links get one area per line); same-page #links jump to their target page and position. javascript:, data: and other schemes are dropped. Full render only, like the text layer.
+- New: PDF bookmarks. One per h1-h3 heading, nested by level; on ChatGPT, Claude, Gemini and Copilot, one per user prompt instead (numbered, prompt text as title). Titles keep full Unicode.
+- New option "PDF cover page" (More options, off by default): a first page with title, URL, capture time (local and UTC) and the SHA-256 of each page image as embedded in the PDF. Hashing is local (crypto.subtle). Cover text uses standard PDF fonts, so non-ASCII characters show as "?" there.
+- Tests: tests/living-pdf.test.cjs (link coordinates, unsafe links, outline nesting and counts, cover, xref validity, partAt); fixture living-article.html and E2E case living-pdf; claude-preset now checks 20 prompt bookmarks.
+
 # Unreleased - Phase 2 store preparation (started early)
 
 - Renamed the product to Tallshot ("Page Archive" sat next to a featured "Archive Page" in the store). Full edition: "Tallshot Full"; Lite: "Tallshot". Popup header "Tall" + accent "shot", stitcher page, PDF producer, default folder hint, store zips (`tallshot-<edition>-<version>.zip`) and docs. Internal ids (storage keys, data attributes, test hook) are unchanged so saved settings survive.

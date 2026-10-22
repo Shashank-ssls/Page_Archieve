@@ -9,7 +9,7 @@ const CELLS = 25;
 let currentTabId = null;
 let running = false;
 
-const defaults = { engine: 'auto', format: 'png', prepareImages: true, autoLoadMore: false, hideFloating: true, expandContent: true, nameTemplate: '{title}', folder: '', maxHeight: 200000, waitMs: 3500, captureTarget: 'auto' };
+const defaults = { engine: 'auto', format: 'png', prepareImages: true, autoLoadMore: false, hideFloating: true, expandContent: true, nameTemplate: '{title}', folder: '', maxHeight: 200000, waitMs: 3500, captureTarget: 'auto', pdfCover: false };
 let restrictedActiveTab = false;
 
 // Shared with the worker (url-policy.js): browser-internal pages and the
@@ -56,6 +56,7 @@ function readSettings() {
     autoLoadMore: $('auto-load').checked,
     hideFloating: $('hide-floating').checked,
     expandContent: $('expand-content').checked,
+    pdfCover: $('pdf-cover').checked,
     nameTemplate: $('name-template').value.trim() || '{title}',
     folder: $('folder').value.trim(),
     maxHeight: Number($('max-height').value),
@@ -283,7 +284,7 @@ document.querySelectorAll('input[name="format"], input[name="target"]').forEach(
   el.addEventListener('change', () => { void saveSettings(); });
 });
 ['name-template', 'folder'].forEach(id => $(id).addEventListener('input', () => { updateMeta(); }));
-['prepare-images', 'auto-load', 'hide-floating', 'expand-content', 'name-template', 'folder', 'engine', 'max-height', 'wait-ms'].forEach(id => {
+['prepare-images', 'auto-load', 'hide-floating', 'expand-content', 'pdf-cover', 'name-template', 'folder', 'engine', 'max-height', 'wait-ms'].forEach(id => {
   $(id).addEventListener('change', () => { void saveSettings(); });
 });
 $('more').addEventListener('toggle', () => {
@@ -332,6 +333,7 @@ chrome.runtime.onMessage.addListener(message => {
   $('auto-load').checked = settings.autoLoadMore === true;
   $('hide-floating').checked = settings.hideFloating !== false;
   $('expand-content').checked = settings.expandContent !== false;
+  $('pdf-cover').checked = settings.pdfCover === true;
   $('name-template').value = settings.nameTemplate || '{title}';
   $('folder').value = settings.folder || '';
   showBuildStamp();

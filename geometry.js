@@ -298,6 +298,15 @@
     return out;
   }
 
+  // Index of the output part that contains capture point (x, y), or -1. Used to
+  // map PDF bookmarks and same-page links onto the page they land on.
+  function partAt(parts, x, y) {
+    if (!Array.isArray(parts)) return -1;
+    const px = Math.max(0, Number(x) || 0), py = Number(y);
+    if (!Number.isFinite(py) || py < 0) return -1;
+    return parts.findIndex(p => py >= p.y && py < p.y + p.h && px >= p.x && px < p.x + p.w);
+  }
+
   // ---- Render engine planning ------------------------------------------------
   // Height of one render chunk in CSS px so each screenshot stays well inside
   // GPU texture limits (16384 device px) on HiDPI screens.
@@ -354,7 +363,7 @@
     return Math.max(1, Math.min(width, 16000));
   }
 
-  const api = { applyNameTemplate, safeFolder, asciiFilename, renderChunkHeight, renderChunks, panelGrowthNeeded, panelFullyExposed, renderDocumentWidth, rootPageSize, anchorCorrection, isHeavilyClippedPanel, shouldUseInnerScroller, axisPositions, safeTileDriftTolerance, adjustedFinalPanelHeight, intersectRect, partSize, filenameBase, buildParts, validateTileCoverage, tileDrawMapping };
+  const api = { applyNameTemplate, safeFolder, asciiFilename, renderChunkHeight, renderChunks, panelGrowthNeeded, panelFullyExposed, renderDocumentWidth, rootPageSize, anchorCorrection, isHeavilyClippedPanel, shouldUseInnerScroller, axisPositions, safeTileDriftTolerance, adjustedFinalPanelHeight, intersectRect, partSize, filenameBase, buildParts, partAt, validateTileCoverage, tileDrawMapping };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.PageArchiveGeometry = api;
 })(globalThis);

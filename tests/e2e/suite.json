@@ -10,7 +10,7 @@
   { "name": "reveal-lazy", "url": "/fx/reveal-lazy.html", "settings": { "waitMs": 1000 } },
   { "name": "fixed-art", "url": "/fx/fixed-art-backdrop.html", "settings": { "waitMs": 1000 } },
   { "name": "viewport-hero", "url": "/fx/viewport-hero.html", "settings": { "waitMs": 1000 } },
-  { "name": "claude-preset", "url": "http://claude.ai/fx/chat-preset.html", "settings": { "waitMs": 1000, "format": "pdf" }, "expect": { "engineIncludes": "Claude" }, "lite": false },
+  { "name": "claude-preset", "url": "http://claude.ai/fx/chat-preset.html", "settings": { "waitMs": 1000, "format": "pdf" }, "expect": { "engineIncludes": "Claude", "pdf": { "bookmarks": 20, "cover": false } }, "lite": false },
   { "name": "expand", "url": "/fx/expand-content.html", "settings": { "waitMs": 1000 }, "expect": { "titleUnchanged": "Page Archive Test Fixture - Collapsed Content" } },
   { "name": "stitch-jpeg", "url": "/fx/app-scroll-panel.html", "settings": { "engine": "stitch", "format": "jpeg", "waitMs": 1000 } },
   { "name": "switch-away", "url": "/fx/virtual-chat.html", "switchAway": true, "settings": { "waitMs": 1000 }, "lite": false },
@@ -25,5 +25,6 @@
   {"name": "floating-badge", "url": "/fx/floating-badge.html", "settings": {"waitMs": 1000}, "expect": {"absentColor": {"color": [255,0,255]}}},
   {"name": "abs-shell", "url": "/fx/abs-shell.html", "settings": {"waitMs": 1000}, "expect": {"engineIncludes": "Full render"}, "lite": false},
   {"name": "shadow-cells", "url": "/fx/shadow-cells.html", "settings": {"waitMs": 1000}, "expect": {"presentColor": {"color": [0,255,0], "minPixels": 20000}}},
-  {"name": "end-vh-padding", "url": "http://claude.ai/fx/end-spacer.html?pad=1", "settings": {"waitMs": 1000}, "expect": {"engineIncludes": "Claude", "maxTrailingBlank": {"color": [27,27,27], "px": 400}}, "lite": false}
+  {"name": "end-vh-padding", "url": "http://claude.ai/fx/end-spacer.html?pad=1", "settings": {"waitMs": 1000}, "expect": {"engineIncludes": "Claude", "maxTrailingBlank": {"color": [27,27,27], "px": 400}}, "lite": false},
+  {"name": "living-pdf", "url": "/fx/living-article.html", "settings": {"waitMs": 1000, "format": "pdf", "pdfCover": true}, "expect": {"pdf": {"minUriLinks": 10, "minGoToLinks": 6, "bookmarks": 13, "cover": true, "uris": ["https://example.com/living-one", "mailto:test@example.com", "https://example.com/wrapping", "https://example.com/s6"], "forbidUris": ["javascript:"]}}, "lite": false}
 ]

@@ -1,4 +1,5 @@
-/* Minimal dependency-free PDF writer: one JPEG image per page (DCTDecode). */
+/* Minimal dependency-free PDF writer: one JPEG image per page (DCTDecode),
+   optional invisible text layer, link annotations, outline and cover page. */
 (function (root) {
   'use strict';
 
@@ -76,10 +77,87 @@
     return ops;
   }
 
+  // PDF text string as UTF-16BE hex with a BOM, so outline titles keep Unicode.
+  function pdfTextHex(text) {
+    let out = 'feff';
+    for (const ch of String(text)) {
+      const code = ch.codePointAt(0);
+      if (code > 0xFFFF) {
+        const v = code - 0x10000;
+        out += (0xD800 + (v >> 10)).toString(16) + (0xDC00 + (v & 0x3FF)).toString(16);
+      } else out += code.toString(16).padStart(4, '0');
+    }
+    return `<${out}>`;
+  }
+
+  // Literal string for ASCII-only content (URIs, cover text in standard fonts).
+  const asciiLit = (s, max = 2000) => '(' + String(s || '').replace(/[^\x20-\x7E]/g, '?').slice(0, max).replace(/([\\()])/g, '\\$1') + ')';
+
+  // Only absolute web and mail links become URI actions; anything else
+  // (javascript:, data:, blob:, raw non-ASCII) is dropped.
+  function safeUri(uri) {
+    const u = String(uri || '');
+    if (u.length > 2000 || !/^(https?:\/\/|mailto:)/i.test(u) || /[^\x21-\x7E]/.test(u)) return null;
+    return u;
+  }
+
+  function wrapAscii(text, width) {
+    const words = String(text || '').replace(/[^\x20-\x7E]/g, '?').split(/\s+/).filter(Boolean);
+    const lines = [];
+    let line = '';
+    for (let w of words) {
+      while (w.length > width) {
+        if (line) { lines.push(line); line = ''; }
+        lines.push(w.slice(0, width));
+        w = w.slice(width);
+      }
+      if (!w) continue;
+      if (line && line.length + 1 + w.length > width) { lines.push(line); line = w; } else line = line ? `${line} ${w}` : w;
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  // Cover page (US Letter) with visible text in the standard Helvetica/Courier
+  // fonts. Those fonts are WinAnsi only, so non-ASCII characters show as "?";
+  // the outline and the text layer keep full Unicode.
+  function coverOps(cover, pageCount, H) {
+    let y = H - 72;
+    let ops = '0.1 0.1 0.1 rg\n';
+    const line = (font, size, text, gap) => {
+      ops += `BT /${font} ${size} Tf 72 ${num(y)} Td ${asciiLit(text)} Tj ET\n`;
+      y -= gap || size * 1.5;
+    };
+    line('FH', 9, 'TALLSHOT CAPTURE', 24);
+    for (const t of wrapAscii(cover.title || 'Untitled page', 44).slice(0, 4)) line('FB', 18, t, 24);
+    y -= 10;
+    line('FH', 9, 'URL');
+    for (const t of wrapAscii(cover.url || '-', 78).slice(0, 8)) line('FC', 9, t, 12);
+    y -= 10;
+    line('FH', 9, 'CAPTURED');
+    line('FC', 9, cover.captured || '-', 12);
+    y -= 10;
+    line('FH', 9, `PAGES AFTER THIS COVER: ${pageCount}`, 24);
+    const hashes = Array.isArray(cover.hashes) ? cover.hashes : [];
+    if (hashes.length) {
+      line('FH', 9, 'SHA-256 OF EACH PAGE IMAGE (the JPEG bytes embedded on that page)');
+      const shown = hashes.slice(0, 40);
+      shown.forEach((h, i) => line('FC', 8, `${String(i + 1).padStart(3, ' ')}  ${String(h).replace(/[^0-9a-f]/gi, '').slice(0, 64)}`, 11));
+      if (hashes.length > shown.length) line('FC', 8, `... ${hashes.length - shown.length} more not listed`, 11);
+    }
+    return ops;
+  }
+
   /**
-   * pages: [{ jpeg: Uint8Array, cssWidth?, cssHeight? }]
+   * pages: [{ jpeg: Uint8Array, cssWidth?, cssHeight?, text?, links? }]
    * Optional page.text: [{ x, y, w, h, text }] in the page's CSS px adds an
    * invisible searchable/selectable text layer.
+   * Optional page.links: [{ x, y, w, h, uri }] or [{ x, y, w, h, dest: { page, y } }]
+   * (dest.page indexes `pages`, dest.y is CSS px on that page) adds clickable areas.
+   * meta.outline: [{ title, page, y, level }] in reading order adds bookmarks;
+   * a higher level nests under the nearest earlier lower one.
+   * meta.cover: { title, url, captured, hashes } adds a first page describing
+   * the capture.
    * cssWidth/cssHeight define the page size (1 CSS px = 0.75 pt); defaults to
    * the image pixel size. Pages that would exceed PDF limits are scaled down.
    */
@@ -94,34 +172,73 @@
       length += bytes.length;
     };
     const startObj = id => { offsets[id] = length; push(`${id} 0 obj\n`); };
+    const writeStream = (id, stream) => { startObj(id); push(`<< /Length ${enc.encode(stream).length} >>\nstream\n${stream}endstream\nendobj\n`); };
 
     push('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
-    const pageCount = pages.length;
-    // Object ids: 1 catalog, 2 pages, 3 info, then 3 per page (page, content, image).
-    const pageIds = pages.map((_, i) => 4 + i * 3);
-    const hasText = pages.some(p => Array.isArray(p.text) && p.text.length);
-    const fontId = 4 + pageCount * 3;
+    // Measure every page first: links and bookmarks need the scale of the page
+    // they point into. k converts the page's CSS px into its (possibly shrunk) size.
+    const geo = pages.map(page => {
+      const jpeg = page.jpeg instanceof Uint8Array ? page.jpeg : new Uint8Array(page.jpeg);
+      const info = jpegSize(jpeg);
+      const cssW = Number(page.cssWidth) > 0 ? Number(page.cssWidth) : info.width;
+      const cssH = Number(page.cssHeight) > 0 ? Number(page.cssHeight) : info.height;
+      const k = Math.min(1, MAX_PAGE_UNITS / (cssW * 0.75), MAX_PAGE_UNITS / (cssH * 0.75));
+      return { jpeg, info, w: cssW * 0.75 * k, h: cssH * 0.75 * k, k };
+    });
+    const destTop = (g, y) => num(Math.max(0, Math.min(g.h, g.h - Number(y || 0) * 0.75 * g.k)));
 
-    startObj(1); push('<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
-    startObj(2); push(`<< /Type /Pages /Count ${pageCount} /Kids [${pageIds.map(id => `${id} 0 R`).join(' ')}] >>\nendobj\n`);
+    // Object ids: 1 catalog, 2 pages, 3 info, then allocated in writing order.
+    let nextId = 4;
+    const cover = meta.cover && typeof meta.cover === 'object' ? meta.cover : null;
+    const coverIds = cover ? { page: nextId++, content: nextId++, fonts: [nextId++, nextId++, nextId++] } : null;
+    const pageIds = pages.map(() => { const id = nextId; nextId += 3; return id; }); // page, content, image
+    const hasText = pages.some(p => Array.isArray(p.text) && p.text.length);
+    const fontId = hasText ? nextId : 0;
+    if (hasText) nextId += 4;
+    const outline = (Array.isArray(meta.outline) ? meta.outline : [])
+      .filter(o => o && String(o.title || '').trim() && Number.isInteger(o.page) && o.page >= 0 && o.page < pages.length)
+      .slice(0, 5000);
+    const outlineRoot = outline.length ? nextId++ : 0;
+    const outlineIds = outline.map(() => nextId++);
+    const total = nextId;
+    const kids = [...(coverIds ? [coverIds.page] : []), ...pageIds];
+
+    startObj(1); push(`<< /Type /Catalog /Pages 2 0 R${outlineRoot ? ` /Outlines ${outlineRoot} 0 R /PageMode /UseOutlines` : ''} >>\nendobj\n`);
+    startObj(2); push(`<< /Type /Pages /Count ${kids.length} /Kids [${kids.map(id => `${id} 0 R`).join(' ')}] >>\nendobj\n`);
     const esc = s => String(s || '').replace(/[^\x20-\x7E]/g, '?').replace(/([\\()])/g, '\\$1').slice(0, 200);
     startObj(3); push(`<< /Title (${esc(meta.title)}) /Producer (Tallshot) /Subject (${esc(meta.subject)}) >>\nendobj\n`);
 
+    if (coverIds) {
+      const [fh, fb, fc] = coverIds.fonts;
+      startObj(coverIds.page);
+      push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /FH ${fh} 0 R /FB ${fb} 0 R /FC ${fc} 0 R >> >> /Contents ${coverIds.content} 0 R >>\nendobj\n`);
+      writeStream(coverIds.content, coverOps(cover, pages.length, 792));
+      [[fh, 'Helvetica'], [fb, 'Helvetica-Bold'], [fc, 'Courier']].forEach(([id, name]) => {
+        startObj(id); push(`<< /Type /Font /Subtype /Type1 /BaseFont /${name} /Encoding /WinAnsiEncoding >>\nendobj\n`);
+      });
+    }
+
     pages.forEach((page, i) => {
-      const jpeg = page.jpeg instanceof Uint8Array ? page.jpeg : new Uint8Array(page.jpeg);
-      const info = jpegSize(jpeg);
-      let w = (Number(page.cssWidth) > 0 ? Number(page.cssWidth) : info.width) * 0.75;
-      let h = (Number(page.cssHeight) > 0 ? Number(page.cssHeight) : info.height) * 0.75;
-      const cssW = Number(page.cssWidth) > 0 ? Number(page.cssWidth) : info.width;
-      const shrink = Math.min(1, MAX_PAGE_UNITS / w, MAX_PAGE_UNITS / h);
-      w *= shrink; h *= shrink;
-      const k = (w / 0.75) / cssW;
+      const { jpeg, info, w, h, k } = geo[i];
       const pageId = pageIds[i], contentId = pageId + 1, imageId = pageId + 2;
+      const annots = [];
+      for (const link of (Array.isArray(page.links) ? page.links : []).slice(0, 5000)) {
+        if (!link || ![link.x, link.y, link.w, link.h].every(Number.isFinite) || link.w <= 0 || link.h <= 0) continue;
+        let action;
+        if (link.dest && Number.isInteger(link.dest.page) && geo[link.dest.page]) {
+          action = `/Dest [${pageIds[link.dest.page]} 0 R /XYZ 0 ${destTop(geo[link.dest.page], link.dest.y)} null]`;
+        } else {
+          const uri = safeUri(link.uri);
+          if (!uri) continue;
+          action = `/A << /S /URI /URI ${asciiLit(uri)} >>`;
+        }
+        const x1 = link.x * 0.75 * k, x2 = (link.x + link.w) * 0.75 * k;
+        const y1 = h - (link.y + link.h) * 0.75 * k, y2 = h - link.y * 0.75 * k;
+        annots.push(`<< /Type /Annot /Subtype /Link /Rect [${num(x1)} ${num(y1)} ${num(x2)} ${num(y2)}] /Border [0 0 0] ${action} >>`);
+      }
       startObj(pageId);
-      push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${num(w)} ${num(h)}] /Resources << /XObject << /Im${i} ${imageId} 0 R >>${hasText ? ` /Font << /F0 ${fontId} 0 R >>` : ''} >> /Contents ${contentId} 0 R >>\nendobj\n`);
-      const stream = `q ${num(w)} 0 0 ${num(h)} 0 0 cm /Im${i} Do Q\n` + (hasText ? textOps(page.text, k, h) : '');
-      startObj(contentId);
-      push(`<< /Length ${enc.encode(stream).length} >>\nstream\n${stream}endstream\nendobj\n`);
+      push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${num(w)} ${num(h)}] /Resources << /XObject << /Im${i} ${imageId} 0 R >>${hasText ? ` /Font << /F0 ${fontId} 0 R >>` : ''} >> /Contents ${contentId} 0 R${annots.length ? ` /Annots [${annots.join(' ')}]` : ''} >>\nendobj\n`);
+      writeStream(contentId, `q ${num(w)} 0 0 ${num(h)} 0 0 cm /Im${i} Do Q\n` + (hasText ? textOps(page.text, k, h) : ''));
       const colorSpace = info.components === 1 ? '/DeviceGray' : info.components === 4 ? '/DeviceCMYK' : '/DeviceRGB';
       startObj(imageId);
       push(`<< /Type /XObject /Subtype /Image /Width ${info.width} /Height ${info.height} /ColorSpace ${colorSpace} /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`);
@@ -133,10 +250,33 @@
       startObj(fontId); push(`<< /Type /Font /Subtype /Type0 /BaseFont /PageArchiveText /Encoding /Identity-H /DescendantFonts [${fontId + 1} 0 R] /ToUnicode ${fontId + 3} 0 R >>\nendobj\n`);
       startObj(fontId + 1); push(`<< /Type /Font /Subtype /CIDFontType2 /BaseFont /PageArchiveText /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor ${fontId + 2} 0 R /DW 500 /CIDToGIDMap /Identity >>\nendobj\n`);
       startObj(fontId + 2); push('<< /Type /FontDescriptor /FontName /PageArchiveText /Flags 4 /FontBBox [0 -200 1000 900] /ItalicAngle 0 /Ascent 900 /Descent -200 /CapHeight 700 /StemV 80 >>\nendobj\n');
-      const cmap = toUnicodeCMap();
-      startObj(fontId + 3); push(`<< /Length ${enc.encode(cmap).length} >>\nstream\n${cmap}endstream\nendobj\n`);
+      writeStream(fontId + 3, toUnicodeCMap());
     }
-    const total = 4 + pageCount * 3 + (hasText ? 4 : 0);
+
+    if (outlineRoot) {
+      const nodes = outline.map((o, i) => ({ id: outlineIds[i], o, level: Math.max(1, Math.min(6, Number(o.level) || 1)), kids: [] }));
+      const top = [];
+      const stack = [];
+      for (const n of nodes) {
+        while (stack.length && stack[stack.length - 1].level >= n.level) stack.pop();
+        (stack.length ? stack[stack.length - 1].kids : top).push(n);
+        stack.push(n);
+      }
+      const countAll = list => list.reduce((a, n) => a + 1 + countAll(n.kids), 0);
+      const ref = n => `${n.id} 0 R`;
+      const writeLevel = (list, parentId) => list.forEach((n, i) => {
+        let d = `<< /Title ${pdfTextHex(String(n.o.title).replace(/\s+/g, ' ').trim().slice(0, 200))} /Parent ${parentId} 0 R`;
+        if (i > 0) d += ` /Prev ${ref(list[i - 1])}`;
+        if (i < list.length - 1) d += ` /Next ${ref(list[i + 1])}`;
+        if (n.kids.length) d += ` /First ${ref(n.kids[0])} /Last ${ref(n.kids[n.kids.length - 1])} /Count ${countAll(n.kids)}`;
+        d += ` /Dest [${pageIds[n.o.page]} 0 R /XYZ 0 ${destTop(geo[n.o.page], n.o.y)} null] >>`;
+        startObj(n.id); push(`${d}\nendobj\n`);
+        writeLevel(n.kids, n.id);
+      });
+      startObj(outlineRoot); push(`<< /Type /Outlines /First ${ref(top[0])} /Last ${ref(top[top.length - 1])} /Count ${countAll(top)} >>\nendobj\n`);
+      writeLevel(top, outlineRoot);
+    }
+
     const xrefOffset = length;
     let xref = `xref\n0 ${total}\n0000000000 65535 f \n`;
     for (let id = 1; id < total; id++) xref += `${String(offsets[id]).padStart(10, '0')} 00000 n \n`;
@@ -149,7 +289,7 @@
     return out;
   }
 
-  const api = { buildPdf, jpegSize, utf16Hex };
+  const api = { buildPdf, jpegSize, utf16Hex, pdfTextHex, safeUri };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.PageArchivePdf = api;
 })(globalThis);

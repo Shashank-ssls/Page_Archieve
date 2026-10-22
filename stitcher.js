@@ -17,6 +17,7 @@
   const downloadWaiters = new Map();
   const cancelledCaptures = new Set();
   const textRuns = new Map(); // captureId -> [[x, y, w, h, fs, text], ...] in capture CSS px
+  const pdfExtras = new Map(); // captureId -> { links, marks } in capture CSS px (see PAC_COLLECT_TEXT)
 
   function status(message, percent) {
     statusEl.textContent = message;
@@ -324,7 +325,10 @@
         const runs = (textRuns.get(session.captureId) || [])
           .filter(r => r[1] + r[3] > part.y && r[1] < part.y + part.h && r[0] + r[2] > part.x && r[0] < part.x + part.w)
           .map(r => ({ x: r[0] - part.x, y: r[1] - part.y, w: r[2], h: r[3], text: r[5] }));
-        pdfPages.push({ jpeg: new Uint8Array(await blob.arrayBuffer()), cssWidth: part.w, cssHeight: part.h, text: runs });
+        const links = ((pdfExtras.get(session.captureId) || {}).links || [])
+          .filter(l => l[1] + l[3] > part.y && l[1] < part.y + part.h && l[0] + l[2] > part.x && l[0] < part.x + part.w)
+          .map(l => ({ x: l[0] - part.x, y: l[1] - part.y, w: l[2], h: l[3], uri: l[4], target: l.length >= 7 ? [l[5], l[6]] : null }));
+        pdfPages.push({ jpeg: new Uint8Array(await blob.arrayBuffer()), cssWidth: part.w, cssHeight: part.h, text: runs, links });
         status(`Encoded page ${index + 1} of ${partCount}\u2026`, 80 + ((index + 1) / partCount) * 15);
       } else {
         status(`Downloading ${ext.toUpperCase()} ${index + 1} of ${partCount}\u2026`, 80 + ((index + 1) / partCount) * 18);
@@ -395,8 +399,41 @@
     if (format === 'pdf') {
       if (!PDF) throw new Error('The PDF writer failed to load.');
       const textCount = pdfPages.reduce((a, p) => a + (p.text ? p.text.length : 0), 0);
-      const bytes = PDF.buildPdf(pdfPages, { title: session.title || baseName, subject: session.url || '' });
+      // Same-page links and bookmarks point at a capture position; map each to the page it lands on.
+      const toDest = (x, y) => {
+        const page = G.partAt(parts, x, y);
+        return page < 0 ? null : { page, y: y - parts[page].y };
+      };
+      let linkCount = 0;
+      for (const page of pdfPages) {
+        page.links = page.links.map(l => {
+          if (!l.target) return l;
+          const dest = toDest(l.target[0], l.target[1]);
+          return dest ? { x: l.x, y: l.y, w: l.w, h: l.h, dest } : null;
+        }).filter(Boolean);
+        linkCount += page.links.length;
+      }
+      const outline = ((pdfExtras.get(message.captureId) || {}).marks || [])
+        .map(m => ({ dest: toDest(m[0], m[1]), level: m[2], title: m[3] }))
+        .filter(m => m.dest)
+        .map(m => ({ page: m.dest.page, y: m.dest.y, level: m.level, title: m.title }));
+      let cover = null;
+      if (message.cover) {
+        const hashes = [];
+        for (const page of pdfPages) {
+          const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', page.jpeg));
+          hashes.push(Array.from(digest, b => b.toString(16).padStart(2, '0')).join(''));
+        }
+        const at = new Date(Number(message.capturedAt) || Date.now());
+        const pad = n => String(n).padStart(2, '0');
+        const offset = -at.getTimezoneOffset();
+        const local = `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())} ${pad(at.getHours())}:${pad(at.getMinutes())}:${pad(at.getSeconds())} UTC${offset >= 0 ? '+' : '-'}${pad(Math.floor(Math.abs(offset) / 60))}:${pad(Math.abs(offset) % 60)}`;
+        cover = { title: session.title || baseName, url: session.url || '', captured: `${local} (${at.toISOString()})`, hashes };
+      }
+      const bytes = PDF.buildPdf(pdfPages, { title: session.title || baseName, subject: session.url || '', outline, cover });
       if (textCount) warnings.push(`PDF includes a searchable, selectable text layer (${textCount.toLocaleString()} lines).`);
+      if (linkCount || outline.length) warnings.push(`PDF includes ${linkCount.toLocaleString()} clickable link area(s) and ${outline.length.toLocaleString()} bookmark(s).`);
+      if (cover) warnings.push('PDF starts with a cover page: title, URL, capture time and a SHA-256 hash of each page image.');
       pdfPages.length = 0;
       const pdfBlob = new Blob([bytes], { type: 'application/pdf' });
       status('Downloading PDF\u2026', 98);
@@ -405,6 +442,7 @@
       results.splice(0, results.length, { filename: `${baseName}.pdf`, width: results[0] ? results[0].width : 0, height: results.reduce((a, r) => a + r.height, 0), bytes: pdfBlob.size });
     }
     textRuns.delete(message.captureId);
+    pdfExtras.delete(message.captureId);
     await cleanup(message.captureId).catch(() => {});
     status(`Saved ${downloads} file${downloads === 1 ? '' : 's'}.`, 100);
     return {
@@ -447,6 +485,10 @@
       if (message.type === 'PAC_STORE_TEXT') {
         const runs = Array.isArray(message.runs) ? message.runs.filter(r => Array.isArray(r) && r.length >= 6 && r.slice(0, 4).every(Number.isFinite) && typeof r[5] === 'string') : [];
         textRuns.set(message.captureId, (textRuns.get(message.captureId) || []).concat(runs));
+        const extras = pdfExtras.get(message.captureId) || { links: [], marks: [] };
+        if (Array.isArray(message.links)) extras.links.push(...message.links.filter(l => Array.isArray(l) && l.length >= 5 && l.slice(0, 4).every(Number.isFinite) && typeof l[4] === 'string' && (l.length < 7 || (Number.isFinite(l[5]) && Number.isFinite(l[6])))).slice(0, 5000));
+        if (Array.isArray(message.marks)) extras.marks.push(...message.marks.filter(m => Array.isArray(m) && Number.isFinite(m[0]) && Number.isFinite(m[1]) && Number.isFinite(m[2]) && typeof m[3] === 'string').slice(0, 2000));
+        pdfExtras.set(message.captureId, extras);
         return { ok: true, stored: runs.length };
       }
       if (message.type === 'PAC_COMPOSE') return await compose(message);
@@ -457,6 +499,7 @@
       if (message.type === 'PAC_CLEANUP') {
         cancelledCaptures.delete(message.captureId);
         textRuns.delete(message.captureId);
+        pdfExtras.delete(message.captureId);
         await cleanup(message.captureId).catch(() => {});
         return { ok: true };
       }

@@ -261,6 +261,28 @@ for (const c of cases) {
         if (blank > px) problems.push(`${blank} blank rows at the end of ${path.basename(last)} (max ${px})`);
       }
     }
+    if (expect.pdf) {
+      // Reads the writer's uncompressed objects: link annotations, bookmarks,
+      // cover page and URIs. Viewer behaviour still needs a manual check.
+      const { minUriLinks = 0, minGoToLinks = 0, bookmarks, minBookmarks = 0, cover, uris = [], forbidUris = [] } = expect.pdf;
+      const file = files.find(f => f.endsWith('.pdf'));
+      if (!file) problems.push('no PDF downloaded');
+      else {
+        const text = fs.readFileSync(file).toString('latin1');
+        const uriList = [...text.matchAll(/\/S \/URI \/URI \(([^)]*)\)/g)].map(m => m[1]);
+        const goTo = (text.match(/\/Subtype \/Link [^>]*\/Dest \[/g) || []).length;
+        const marks = (text.match(/\/Title <feff/g) || []).length;
+        const hasCover = /\/BaseFont \/Helvetica-Bold/.test(text) && /TALLSHOT CAPTURE/.test(text);
+        r.pdf = { uriLinks: uriList.length, goToLinks: goTo, bookmarks: marks, cover: hasCover };
+        if (uriList.length < minUriLinks) problems.push(`${uriList.length} URI links (min ${minUriLinks})`);
+        if (goTo < minGoToLinks) problems.push(`${goTo} same-page links (min ${minGoToLinks})`);
+        if (bookmarks !== undefined && marks !== bookmarks) problems.push(`${marks} bookmarks (expected ${bookmarks})`);
+        if (marks < minBookmarks) problems.push(`${marks} bookmarks (min ${minBookmarks})`);
+        if (cover !== undefined && hasCover !== cover) problems.push(`cover page ${hasCover ? 'present' : 'missing'}`);
+        for (const u of uris) if (!uriList.includes(u)) problems.push(`missing link ${u}`);
+        for (const u of forbidUris) if (uriList.some(x => x.startsWith(u))) problems.push(`forbidden link ${u}`);
+      }
+    }
     r.problems = problems;
     r.ok = problems.length === 0;
   } catch (error) {

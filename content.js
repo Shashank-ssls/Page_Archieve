@@ -53,11 +53,13 @@
   // tags), then walk up to the nearest ancestor that genuinely scrolls. This
   // survives most redesigns because it never depends on hashed class names.
   const SITE_PRESETS = [
-    { name: 'ChatGPT', host: /(^|\.)(chatgpt\.com|chat\.openai\.com)$/, markers: ['[data-turn-key]', '[data-conversation-role]', '[data-user-message-bubble]', '[data-message-author-role]', 'article[data-testid^="conversation-turn"]', '[data-testid^="conversation-turn"]'] },
-    { name: 'Claude', host: /(^|\.)claude\.ai$/, markers: ['[data-testid="user-message"]', '.font-claude-message', '[data-is-streaming]', '[data-test-render-count]'] },
-    { name: 'Gemini', host: /(^|\.)gemini\.google\.com$/, markers: ['user-query', 'model-response', 'message-content'] },
+    // `turns` (optional) matches one element per user prompt; it names the PDF
+    // outline entries for chat captures.
+    { name: 'ChatGPT', host: /(^|\.)(chatgpt\.com|chat\.openai\.com)$/, turns: '[data-message-author-role="user"]', markers: ['[data-turn-key]', '[data-conversation-role]', '[data-user-message-bubble]', '[data-message-author-role]', 'article[data-testid^="conversation-turn"]', '[data-testid^="conversation-turn"]'] },
+    { name: 'Claude', host: /(^|\.)claude\.ai$/, turns: '[data-testid="user-message"]', markers: ['[data-testid="user-message"]', '.font-claude-message', '[data-is-streaming]', '[data-test-render-count]'] },
+    { name: 'Gemini', host: /(^|\.)gemini\.google\.com$/, turns: 'user-query', markers: ['user-query', 'model-response', 'message-content'] },
     { name: 'Perplexity', host: /(^|\.)perplexity\.ai$/, markers: ['[data-testid="answer"]', '.prose', '[id^="markdown-content"]'] },
-    { name: 'Copilot', host: /(^|\.)copilot\.microsoft\.com$/, markers: ['[data-content="user-message"]', '[data-content="ai-message"]', 'cib-message'] },
+    { name: 'Copilot', host: /(^|\.)copilot\.microsoft\.com$/, turns: '[data-content="user-message"]', markers: ['[data-content="user-message"]', '[data-content="ai-message"]', 'cib-message'] },
     { name: 'DeepSeek', host: /(^|\.)chat\.deepseek\.com$/, markers: ['.ds-markdown', '[class*="message"]'] },
     { name: 'Google Colab', host: /(^|\.)colab\.research\.google\.com$/, markers: ['.cell', 'colab-run-button', '.notebook-cell-list .cell'] },
     { name: 'Jupyter', host: /./, markers: ['.jp-Notebook .jp-Cell', '.jp-Notebook'], requireMarker: true }
@@ -116,9 +118,9 @@
         const scroller = scrollableAncestor(marker);
         // A matching marker whose page scrolls as a whole is still a match:
         // the document is the right target there.
-        return { name: preset.name, scroller };
+        return { name: preset.name, scroller, turns: preset.turns || null };
       }
-      if (!preset.requireMarker) return { name: preset.name, scroller: null };
+      if (!preset.requireMarker) return { name: preset.name, scroller: null, turns: preset.turns || null };
     }
     return null;
   }
@@ -1006,14 +1008,28 @@
     return { details, clamps, clicks };
   }
 
-  // ---- Text layer -------------------------------------------------------------
+  // ---- Text layer, links and outline ------------------------------------------
   // Collect visible text as positioned runs (one per word group on a line) so
-  // the PDF can carry an invisible, searchable/selectable text layer. Coordinates
-  // are viewport CSS px; the render engine lays the whole page out at scroll 0.
+  // the PDF can carry an invisible, searchable/selectable text layer, plus link
+  // rectangles and outline marks (h1-h3, or one per user turn on a chat preset).
+  // Coordinates are viewport CSS px; the render engine lays the whole page out
+  // at scroll 0.
   function collectTextRuns(maxWords = 120000) {
     const runs = [];
+    const links = [];
+    const headings = [];
+    const turns = [];
+    const result = { runs, links, marks: headings };
     const rootNode = state && state.scrollerType === 'inner' && state.scroller ? state.scroller : document.body;
-    if (!rootNode) return runs;
+    if (!rootNode) return result;
+    const turnSelector = state && state.presetTurns;
+    const pageBase = location.href.split('#')[0];
+    const label = el => String(el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    const firstRect = el => {
+      for (const r of el.getClientRects()) if (r.width > 0 && r.height > 0) return r;
+      return null;
+    };
+    let lastTurn = null;
     let words = 0;
     const range = document.createRange();
     const visible = new WeakMap();
@@ -1035,6 +1051,7 @@
       while ((node = walker.nextNode()) && words < maxWords) {
         if (node.nodeType === 1) {
           if (node.shadowRoot) roots.push(node.shadowRoot);
+          collectMark(node);
           continue;
         }
         const text = node.nodeValue;
@@ -1065,7 +1082,45 @@
       }
     }
     range.detach && range.detach();
-    return runs;
+    // A chat outline lists the user's turns; headings are the fallback.
+    if (turns.length) result.marks = turns;
+    return result;
+
+    function collectMark(el) {
+      const tag = el.tagName;
+      if (tag === 'A') {
+        const href = String(el.getAttribute('href') || '');
+        if (!href || links.length >= 5000 || !isVisible(el)) return;
+        const abs = String(el.href || '');
+        let dest = null;
+        if (href.startsWith('#') || (abs.includes('#') && abs.split('#')[0] === pageBase)) {
+          // Same-page link: resolve its target now, while the page is laid out.
+          let id = abs.split('#')[1] || '';
+          try { id = decodeURIComponent(id); } catch (_) {}
+          const target = id && (document.getElementById(id) || document.getElementsByName(id)[0]);
+          dest = target && firstRect(target);
+          if (!dest) return;
+        } else if (!/^(https?:|mailto:)/i.test(abs)) return;
+        const rects = Array.from(el.getClientRects()).filter(r => r.width > 0 && r.height > 0).slice(0, 8);
+        for (const r of rects) links.push(dest ? [r.left, r.top, r.width, r.height, '', dest.left, dest.top] : [r.left, r.top, r.width, r.height, abs]);
+        return;
+      }
+      if (turnSelector && turns.length < 2000 && !(lastTurn && lastTurn.contains(el))) {
+        let hit = false;
+        try { hit = el.matches(turnSelector); } catch (_) {}
+        if (hit && isVisible(el)) {
+          const r = firstRect(el);
+          const text = r && label(el);
+          if (text) { turns.push([r.left, r.top, 1, `${turns.length + 1}. ${text}`]); lastTurn = el; }
+          return;
+        }
+      }
+      if (/^H[1-3]$/.test(tag) && headings.length < 2000 && isVisible(el)) {
+        const r = firstRect(el);
+        const text = r && label(el);
+        if (text) headings.push([r.left, r.top, Number(tag[1]), text]);
+      }
+    }
   }
 
   function restoreAll() {
@@ -1585,6 +1640,7 @@
         state = {
           settings,
           captureTarget: target,
+          presetTurns: preset ? preset.turns : null,
           scroller: inner,
           scrollerType: inner ? 'inner' : 'root',
           originalX: inner ? inner.scrollLeft : window.scrollX,
@@ -1697,9 +1753,16 @@
       }
       if (message.type === 'PAC_COLLECT_TEXT') {
         if (!state) throw new Error('The page capture session is not active.');
-        const runs = collectTextRuns(message.maxWords || 120000);
-        // Compact encoding keeps the message small: [x, y, w, h, fontSize, text].
-        return { ok: true, runs: runs.map(r => [Math.round(r.x * 10) / 10, Math.round(r.y * 10) / 10, Math.round(r.w * 10) / 10, Math.round(r.h * 10) / 10, Math.round(r.fs * 10) / 10, r.text]) };
+        const { runs, links, marks } = collectTextRuns(message.maxWords || 120000);
+        const r1 = v => Math.round(v * 10) / 10;
+        // Compact encoding keeps the message small: runs [x, y, w, h, fontSize, text];
+        // links [x, y, w, h, href] or [x, y, w, h, '', destX, destY]; marks [x, y, level, title].
+        return {
+          ok: true,
+          links: links.map(l => l.map(v => typeof v === 'number' ? r1(v) : v)),
+          marks: marks.map(m => [r1(m[0]), r1(m[1]), m[2], m[3]]),
+          runs: runs.map(r => [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text])
+        };
       }
       if (message.type === 'PAC_RENDER_PIN') {
         if (!state) throw new Error('The page capture session is not active.');

@@ -52,12 +52,12 @@ GATE: 50+ upvotes or several "link?" replies. If not, revisit the pitch first.
 
 ## Phase 3 - Living PDF (Pro) (1 week)
 
-- [ ] Clickable links: PDF Link annotations from anchor rectangles in the
+- [x] Clickable links: PDF Link annotations from anchor rectangles in the
       captured region (collect `href` and rects alongside text runs).
-- [ ] Outline (bookmarks): one per heading (h1-h3) or, with a chat preset, one
+- [x] Outline (bookmarks): one per heading (h1-h3) or, with a chat preset, one
       per conversation turn.
-- [ ] Optional cover page: title, URL, capture date/time, SHA-256 of the images.
-- [ ] Unit tests for the PDF structure; E2E case checks links with a PDF parser
+- [x] Optional cover page: title, URL, capture date/time, SHA-256 of the images.
+- [x] Unit tests for the PDF structure; E2E case checks links with a PDF parser
       or `pdftotext`-equivalent available on Windows [VERIFY ON FIRST RUN].
 
 Acceptance: a captured long article and a captured chat open in Chrome's PDF

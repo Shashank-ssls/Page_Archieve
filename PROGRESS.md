@@ -4,17 +4,18 @@ Update this at the end of every phase. Newest entries at the top of each section
 
 ## Current status
 - Version: 2.3.0 (on GitHub: Shashank-ssls/Page_Archieve, private)
-- Current phase: Phase 1 done for Full (2026-10-22). Next: Phase 3 - Living PDF.
+- Current phase: Phase 3 (Living PDF) built and green (2026-10-22), awaiting the
+  owner's viewer check. Next: Phase 4 - Share-safe Redact. Phase 1 done for Full.
   Store launch (old Phase 2) moved to the final phase by the owner; its finished
   parts stay done. Lite real-site repeats deferred until Full is final.
-- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-22): `npm run check` 116/116,
-  `npm run e2e` 27/27 (Full), `npm run e2e:lite` 20/20 (Lite), popup-shot and
-  build OK. No Windows-specific fixes were needed.
+- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-22, Phase 3): `npm run check` 122/122,
+  `npm run e2e` 28/28 (Full), `npm run e2e:lite` 20/20 (Lite), popup-shot OK. No Windows-specific fixes were needed.
 - Not yet verified: any real logged-in site, HiDPI screens.
 
 ## Phase log
 | Date | Phase | Result | Notes |
 | --- | --- | --- | --- |
+| 2026-10-22 | Phase 3 | Built, green | Links (URI + same-page), bookmarks (headings or one per chat prompt), optional cover page with per-page SHA-256. E2E checks the PDF objects directly (no pdftotext on Windows). Opened in Chrome PDF viewer: cover renders. Acrobat and real sites not yet checked [VERIFY ON FIRST RUN]. Not Pro-gated yet (Phase 5). |
 | 2026-10-22 | Phase 1 | Done (Full) | All Full rows pass after fixes; Lite rows deferred. Store launch moved to the final phase. Report: docs/sessions/2026-10-22-phase0-1.md |
 | 2026-10-22 | Phase 0 | Done | git init + .gitattributes (LF). Chromium in .local/ms-playwright, nothing written to C:. chrome-devtools MCP attached to the test Chrome (example.com screenshot). Pushed with plain git (no gh). |
 | 2026-10-22 | v2.3 delivered | Done | Editions, site presets, searchable PDF, auto-expand, naming. |
@@ -65,6 +66,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 | 2026-10-21 | chrome.debugger Full render engine | Only way to render lazy/virtualised/fixed content correctly |
 
 ## Needs the owner's check
+- Phase 3: open a captured long article and a captured chat PDF (with cover page) in Chrome and Acrobat Reader; links open, bookmarks jump, text selects [VERIFY ON FIRST RUN].
 - Trademark search for "Tallshot" (IP India, USPTO) before publishing.
 - Payment provider account and fees.
 - Phase 1 Full rows complete (2026-10-22). Lite real-site repeats deferred until Full is final (owner decision).

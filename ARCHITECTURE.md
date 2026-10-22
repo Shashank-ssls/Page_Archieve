@@ -84,6 +84,16 @@ background); without it, `captureVisibleTab` (2 per second, tab must stay active
   coordinates and sends `PAC_STORE_TEXT`; `pdf.js` writes invisible text
   (render mode 3), a Type0 Identity-H font and a ToUnicode map, scaling each run
   horizontally to its on-screen width. Emoji become "?".
+- Living PDF (Full render only, same pass as the text layer): `PAC_COLLECT_TEXT`
+  also returns link rects `[x, y, w, h, href]` (http, https, mailto) or
+  `[x, y, w, h, '', destX, destY]` for same-page `#fragment` links, and outline
+  marks `[x, y, level, title]`: h1-h3, or one per user prompt when a chat preset
+  defines `turns`. The stitcher maps them onto parts with `G.partAt`; `pdf.js`
+  writes Link annotations (URI or GoTo), a nested outline (UTF-16 titles) and,
+  with the PDF cover page option, a first page with title, URL, capture time and
+  the SHA-256 of each page's embedded JPEG (`crypto.subtle`, local). Links whose
+  target lies outside the capture are dropped. Stitch-engine PDFs carry none of
+  this, as before.
 - File name: `G.applyNameTemplate` tokens {title} {site} {date} {time}
   {datetime}; optional Downloads subfolder through `G.safeFolder`; ASCII
   fallback if Chrome rejects the name.

@@ -19,7 +19,8 @@ const DEFAULTS = {
   folder: '',
   maxHeight: 200000,
   waitMs: 2500,
-  captureTarget: 'auto'
+  captureTarget: 'auto',
+  pdfCover: false
 };
 const ENGINES = ['auto', 'stitch'];
 const FORMATS = ['png', 'jpeg', 'pdf'];
@@ -171,7 +172,8 @@ async function takeVisibleCapture(tab, job, stitcherTabId, title, url, warnings 
   progress(tab.id, 'stitch', 82, 'Encoding the visible area\u2026');
   return sendToStitcher(stitcherTabId, {
     type: 'PAC_COMPOSE', captureId: job.captureId, expectedTileCount: 1,
-    baseName: cleanBaseName(title, url, job.settings.nameTemplate), folder: job.settings.folder, format: job.settings.format
+    baseName: cleanBaseName(title, url, job.settings.nameTemplate), folder: job.settings.folder, format: job.settings.format,
+    cover: job.settings.pdfCover, capturedAt: job.startedAt
   });
 }
 
@@ -186,6 +188,7 @@ function normalizeSettings(userSettings, tabId) {
   settings.autoLoadMore = settings.autoLoadMore === true;
   settings.hideFloating = settings.hideFloating !== false;
   settings.expandContent = settings.expandContent !== false;
+  settings.pdfCover = settings.pdfCover === true;
   settings.nameTemplate = String(settings.nameTemplate || '{title}').slice(0, 120);
   settings.folder = G.safeFolder(settings.folder);
   settings.tabId = tabId;
@@ -394,13 +397,25 @@ async function runRender(job, report) {
   if (truncated) report.warnings.push(`The capture was limited to ${plan.height.toLocaleString()} CSS pixels (Max height setting) to protect browser memory.`);
   const chunks = G.renderChunks(plan.height, G.renderChunkHeight(plan.dpr));
   let textRuns = null;
+  let pdfLinks = [];
+  let pdfMarks = [];
   if (settings.format === 'pdf') {
-    progress(tabId, 'prepare', 9, 'Reading page text for the PDF text layer\u2026');
+    progress(tabId, 'prepare', 9, 'Reading page text and links for the PDF\u2026');
     try {
       const collected = await getContentMessage(tabId, { type: 'PAC_COLLECT_TEXT', maxWords: 150000 });
+      const inside = (x, y, w, h) => y + h > 0 && y < plan.height && x + w > 0 && x < plan.width;
       textRuns = (collected.runs || [])
         .map(r => [r[0] - plan.x, r[1] - plan.y, r[2], r[3], r[4], r[5]])
-        .filter(r => r[1] + r[3] > 0 && r[1] < plan.height && r[0] + r[2] > 0 && r[0] < plan.width);
+        .filter(r => inside(r[0], r[1], r[2], r[3]));
+      // Same-page links keep their target offset too; the stitcher drops any
+      // whose target falls outside the captured area.
+      pdfLinks = (collected.links || [])
+        .map(l => l.length >= 7 ? [l[0] - plan.x, l[1] - plan.y, l[2], l[3], '', l[5] - plan.x, l[6] - plan.y] : [l[0] - plan.x, l[1] - plan.y, l[2], l[3], l[4]])
+        .filter(l => inside(l[0], l[1], l[2], l[3]));
+      pdfMarks = (collected.marks || [])
+        .map(m => [m[0] - plan.x, m[1] - plan.y, m[2], m[3]])
+        .filter(m => m[1] >= -2 && m[1] < plan.height)
+        .map(m => [Math.max(0, m[0]), Math.max(0, m[1]), m[2], m[3]]);
     } catch (error) {
       report.warnings.push(`The PDF text layer was skipped (${errorText(error).slice(0, 120)}).`);
     }
@@ -416,9 +431,13 @@ async function runRender(job, report) {
     }
   });
   job.sessionBegun = true;
-  if (textRuns && textRuns.length) {
-    for (let i = 0; i < textRuns.length; i += 20000) {
-      await sendToStitcher(job.stitcherTabId, { type: 'PAC_STORE_TEXT', captureId: job.captureId, runs: textRuns.slice(i, i + 20000) }, 60000);
+  if ((textRuns && textRuns.length) || pdfLinks.length || pdfMarks.length) {
+    const runs = textRuns || [];
+    for (let i = 0; i === 0 || i < runs.length; i += 20000) {
+      await sendToStitcher(job.stitcherTabId, {
+        type: 'PAC_STORE_TEXT', captureId: job.captureId, runs: runs.slice(i, i + 20000),
+        ...(i === 0 ? { links: pdfLinks, marks: pdfMarks } : {})
+      }, 60000);
     }
   }
 
@@ -600,7 +619,7 @@ async function startCapture(tabId, mode, userSettings) {
     captureId: `capture-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     tabId, windowId: tab.windowId, tab, mode, settings,
     cancel: false, phase: 'starting', percent: 0, message: 'Starting capture\u2026',
-    stitcherTabId: null, contentReady: false, sessionBegun: false, cdp: null, engineLabel: ''
+    startedAt: Date.now(), stitcherTabId: null, contentReady: false, sessionBegun: false, cdp: null, engineLabel: ''
   };
   activeJob = job;
   progress(tabId, 'prepare', 1, 'Starting\u2026');
@@ -671,7 +690,7 @@ async function startCapture(tabId, mode, userSettings) {
     const result = await sendToStitcher(job.stitcherTabId, {
       type: 'PAC_COMPOSE', captureId: job.captureId, expectedTileCount: captured.tileCount,
       pageHeightOverride: captured.outputPageHeight, format: settings.format,
-      folder: settings.folder,
+      folder: settings.folder, cover: settings.pdfCover, capturedAt: job.startedAt,
       baseName: cleanBaseName(captured.title || latestTab.title, captured.url || latestTab.url, settings.nameTemplate)
     }, 300000);
     success = true;

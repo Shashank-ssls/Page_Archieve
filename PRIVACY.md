@@ -37,7 +37,8 @@ Downloads folder (or the subfolder you choose). Tallshot keeps no copy.
 
 When you start a capture (popup, keyboard shortcut), Tallshot reads the
 current tab only: its layout, images and text, to render and stitch the page
-and to build the searchable PDF text layer. It does not run on other tabs and
+and to build the PDF text layer, clickable links and bookmarks (link
+addresses and headings stay inside the PDF on your device). It does not run on other tabs and
 does nothing in the background.
 
 ## Permissions
