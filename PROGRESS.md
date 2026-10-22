@@ -19,7 +19,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Real-site results (Phase 1)
 | Date | Site | Edition | Result | Notes |
 | --- | --- | --- | --- | --- |
-| 2026-10-22 | ChatGPT thread (DPR 1.2) | Full | Fail -> partly fixed | All turns, images, no sidebar. 2 px white seam at row 8191: fixed (fractional DPR chunking). Composer + disclaimer included: open, waiting for popup engine line/warnings. |
+| 2026-10-22 | ChatGPT thread (DPR 1.2) | Full | Fail -> partly fixed | All turns, images, no sidebar. 2 px white seam at row 8191: fixed (fractional DPR chunking). Composer + disclaimer included: fixed (preset markers outdated; composer sits inside the thread scroller). Awaiting owner recapture. |
 
 ## Decisions log
 | Date | Decision | Why |

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Page Archive Test Fixture - ChatGPT Thread</title>
+<style>
+  /* Mirrors chatgpt.com as of 2026-10 (served as chatgpt.com by the E2E harness):
+     - turns are marked with data-turn-key / data-conversation-role, not the
+       older data-message-author-role;
+     - hidden copies of other threads (0x0) come first in the DOM;
+     - the composer lives INSIDE the thread scroller: a sticky bottom-0 wrapper
+       plus an absolute bottom-0 footer marked data-thread-scroll-footer.
+     The composer is magenta so the harness can assert it is absent. */
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #212121; color: #ececec; font: 16px/1.6 sans-serif; }
+  .hidden-thread { width: 0; height: 0; overflow: hidden; }
+  .shell { display: flex; height: 100%; }
+  nav { width: 240px; flex: none; background: #171717; }
+  .thread-scroll-container { position: relative; flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+  .turns { max-width: 760px; margin: 0 auto; padding: 24px 24px 120px; }
+  .turn { margin-bottom: 28px; }
+  .bubble { background: #303030; border-radius: 16px; padding: 10px 16px; margin-left: 30%; }
+  .stick { position: sticky; bottom: 0; margin-top: auto; flex: none; height: 96px; pointer-events: none; }
+  .footer { position: absolute; left: 0; right: 0; bottom: 0; height: 96px; display: flex; align-items: center; justify-content: center; }
+  .composer { width: 640px; height: 52px; border-radius: 26px; background: #ff00ff; }
+</style>
+</head>
+<body>
+<div class="hidden-thread"><div class="thread-scroll-container"><div data-turn-key="0" data-conversation-role="user"><p>Hidden cached thread</p></div></div></div>
+<div class="shell">
+  <nav aria-label="Chat history"></nav>
+  <div class="thread-scroll-container" id="thread">
+    <div class="turns" id="turns"></div>
+    <div class="stick"><div class="footer" data-thread-scroll-footer><div class="composer" data-chatgpt-composer></div></div></div>
+  </div>
+</div>
+<script>
+  const turns = document.getElementById('turns');
+  for (let i = 0; i < 24; i++) {
+    const t = document.createElement('div');
+    t.className = 'turn';
+    t.setAttribute('data-turn-key', String(i));
+    t.setAttribute('data-conversation-role', i % 2 ? 'assistant' : 'user');
+    if (i % 2) {
+      for (let k = 0; k < 6; k++) { const p = document.createElement('p'); p.textContent = `Answer ${i}, paragraph ${k + 1}: enough text to make the thread several screens tall.`; t.appendChild(p); }
+    } else {
+      const b = document.createElement('div'); b.className = 'bubble'; b.setAttribute('data-user-message-bubble', 'true'); b.textContent = `Question ${i}`; t.appendChild(b);
+    }
+    turns.appendChild(t);
+  }
+  const thread = document.getElementById('thread');
+  thread.scrollTop = thread.scrollHeight;
+</script>
+</body>
+</html>

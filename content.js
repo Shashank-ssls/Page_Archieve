@@ -53,7 +53,7 @@
   // tags), then walk up to the nearest ancestor that genuinely scrolls. This
   // survives most redesigns because it never depends on hashed class names.
   const SITE_PRESETS = [
-    { name: 'ChatGPT', host: /(^|\.)(chatgpt\.com|chat\.openai\.com)$/, markers: ['[data-message-author-role]', 'article[data-testid^="conversation-turn"]', '[data-testid^="conversation-turn"]'] },
+    { name: 'ChatGPT', host: /(^|\.)(chatgpt\.com|chat\.openai\.com)$/, markers: ['[data-turn-key]', '[data-conversation-role]', '[data-user-message-bubble]', '[data-message-author-role]', 'article[data-testid^="conversation-turn"]', '[data-testid^="conversation-turn"]'] },
     { name: 'Claude', host: /(^|\.)claude\.ai$/, markers: ['[data-testid="user-message"]', '.font-claude-message', '[data-is-streaming]', '[data-test-render-count]'] },
     { name: 'Gemini', host: /(^|\.)gemini\.google\.com$/, markers: ['user-query', 'model-response', 'message-content'] },
     { name: 'Perplexity', host: /(^|\.)perplexity\.ai$/, markers: ['[data-testid="answer"]', '.prose', '[id^="markdown-content"]'] },
@@ -70,13 +70,30 @@
     } catch (_) { return false; }
   }
 
+  // Prefer a match that is actually laid out: apps such as ChatGPT keep hidden
+  // (0x0) copies of other threads earlier in the DOM.
+  function isLaidOut(el) {
+    try { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; } catch (_) { return false; }
+  }
+
   function queryDeep(selector) {
-    try { const hit = document.querySelector(selector); if (hit) return hit; } catch (_) { return null; }
+    let first = null;
+    try {
+      for (const hit of document.querySelectorAll(selector)) {
+        if (isLaidOut(hit)) return hit;
+        first = first || hit;
+      }
+    } catch (_) { return null; }
     for (const el of walkOpenDom(30000)) {
       if (!el.shadowRoot) continue;
-      try { const hit = el.shadowRoot.querySelector(selector); if (hit) return hit; } catch (_) {}
+      try {
+        for (const hit of el.shadowRoot.querySelectorAll(selector)) {
+          if (isLaidOut(hit)) return hit;
+          first = first || hit;
+        }
+      } catch (_) {}
     }
-    return null;
+    return first;
   }
 
   function scrollableAncestor(el) {
@@ -758,6 +775,20 @@
   //    (chat composers, floating buttons);
   //  - document mode: bars pinned to the bottom of the viewport (composers,
   //    cookie banners, chat widgets). Top headers are kept; they render once.
+  // A sticky or absolute element inside the panel that sits on the panel's
+  // bottom edge and is bar-sized. Sticky ones must be anchored by bottom, not
+  // top (Chrome reports unset sticky insets as 'auto'); absolute insets are
+  // resolved to pixels, so only geometry is checked for them.
+  function isBottomPinnedInPanel(el, cs, r, panelRect) {
+    if (cs.position === 'sticky') {
+      if (cs.bottom === 'auto' || cs.top !== 'auto') return false;
+    } else if (cs.position !== 'absolute') {
+      return false;
+    }
+    const panelBottom = panelRect.y + panelRect.h;
+    return Math.abs(r.bottom - panelBottom) <= 4 && r.height <= 320 && r.height < panelRect.h * 0.5;
+  }
+
   function renderHideFloating() {
     if (!state) return 0;
     if (!state.hiddenPinnedElements) state.hiddenPinnedElements = new Set();
@@ -771,14 +802,21 @@
     for (const el of walkOpenDom()) {
       let cs;
       try { cs = getComputedStyle(el); } catch (_) { continue; }
-      if (cs.position !== 'fixed' && cs.position !== 'sticky') continue;
+      if (cs.position !== 'fixed' && cs.position !== 'sticky' && cs.position !== 'absolute') continue;
       if (state.hiddenPinnedElements.has(el)) continue;
       const r = el.getBoundingClientRect();
       if (r.width < 1 || r.height < 1) continue;
       if (panelRect) {
-        if (el === state.scroller || el.contains(state.scroller) || state.scroller.contains(el)) continue;
-        if (cs.position !== 'fixed') continue;
-        if (!rectsOverlap(r, panelRect)) continue;
+        if (el === state.scroller || el.contains(state.scroller)) continue;
+        if (state.scroller.contains(el)) {
+          // Bars pinned to the bottom edge inside the panel itself (e.g.
+          // ChatGPT's composer: a sticky bottom-0 wrapper inside the thread
+          // scroller). Top-pinned headers are kept.
+          if (!isBottomPinnedInPanel(el, cs, r, panelRect)) continue;
+        } else {
+          if (cs.position !== 'fixed') continue;
+          if (!rectsOverlap(r, panelRect)) continue;
+        }
       } else {
         if (cs.position !== 'fixed') continue;
         const bottomAnchored = r.bottom >= vh - 4 && r.top > vh * 0.45 && r.height < vh * 0.5;

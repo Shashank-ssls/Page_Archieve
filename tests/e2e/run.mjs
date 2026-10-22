@@ -20,7 +20,8 @@
 //   "npm run browsers" once. No global PLAYWRIGHT_BROWSERS_PATH is needed.
 // - The test copy gets a test-only <all_urls> host permission, because no
 //   popup click is available to grant activeTab.
-// - claude.ai and chatgpt.com are mapped to the local fixture server so site
+// - claude.ai is mapped to the local fixture server and chatgpt.com is served
+//   from the fixture folder by request interception, so site
 //   presets can be tested offline.
 
 import '../../scripts/pw-env.mjs'; // must run before Playwright loads: project-local browsers
@@ -65,16 +66,25 @@ fs.writeFileSync(manifestPath, JSON.stringify(mf));
 // Fixture server.
 const FIXTURES = path.join(REPO, 'tests', 'site-fixture');
 const TYPES = { '.html': 'text/html', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.css': 'text/css', '.js': 'text/javascript' };
-const server = http.createServer((req, res) => {
-  const urlPath = decodeURIComponent(req.url.split('?')[0]);
-  if (!urlPath.startsWith('/fx/')) { res.writeHead(404); return res.end(); }
+// Resolves a /fx/... URL path to a fixture file: { status, file }.
+function fixtureFile(urlPath) {
+  if (!urlPath.startsWith('/fx/')) return { status: 404 };
   let file = path.normalize(path.join(FIXTURES, urlPath.slice(4) || 'index.html'));
-  if (!file.startsWith(FIXTURES)) { res.writeHead(403); return res.end(); }
+  if (!file.startsWith(FIXTURES)) return { status: 403 };
   if (fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, 'index.html');
-  if (!fs.existsSync(file)) { res.writeHead(404); return res.end(); }
+  if (!fs.existsSync(file)) return { status: 404 };
+  return { status: 200, file };
+}
+const server = http.createServer((req, res) => {
+  const { status, file } = fixtureFile(decodeURIComponent(req.url.split('?')[0]));
+  if (status !== 200) { res.writeHead(status); return res.end(); }
   res.setHeader('content-type', TYPES[path.extname(file)] || 'application/octet-stream');
   res.end(fs.readFileSync(file));
 }).listen(PORT);
+// chatgpt.com and chat.openai.com are HSTS-preloaded, so Chromium forces HTTPS
+// and a host-resolver mapping to the plain HTTP server cannot work. Serve them
+// from the fixture folder through request interception instead (offline).
+const HTTPS_FIXTURE_HOSTS = /^https:\/\/(chatgpt\.com|chat\.openai\.com)\//;
 
 const headed = process.env.PAC_HEADED === '1';
 const results = [];
@@ -100,6 +110,11 @@ for (const c of cases) {
   });
   const r = { name: c.name, ok: false };
   try {
+    await ctx.route(HTTPS_FIXTURE_HOSTS, route => {
+      const { status, file } = fixtureFile(decodeURIComponent(new URL(route.request().url()).pathname));
+      if (status !== 200) return route.fulfill({ status, body: '' });
+      return route.fulfill({ status, contentType: TYPES[path.extname(file)] || 'application/octet-stream', body: fs.readFileSync(file) });
+    });
     let [worker] = ctx.serviceWorkers();
     if (!worker) worker = await ctx.waitForEvent('serviceworker');
     const page = ctx.pages()[0] || await ctx.newPage();
@@ -160,6 +175,25 @@ for (const c of cases) {
     if ((expect.phase || 'done') === 'done' && !files.length) problems.push('no file downloaded');
     if (expect.engineIncludes && !String(r.engine || '').includes(expect.engineIncludes)) problems.push(`engine "${r.engine}"`);
     if (expect.titleUnchanged && r.titleAfter !== expect.titleUnchanged) problems.push(`title changed to "${r.titleAfter}"`);
+    if (expect.absentColor) {
+      // No pixel of this colour may appear (marks UI that must be hidden).
+      const { color, tolerance = 12 } = expect.absentColor;
+      for (const file of files.filter(f => f.endsWith('.png'))) {
+        const hits = await page.evaluate(async ({ url, color, tolerance }) => {
+          const img = new Image(); img.src = url; await img.decode();
+          const canvas = new OffscreenCanvas(img.width, img.height);
+          const g = canvas.getContext('2d');
+          g.drawImage(img, 0, 0);
+          const d = g.getImageData(0, 0, img.width, img.height).data;
+          let n = 0;
+          for (let i = 0; i < d.length; i += 4) {
+            if (Math.abs(d[i] - color[0]) <= tolerance && Math.abs(d[i + 1] - color[1]) <= tolerance && Math.abs(d[i + 2] - color[2]) <= tolerance) n++;
+          }
+          return n;
+        }, { url: 'data:image/png;base64,' + fs.readFileSync(file).toString('base64'), color, tolerance });
+        if (hits) problems.push(`${hits} pixels of colour ${color.join(',')} in ${path.basename(file)}`);
+      }
+    }
     if (expect.solidEdge) {
       // Every row of a margin column must match the page background: catches
       // blank or seamed rows between render chunks.

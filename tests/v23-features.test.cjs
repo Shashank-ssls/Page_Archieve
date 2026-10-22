@@ -60,3 +60,28 @@ test('Lite build drops the debugger permission and the worker stays quiet about 
   assert.match(background, /const IS_FULL_EDITION = /);
   assert.match(background, /if \(IS_FULL_EDITION\) report\.warnings\.push/);
 });
+
+test('ChatGPT preset uses the 2026-10 turn markers first and skips hidden thread copies', () => {
+  const chatgpt = content.match(/name: 'ChatGPT'[^\n]*/)[0];
+  assert.ok(chatgpt.indexOf("'[data-turn-key]'") >= 0, 'current turn marker missing');
+  assert.ok(chatgpt.indexOf("'[data-turn-key]'") < chatgpt.indexOf("'[data-message-author-role]'"), 'current markers must come before the old ones');
+  // ChatGPT keeps 0x0 copies of other threads earlier in the DOM.
+  assert.match(content, /function isLaidOut\(el\)/);
+  assert.match(content, /if \(isLaidOut\(hit\)\) return hit;/);
+});
+
+test('panel render hides bars pinned to the bottom edge inside the panel', () => {
+  assert.match(content, /if \(state\.scroller\.contains\(el\)\) \{\s*\/\/[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*if \(!isBottomPinnedInPanel\(el, cs, r, panelRect\)\) continue;/);
+  const fn = content.slice(content.indexOf('function isBottomPinnedInPanel'), content.indexOf('function renderHideFloating'));
+  assert.match(fn, /cs\.bottom === 'auto' \|\| cs\.top !== 'auto'/, 'top-pinned sticky headers must be kept');
+  assert.match(fn, /r\.height <= 320 && r\.height < panelRect\.h \* 0\.5/, 'only bar-sized elements may be hidden');
+  const suite = JSON.parse(fs.readFileSync(path.join(__dirname, 'e2e', 'suite.json'), 'utf8'));
+  assert.ok(suite.some(c => c.name === 'chatgpt-composer' && c.expect.absentColor));
+  assert.ok(fs.existsSync(path.join(__dirname, 'site-fixture', 'chatgpt-thread.html')));
+});
+
+test('ASCII check skips the gitignored local browser and profile folder', () => {
+  const check = fs.readFileSync(path.join(root, 'scripts', 'check-ascii.mjs'), 'utf8');
+  const skip = check.match(/const SKIP_DIRS = new Set\(\[([^\]]*)\]\)/)[1];
+  for (const dir of ['node_modules', '.e2e', '.local', 'dist']) assert.ok(skip.includes(`'${dir}'`), `${dir} must be skipped`);
+});

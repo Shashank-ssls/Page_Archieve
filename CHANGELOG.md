@@ -1,5 +1,8 @@
 # Unreleased - Phase 1 fixes
 
+- Fix: ChatGPT preset updated for the 2026-10 DOM (`data-turn-key`, `data-conversation-role`, `data-user-message-bubble`; old markers kept as fallbacks). Preset markers now prefer a laid-out match, because ChatGPT keeps hidden 0x0 copies of other threads first in the DOM.
+- Fix: panel captures no longer include a composer that lives inside the scroll panel (sticky or absolute bar on the panel's bottom edge, at most 320 px). Top-pinned headers are kept. Fixture `chatgpt-thread.html`, E2E case `chatgpt-composer` with a new "colour must be absent" pixel check; the harness serves HSTS-preloaded chatgpt.com through request interception.
+- Fix: `npm run check` no longer scans `.local/` (Playwright browser and Chrome test profiles).
 - Fix: blank 1-2 px rows between Full render sections at fractional display scaling (Windows 120%/125%). Chunk heights are now whole device pixels, the stitcher takes the scale from the longer bitmap side, and draw edges snap to whole canvas pixels. Coverage validation unchanged. Fixture `dpr-seam.html`, E2E cases `dpr-seam` and `dpr-seam-panel` (DPR 1.2) with a new pixel check on a solid margin.
 
 # Unreleased - Claude Code handoff (tooling only, no behaviour change)

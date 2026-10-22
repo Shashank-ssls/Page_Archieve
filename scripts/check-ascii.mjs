@@ -7,7 +7,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.e2e', 'fonts', 'icons', 'archive-v1']);
+// .local holds Playwright's browser and the Chrome test profiles (gitignored,
+// third-party files such as extensions installed in the profile).
+const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.e2e', '.local', 'fonts', 'icons', 'archive-v1']);
 const CHECK_EXT = new Set(['.js', '.mjs', '.cjs', '.json', '.css', '.html', '.md']);
 const problems = [];
 
