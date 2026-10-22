@@ -19,7 +19,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Real-site results (Phase 1)
 | Date | Site | Edition | Result | Notes |
 | --- | --- | --- | --- | --- |
-| 2026-10-22 | ChatGPT thread (DPR 1.2) | Full | Fail -> partly fixed | All turns, images, no sidebar. 2 px white seam at row 8191: fixed (fractional DPR chunking). Composer: fixed and confirmed on recapture (2). Disclaimer line: fixed after recapture (2), awaiting recapture. Cosmetic: 76 px blank band (ChatGPT reserved composer space) left at the end. |
+| 2026-10-22 | ChatGPT thread (DPR 1.2) | Full | Pass (after 3 fixes) | All turns, images, no sidebar, no composer/disclaimer, no seams (recapture 3). Fixed: white seam at fractional DPR; outdated preset markers + hidden thread copies; composer and disclaimer inside the scroller. Cosmetic: ~76 px blank band at the end (ChatGPT reserved composer space). PDF text search not yet checked on this row. |
 
 ## Decisions log
 | Date | Decision | Why |
