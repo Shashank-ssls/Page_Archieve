@@ -97,6 +97,15 @@ test('panel pin hides paintless end spacers that grow with the viewport', () => 
   assert.ok(fs.existsSync(path.join(__dirname, 'site-fixture', 'end-spacer.html')));
 });
 
+test('viewport-unit bottom padding on the panel column is frozen before the viewport grows', () => {
+  const walk = content.slice(content.indexOf('function hideTrailingSpacers'), content.indexOf('function renderPinPanel'));
+  assert.match(walk, /\/v\(h\|min\|max\)\\b\/\.test\(parent\.style\.paddingBottom\)/);
+  assert.match(walk, /snapshotStyleOnce\(parent, 'padding-bottom'\);\s*parent\.style\.setProperty\('padding-bottom', px, 'important'\)/);
+  assert.match(walk, /height < 1 && !\(\(parseFloat\(cs\.minHeight\) \|\| 0\) > 0\)\) continue;/, 'zero-height tail boxes do not stop the walk');
+  const suite = JSON.parse(fs.readFileSync(path.join(__dirname, 'e2e', 'suite.json'), 'utf8'));
+  assert.ok(suite.some(c => c.name === 'end-vh-padding' && c.url.includes('pad=1') && c.expect.maxTrailingBlank));
+});
+
 test('panel render hides bars pinned to the bottom edge inside the panel', () => {
   assert.match(content, /if \(composedContains\(state\.scroller, el\)\) \{\s*\/\/[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*if \(!isBottomPinnedInPanel\(el, cs, r, panelRect\)\) continue;/);
   const fn = content.slice(content.indexOf('function isBottomPinnedInPanel'), content.indexOf('function renderHideFloating'));

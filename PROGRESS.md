@@ -7,8 +7,8 @@ Update this at the end of every phase. Newest entries at the top of each section
 - Current phase: Phase 1 - Real-site validation (in progress, owner-assisted rows left)
   and Phase 2 - Store-ready free launch (started early at the owner's request,
   2026-10-22; only parts that do not depend on Phase 1 or the gate)
-- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-22): `npm run check` 115/115,
-  `npm run e2e` 26/26 (Full), `npm run e2e:lite` 20/20 (Lite), popup-shot and
+- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-22): `npm run check` 116/116,
+  `npm run e2e` 27/27 (Full), `npm run e2e:lite` 20/20 (Lite), popup-shot and
   build OK. No Windows-specific fixes were needed.
 - Not yet verified: any real logged-in site, HiDPI screens.
 
@@ -25,6 +25,8 @@ Update this at the end of every phase. Newest entries at the top of each section
 | 2026-10-22 | YouTube watch page | Full | Pass (popup fix) | 1 PNG: player frame, description, 244 comments, recommendations column. Popup was widened by a long image URL in a warning (fixed). Slow on a heavy page (127 images), expected. |
 | 2026-10-22 | Colab recapture | Full | Pass | 2 PNG parts; shadow-DOM fix holds, 2 floating elements hidden instead of 60. |
 | 2026-10-22 | Dashboard (Amizone), Smart and Document | Full | Pass | 1 PNG each. Smart hides a fixed bottom-right notice; Document keeps it as on screen. |
+| 2026-10-22 | Notion page | Full | Fail, fixed | 6 PNG parts, parts 5-6 blank: inline padding-bottom 30vh grew with the viewport. Recapture needed. |
+| 2026-10-22 | chrome://extensions, Visible area | Full | Pass | Popup greys out full-page capture (Chrome hides the URL); Visible area PNG correct. |
 | 2026-10-22 | Google Colab notebook | Full | Pass (after fix) | 2 parts, all cells, outputs, tables and charts. "Hid 60 floating elements": Colab's own run buttons and toggles (shadow DOM) were wrongly hidden; fixed (fixture shadow-cells). |
 | 2026-10-22 | DevTools open (Miruro; ChatGPT share page with device toolbar) | Full | Pass | Full render still worked with DevTools docked (Chrome allows several debugger clients); captures match the emulated layout. TESTING.md expectation updated. |
 | 2026-10-22 | itch.io game page (Rulehouse) | Full | Pass | 2 parts, background art once at the top, comments and devlog complete, 1 folded section expanded. Honest note: some CSS assets unverified. |

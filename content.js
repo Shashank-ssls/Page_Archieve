@@ -797,6 +797,14 @@
     let hidden = 0;
     let parent = scroller;
     for (let depth = 0; depth < 5 && parent; depth++) {
+      // Notion pads its page column with an inline 30vh; freeze it at the
+      // on-screen value before the viewport grows.
+      if (/v(h|min|max)\b/.test(parent.style.paddingBottom)) {
+        const px = getComputedStyle(parent).paddingBottom;
+        snapshotStyleOnce(parent, 'padding-bottom');
+        parent.style.setProperty('padding-bottom', px, 'important');
+        hidden++;
+      }
       let next = null;
       for (let child = parent.lastElementChild; child; child = child.previousElementSibling) {
         const cs = getComputedStyle(child);
@@ -810,6 +818,8 @@
           }
           continue;
         }
+        // An empty zero-height box (Notion ends its scroller with one) is not the content end.
+        if (child.getBoundingClientRect().height < 1 && !((parseFloat(cs.minHeight) || 0) > 0)) continue;
         if (child.style.minHeight && !child.hasAttribute('data-page-archive-free-height')) {
           child.setAttribute('data-page-archive-free-height', '');
           (state.freedHeights || (state.freedHeights = [])).push(child);

@@ -9,6 +9,7 @@
 
 # Unreleased - Phase 1 fixes
 
+- Fix: Notion pages ended in about 20,000px of blank space (2 of 6 PNG parts empty). Notion pads the page column with an inline `padding-bottom: 30vh`, which grew with the Full render viewport. Viewport-unit bottom padding on the panel column is now frozen at its on-screen value, and the end-spacer walk skips zero-height boxes. Fixture `end-spacer.html?pad=1`, E2E case `end-vh-padding`.
 - Fix: Colab captures hid the notebook's own run buttons, execution markers and show/hide toggles ("Hid 60 floating elements"). Colab keeps them in shadow DOM, and plain contains() reported them as outside the panel. The hide rules now use a shadow-aware composedContains(). Fixture `shadow-cells.html`, E2E case `shadow-cells` with a new "colour must be present" pixel check.
 - Fix (popup): a warning with a long unbroken token (an image URL from YouTube's image audit) widened the popup by 179px and clipped its border. Warning text now wraps anywhere; popup-shot covers it.
 - Wording: the hide-floating warning now says "over the captured panel (message boxes, toolbars, floating buttons)" instead of "conversation panel", which was wrong on notebooks.
