@@ -74,7 +74,7 @@ Fallback chain: Full render (document grow) -> Full render (captureBeyondViewpor
   less than the box).
 - Verify it is fully exposed (`G.panelFullyExposed`), else fall back to stitch.
 - Backstop: `G.endSpacerCut` ends the capture 64 px below the content extent
-  when more than a viewport of empty space follows it (warning).
+  when more than 200 px of empty space follows it (warning over 400 px).
 - Hide fixed overlays covering the panel (composers), screenshot the panel rect.
 
 ### 3c. Scroll-and-stitch

@@ -1,5 +1,7 @@
 # Unreleased - Phase 3 Living PDF
 
+- Owner recapture (Smart, PNG and PDF): message box gone, all parts complete, 30-page PDF with 42 bookmarks. Panel captures now also trim more than 200 px of empty space after the last content (the room Claude keeps for its message box, about 280 px), keeping 64 px; only trims over 400 px are reported. Hidden-element examples drop icon-font (Private Use Area) characters, which showed as boxes.
+
 - Correction: the 12-blank-page PDF was a Smart capture (it had one bookmark per prompt, which only the chat preset makes), so the window-sized spacer chased the panel growth, not the document growth. New backstop for panels: when the captured panel ends in more than a viewport of empty space after its last text or media, the capture ends 64 px below the content, with a warning (G.endSpacerCut). Fixture end-spacer.html?paint=1 (a painted spacer the spacer rules cannot hide), E2E case panel-paint-spacer.
 - Fix (owner recapture, Target Document, PDF): the capture was cut to one screen. The end-spacer guard measured content with scroll panels' clipping, so content growth would expose looked absent. It now measures the extent: text clipped only by overflow hidden/clip boxes (not scrollers, not <body>).
 - New warning in Document mode when the document is far shorter than its content (an app shell with a scroll panel): it names the content height and points to Smart or Panel. E2E case doc-shell-hint.

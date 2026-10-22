@@ -459,7 +459,7 @@ async function runRender(job, report) {
     plan = {
       width: Math.floor(p.width), height, fullH: Math.max(p.height, p.scrollHeight),
       x: Math.max(0, p.left), y: Math.max(0, p.top), beyondViewport: false,
-      dpr: measure.dpr, title: measure.title, url: measure.url, viewportH: baseH
+      dpr: measure.dpr, title: measure.title, url: measure.url
     };
   }
 
@@ -469,9 +469,13 @@ async function runRender(job, report) {
   if (scrollerType === 'inner' && ink && ink.extent > 0) {
     // Backstop for window-sized end spacers in panels (Claude, 2026-10: 12
     // blank PDF pages up to Max height) that the spacer rules did not hide.
-    const cut = G.endSpacerCut(plan.height, ink.extent - plan.y, plan.viewportH);
-    if (cut < plan.height) {
+    // Also trims the room a chat keeps for its (hidden) message box.
+    const cut = G.endSpacerCut(plan.height, ink.extent - plan.y, 200);
+    // Only a large trim is worth a warning; a few hundred px is reserved space.
+    if (cut < plan.height - 400) {
       report.warnings.push(`The panel ended in ${Math.round(plan.height - cut).toLocaleString()} px of empty space after its last content (an end spacer); the capture ends 64 px below the last visible text or image.`);
+    }
+    if (cut < plan.height) {
       plan.height = cut;
       plan.fullH = cut;
     }

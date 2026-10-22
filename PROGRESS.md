@@ -25,6 +25,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Real-site results (Phase 1)
 | Date | Site | Edition | Result | Notes |
 | --- | --- | --- | --- | --- |
+| 2026-10-23 | Claude recapture 3: Smart PNG and PDF | Full | Pass | 7 PNG parts and a 30-page PDF (17 links, 42 bookmarks), no blank bands, message box hidden (100 floating elements: sidebar, icons). Remaining ~280 px end strip now trimmed. |
 | 2026-10-22 | Claude recapture: Smart PNG, Smart PDF, Document PDF | Full | Smart pass; Document fixed | Smart: 7 PNG parts and a 30-page PDF, complete, no blank bands; message box still at the end (fixed, recapture needed). Document: one screen (fixed: now explained by a warning, Smart/Panel is the right target for Claude). |
 | 2026-10-22 | Claude long thread, PDF (Smart) and PNG | Full | Fail, fixed | PDF: 19 pages, 12 blank, false Max height warning. PNG: part 1 blank from 2,079 to 8,190 px (first render chunk unpainted). Recapture needed [VERIFY ON FIRST RUN]. |
 | 2026-10-22 | DeepSeek chat | Full | Pass (after 3 fixes) | Recapture (build 1022-1902): clean, composer gone, no scrollbar strip. Fixed: stitch kept floating UI on the first tile; false "clipped 5103px" from a 0px overflow:hidden body around the absolute app layer (fixture abs-shell). |
@@ -70,7 +71,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 | 2026-10-21 | chrome.debugger Full render engine | Only way to render lazy/virtualised/fixed content correctly |
 
 ## Needs the owner's check
-- Phase 3: recapture the Claude thread with Smart: message box (Reply, model bar) gone at the end; check the "Hid N floating element(s)" examples name only UI, not content [VERIFY ON FIRST RUN].
+- Phase 3: Claude Smart recapture passed (message box gone, examples are UI only). Optional: one more capture to confirm the ~280 px end strip is gone [VERIFY ON FIRST RUN].
 - Phase 3: open a captured long article and a captured chat PDF (with cover page) in Chrome and Acrobat Reader; links open, bookmarks jump, text selects [VERIFY ON FIRST RUN].
 - Trademark search for "Tallshot" (IP India, USPTO) before publishing.
 - Payment provider account and fees.

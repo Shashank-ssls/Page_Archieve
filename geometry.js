@@ -353,13 +353,14 @@
     return out;
   }
 
-  // Height to export when a captured panel ends in more than a viewport of
+  // Height to export when a captured panel ends in more than `slack` px of
   // nothing after its last text or media (a window-sized end spacer the
-  // spacer rules did not catch), else the height unchanged. contentEnd is the
-  // content bottom relative to the capture top.
-  function endSpacerCut(height, contentEnd, viewportH) {
-    const h = Number(height), end = Number(contentEnd), vh = Number(viewportH) || 0;
-    if (!(h > 0) || !(end > 0) || h - end <= vh + 200) return h;
+  // spacer rules did not catch, or room reserved for a hidden message box),
+  // else the height unchanged. contentEnd is the content bottom relative to
+  // the capture top. The cut keeps 64 px below the content.
+  function endSpacerCut(height, contentEnd, slack = 200) {
+    const h = Number(height), end = Number(contentEnd), s = Math.max(64, Number(slack) || 0);
+    if (!(h > 0) || !(end > 0) || h - end <= s) return h;
     return Math.min(h, Math.ceil(end + 64));
   }
 

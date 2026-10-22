@@ -945,7 +945,11 @@
 
   // Short, human-readable name for a hidden element, for warnings.
   function describeElement(el) {
-    const label = (el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 28);
+    // Icon fonts draw from the Private Use Area; those characters mean nothing
+    // in a warning (they showed as boxes), so they are dropped.
+    const label = (el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '')
+      .replace(/[\uE000-\uF8FF\u200B-\u200F\uFEFF]|[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '')
+      .replace(/\s+/g, ' ').trim().slice(0, 28);
     const tag = el.tagName.toLowerCase();
     return label ? `${tag} "${label}"` : tag;
   }

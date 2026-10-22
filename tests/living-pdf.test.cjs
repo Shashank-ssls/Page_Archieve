@@ -187,11 +187,12 @@ test('a long hash list continues on further cover pages instead of being cut', (
   for (let i = 0; i < 120; i++) assert.ok(text.includes(`${String(i + 1).padStart(4, ' ')}  ${hashes[i]}) Tj`), `hash ${i + 1} listed`);
 });
 
-test('endSpacerCut trims a panel that ends in more than a viewport of nothing', () => {
-  assert.equal(G.endSpacerCut(20000, 5000, 900), 5064);
-  assert.equal(G.endSpacerCut(6000, 5000, 900), 6000, 'a blank tail under a viewport is kept');
-  assert.equal(G.endSpacerCut(20000, 0, 900), 20000, 'no measured content: never cut');
-  assert.equal(G.endSpacerCut(20000, 19990, 900), 20000);
+test('endSpacerCut trims empty space after the last panel content', () => {
+  assert.equal(G.endSpacerCut(20000, 5000, 200), 5064, 'window-sized spacer');
+  assert.equal(G.endSpacerCut(5280, 5000, 200), 5064, 'room reserved for a hidden message box');
+  assert.equal(G.endSpacerCut(5150, 5000, 200), 5150, 'a small tail is kept');
+  assert.equal(G.endSpacerCut(20000, 0, 200), 20000, 'no measured content: never cut');
+  assert.equal(G.endSpacerCut(5050, 5000, 0), 5050, 'slack never goes below the 64 px margin');
 });
 
 test('floating-element hiding has a high cap, spares text-heavy boxes and names examples', () => {
