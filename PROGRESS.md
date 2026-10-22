@@ -5,8 +5,8 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Current status
 - Version: 2.3.0 (on GitHub: Shashank-ssls/Page_Archieve, private)
 - Current phase: Phase 1 - Real-site validation (in progress)
-- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-22): `npm run check` 96/96,
-  `npm run e2e` 16/16 (Full), `npm run e2e:lite` 14/14 (Lite), popup-shot and
+- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-22): `npm run check` 105/105,
+  `npm run e2e` 20/20 (Full), `npm run e2e:lite` 16/16 (Lite), popup-shot and
   build OK. No Windows-specific fixes were needed.
 - Not yet verified: any real logged-in site, HiDPI screens.
 
@@ -19,7 +19,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Real-site results (Phase 1)
 | Date | Site | Edition | Result | Notes |
 | --- | --- | --- | --- | --- |
-| 2026-10-22 | Claude long thread (DPR 1.2) | Full | Partial pass | Conversation only, all turns, composer hidden, header once, seams clean (3 PNG parts); PDF 3 pages, 1,161 runs, 0 unmapped (starts with Claude's hidden screen-reader hint, harmless). Second run had the Progress/Outputs side panel open: kept once at the top, overlaps no text (owner to decide if it should be hidden). A real artifact (split view) is still untested. |
+| 2026-10-22 | Claude long thread (DPR 1.2) | Full | Partial pass | Conversation only, all turns, composer hidden, header once, seams clean (3 PNG parts); PDF 3 pages, 1,161 runs, 0 unmapped (starts with Claude's hidden screen-reader hint, harmless). Second run had the Progress/Outputs side panel open: kept once at the top, overlaps no text (owner to decide if it should be hidden). With an artifact open (split view): chat column only, artifact excluded, all turns, but ~13,600 px blank at the end (Claude's end spacer is sized to the viewport); fixed, needs a recapture. |
 | 2026-10-22 | Wikipedia, History of the Internet (DPR 1.2) | Full | Pass | PNG: 5 parts, header once, images present, 4 part seams continuous. PDF: 5 pages, 7,587 text runs, 0 unmapped, "Jump to content" to "Mobile view". Honest warnings: image time budget reached, 1 image incomplete once. |
 | 2026-10-22 | ChatGPT thread (DPR 1.2) | Full | Pass (after 3 fixes) | All turns, images, no sidebar, no composer/disclaimer, no seams (recapture 3). Fixed: white seam at fractional DPR; outdated preset markers + hidden thread copies; composer and disclaimer inside the scroller. Cosmetic: ~76 px blank band at the end (ChatGPT reserved composer space). PDF (1 page, invisible Unicode text layer, 244 runs, 0 unmapped glyphs) covers first to last line and excludes composer/disclaimer. |
 

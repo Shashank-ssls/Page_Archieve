@@ -41,6 +41,7 @@ when you rename a string, update the test in the same commit.
 | reveal-lazy.html | IntersectionObserver lazy images + fixed full-screen backdrop |
 | fixed-art-backdrop.html | `background-attachment: fixed` cover art |
 | chat-preset.html | Claude-like layout where the side panel is the biggest scroller |
+| end-spacer.html | Chat list ending in a spacer sized to the viewport (Claude split view) |
 | expand-content.html | View rest button, details, line clamp, plus traps that must NOT be clicked |
 
 ## 3. Popup visual check

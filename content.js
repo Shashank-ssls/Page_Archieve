@@ -747,9 +747,56 @@
 
   // Pin the panel to its full content height when it does not grow with the
   // viewport (fixed px height, max-height, or a calc() that overshoots).
+  // An element that paints nothing: no text, no media, no background, border
+  // or shadow. Only such elements may be hidden as end spacers.
+  function isPaintlessBox(el) {
+    if (/^(IMG|SVG|VIDEO|CANVAS|IFRAME|PICTURE|INPUT|TEXTAREA|SELECT|OBJECT|EMBED)$/i.test(el.tagName)) return false;
+    if (el.textContent.trim() !== '') return false;
+    if (el.querySelector('img, svg, video, canvas, iframe, picture, input, textarea, select, object, embed')) return false;
+    const cs = getComputedStyle(el);
+    if (cs.backgroundImage !== 'none' || cs.boxShadow !== 'none') return false;
+    if (!/rgba\(.*,\s*0\)|transparent/.test(cs.backgroundColor)) return false;
+    for (const side of ['Top', 'Right', 'Bottom', 'Left']) if ((parseFloat(cs[`border${side}Width`]) || 0) > 0 && cs[`border${side}Style`] !== 'none') return false;
+    return true;
+  }
+
+  // Chats (Claude's split view, 2026-10) end the message list with an empty
+  // flex-grow spacer whose min-height a script sets to "viewport minus the last
+  // turn" so the last turn can scroll to the top. Full render grows the
+  // viewport to the panel height, and the spacer grows with it into a huge
+  // blank band. Hide paintless in-flow boxes after the last content, walking
+  // only through wrappers that hold most of the panel. display:none rather than
+  // min-height: the page rewrites min-height on resize.
+  function hideTrailingSpacers(scroller) {
+    const contentH = Math.max(1, scroller.scrollHeight);
+    let hidden = 0;
+    let parent = scroller;
+    for (let depth = 0; depth < 5 && parent; depth++) {
+      let next = null;
+      for (let child = parent.lastElementChild; child; child = child.previousElementSibling) {
+        const cs = getComputedStyle(child);
+        if (cs.display === 'none' || cs.position === 'absolute' || cs.position === 'fixed') continue;
+        if (isPaintlessBox(child)) {
+          const r = child.getBoundingClientRect();
+          if (r.height > 0 || (parseFloat(cs.minHeight) || 0) > 0 || (parseFloat(cs.flexGrow) || 0) > 0) {
+            snapshotStyleOnce(child, 'display');
+            child.style.setProperty('display', 'none', 'important');
+            hidden++;
+          }
+          continue;
+        }
+        if (child.getBoundingClientRect().height >= contentH * 0.5) next = child;
+        break;
+      }
+      parent = next;
+    }
+    return hidden;
+  }
+
   function renderPinPanel() {
     if (!state || state.scrollerType !== 'inner' || !state.scroller || !state.scroller.isConnected) return false;
     const el = state.scroller;
+    state.endSpacersHidden = hideTrailingSpacers(el);
     for (const p of ['height', 'max-height', 'min-height', 'overflow-y']) snapshotStyleOnce(el, p);
     // scrollHeight never reports less than the box height, so collapse the box
     // first to read the true content height (including padding).

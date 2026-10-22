@@ -215,6 +215,32 @@ for (const c of cases) {
         if (bad.count) problems.push(`${bad.count} off-colour edge rows in ${path.basename(file)} (first: ${bad.rows.join(',')} of ${bad.height})`);
       }
     }
+    if (expect.maxTrailingBlank) {
+      // The last image must end near its content: at most `px` rows at the
+      // bottom may be plain background (catches viewport-sized end spacers).
+      const { color, px, tolerance = 6 } = expect.maxTrailingBlank;
+      const last = files.filter(f => f.endsWith('.png')).sort().pop();
+      if (last) {
+        const blank = await page.evaluate(async ({ url, color, tolerance }) => {
+          const img = new Image(); img.src = url; await img.decode();
+          const canvas = new OffscreenCanvas(img.width, img.height);
+          const g = canvas.getContext('2d');
+          g.drawImage(img, 0, 0);
+          const d = g.getImageData(0, 0, img.width, img.height).data;
+          let y = img.height - 1;
+          for (; y >= 0; y--) {
+            let plain = true;
+            for (let x = 0; x < img.width && plain; x++) {
+              const i = (y * img.width + x) * 4;
+              plain = Math.abs(d[i] - color[0]) <= tolerance && Math.abs(d[i + 1] - color[1]) <= tolerance && Math.abs(d[i + 2] - color[2]) <= tolerance;
+            }
+            if (!plain) break;
+          }
+          return img.height - 1 - y;
+        }, { url: 'data:image/png;base64,' + fs.readFileSync(last).toString('base64'), color, tolerance });
+        if (blank > px) problems.push(`${blank} blank rows at the end of ${path.basename(last)} (max ${px})`);
+      }
+    }
     r.problems = problems;
     r.ok = problems.length === 0;
   } catch (error) {

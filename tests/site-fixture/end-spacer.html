@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Archive Test Fixture - Chat with a Viewport-sized End Spacer</title>
+<style>
+  /* Served as claude.ai by the E2E harness. Like Claude's split view (2026-10),
+     the message list ends in an empty flex-grow spacer whose min-height a
+     script sets to "viewport height minus the last turn", so the last turn can
+     scroll to the top. Full render grows the viewport to the panel height, so
+     without handling the spacer grows into a huge blank band at the end. */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; font: 15px/1.5 system-ui, sans-serif; background: #202020; }
+  .app { display: flex; height: 100vh; }
+  .chat { width: 55%; overflow-y: auto; background: #1b1b1b; }
+  .wrap { min-height: 100%; display: flex; flex-direction: column; }
+  .list { flex: 1; display: flex; flex-direction: column; padding: 16px; }
+  .side { flex: 1; overflow-y: auto; background: #2a2a2a; }
+  .turn { margin: 10px 0; padding: 12px; border-radius: 10px; background: #333; color: #eee; min-height: 90px; }
+  .grow { flex-grow: 1; }
+  .art { height: 300px; margin: 12px; background: #3a3a3a; }
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="chat"><div class="wrap"><div class="list" id="list"></div></div></main>
+  <aside class="side" id="side"></aside>
+</div>
+<script>
+  const list = document.getElementById('list'), side = document.getElementById('side');
+  let lastTurn = null;
+  for (let i = 1; i <= 30; i++) {
+    const t = document.createElement('div'); t.className = 'turn';
+    if (i % 2) t.setAttribute('data-testid', 'user-message'); else t.className += ' font-claude-message';
+    t.textContent = (i % 2 ? 'User asks question ' : 'Claude answers with sentence number ') + i;
+    list.append(t); lastTurn = t;
+  }
+  const spacer = document.createElement('div'); spacer.className = 'grow'; list.append(spacer);
+  const size = () => { spacer.style.minHeight = Math.max(0, innerHeight - lastTurn.offsetHeight - 40) + 'px'; };
+  size(); addEventListener('resize', size); new ResizeObserver(size).observe(document.documentElement);
+  for (let i = 1; i <= 20; i++) { const a = document.createElement('div'); a.className = 'art'; side.append(a); }
+</script>
+</body>
+</html>

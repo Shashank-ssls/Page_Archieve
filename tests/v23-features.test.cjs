@@ -70,6 +70,21 @@ test('ChatGPT preset uses the 2026-10 turn markers first and skips hidden thread
   assert.match(content, /if \(isLaidOut\(hit\)\) return hit;/);
 });
 
+test('panel pin hides paintless end spacers that grow with the viewport', () => {
+  const pin = content.slice(content.indexOf('function renderPinPanel'), content.indexOf('function isBottomPinnedInPanel'));
+  assert.match(pin, /state\.endSpacersHidden = hideTrailingSpacers\(el\);/, 'spacers must be hidden before the content height is measured');
+  const walk = content.slice(content.indexOf('function hideTrailingSpacers'), content.indexOf('function renderPinPanel'));
+  assert.match(walk, /if \(isPaintlessBox\(child\)\)/, 'only boxes that paint nothing may be hidden');
+  assert.match(walk, /snapshotStyleOnce\(child, 'display'\)/, 'hidden spacers must be restored');
+  assert.match(walk, /height >= contentH \* 0\.5\) next = child;\s*break;/, 'the walk stops at the last real content');
+  const paint = content.slice(content.indexOf('function isPaintlessBox'), content.indexOf('function hideTrailingSpacers'));
+  assert.match(paint, /textContent\.trim\(\) !== ''\) return false/);
+  assert.match(paint, /backgroundImage !== 'none'/);
+  const suite = JSON.parse(fs.readFileSync(path.join(__dirname, 'e2e', 'suite.json'), 'utf8'));
+  assert.ok(suite.some(c => c.name === 'end-spacer' && c.expect.maxTrailingBlank));
+  assert.ok(fs.existsSync(path.join(__dirname, 'site-fixture', 'end-spacer.html')));
+});
+
 test('panel render hides bars pinned to the bottom edge inside the panel', () => {
   assert.match(content, /if \(state\.scroller\.contains\(el\)\) \{\s*\/\/[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*if \(!isBottomPinnedInPanel\(el, cs, r, panelRect\)\) continue;/);
   const fn = content.slice(content.indexOf('function isBottomPinnedInPanel'), content.indexOf('function renderHideFloating'));

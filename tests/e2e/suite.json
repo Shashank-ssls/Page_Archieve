@@ -17,5 +17,6 @@
   { "name": "visible", "url": "/fx/", "mode": "visible" },
   { "name": "dpr-seam", "url": "/fx/dpr-seam.html", "dpr": 1.2, "settings": { "waitMs": 1000 }, "expect": { "solidEdge": { "color": [27, 27, 27] } } },
   { "name": "chatgpt-composer", "url": "https://chatgpt.com/fx/chatgpt-thread.html", "settings": { "waitMs": 1000 }, "expect": { "engineIncludes": "ChatGPT", "absentColor": { "color": [255, 0, 255] } }, "lite": false },
-  { "name": "dpr-seam-panel", "url": "/fx/dpr-seam.html?panel=1", "dpr": 1.2, "settings": { "waitMs": 1000 }, "expect": { "solidEdge": { "color": [27, 27, 27] } } }
+  { "name": "dpr-seam-panel", "url": "/fx/dpr-seam.html?panel=1", "dpr": 1.2, "settings": { "waitMs": 1000 }, "expect": { "solidEdge": { "color": [27, 27, 27] } } },
+  { "name": "end-spacer", "url": "http://claude.ai/fx/end-spacer.html", "settings": { "waitMs": 1000 }, "expect": { "engineIncludes": "Claude", "maxTrailingBlank": { "color": [27, 27, 27], "px": 120 } }, "lite": false }
 ]

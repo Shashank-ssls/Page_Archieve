@@ -1,5 +1,7 @@
 # Unreleased - Phase 1 fixes
 
+- Fix: Claude captures with an artifact open in split view ended in about 13,000 px of blank background. Claude ends the message list with an empty flex-grow spacer sized by script to "viewport minus the last turn"; Full render grows the viewport, so the spacer grew with it. Panel pinning now hides paintless in-flow boxes after the last content (display:none, restored afterwards). Fixture `end-spacer.html`, E2E case `end-spacer` with a new "trailing blank rows" pixel check.
+
 - Fix: ChatGPT preset updated for the 2026-10 DOM (`data-turn-key`, `data-conversation-role`, `data-user-message-bubble`; old markers kept as fallbacks). Preset markers now prefer a laid-out match, because ChatGPT keeps hidden 0x0 copies of other threads first in the DOM.
 - Fix: panel captures no longer include a composer that lives inside the scroll panel: bar-sized (at most 320 px) absolute elements on the panel's bottom edge, and bottom-anchored sticky bars in its last 400 px (ChatGPT's disclaimer line ends above the space reserved for the composer). Top-pinned headers are kept. Fixture `chatgpt-thread.html`, E2E case `chatgpt-composer` with a new "colour must be absent" pixel check; the harness serves HSTS-preloaded chatgpt.com through request interception.
 - Fix: `npm run check` no longer scans `.local/` (Playwright browser and Chrome test profiles).
