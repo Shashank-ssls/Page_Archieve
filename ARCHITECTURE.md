@@ -1,4 +1,4 @@
-# ARCHITECTURE.md - how Page Archive works (v2.3)
+# ARCHITECTURE.md - how Tallshot works (v2.3)
 
 Read this before changing capture code. It describes the current design and
 the reasons behind each choice, so that fixes do not undo hard-won behaviour.

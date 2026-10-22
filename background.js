@@ -44,7 +44,7 @@ function progress(tabId, phase, percent, message, extra = {}) {
       .then(s => chrome.storage.local.set({ pageArchiveCaptureCount: (Number(s.pageArchiveCaptureCount) || 0) + 1 }))
       .catch(() => {});
   }
-  if (phase === 'error') console.error('[Page Archive Capture]', message, extra.warnings || []);
+  if (phase === 'error') console.error('[Tallshot]', message, extra.warnings || []);
   chrome.action.setBadgeBackgroundColor({ tabId, color: phase === 'error' ? '#c2410c' : phase === 'done' ? '#1c1a16' : '#ff6b1a' }).catch(() => {});
   chrome.action.setBadgeText({ tabId, text: phase === 'done' ? 'OK' : phase === 'error' ? '!' : phase === 'cancelled' ? '' : `${bounded}%` }).catch(() => {});
   chrome.runtime.sendMessage(snapshot).catch(() => {});
@@ -323,7 +323,7 @@ async function runRender(job, report) {
       plan = await renderDocumentGrow(job, report, settleMsg);
     } catch (error) {
       if (job.cancel || /cancelled/i.test(errorText(error))) throw error;
-      console.warn('[Page Archive Capture] document grow failed, using beyond-viewport render:', errorText(error));
+      console.warn('[Tallshot] document grow failed, using beyond-viewport render:', errorText(error));
       await cdp.clearViewport().catch(() => {});
       await sleep(300);
       plan = null;
@@ -645,7 +645,7 @@ async function startCapture(tabId, mode, userSettings) {
         if (job.cancel || /cancelled/i.test(errorText(error))) throw new Error('Capture cancelled.');
         // Fall back to the stitch engine (still a full-page capture, never a
         // viewport screenshot). Reset everything the render pass touched.
-        console.warn('[Page Archive Capture] render engine failed, falling back:', errorText(error));
+        console.warn('[Tallshot] render engine failed, falling back:', errorText(error));
         report.warnings.push(`Full render could not complete (${errorText(error).slice(0, 200)}). Retried with scroll-and-stitch.`);
         await job.cdp.clearViewport().catch(() => {});
         await restoreContent(job);

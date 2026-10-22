@@ -1,5 +1,5 @@
 // Zips the built editions for the store upload forms.
-//   dist/page-archive-lite-<version>.zip, dist/page-archive-full-<version>.zip
+//   dist/tallshot-lite-<version>.zip, dist/tallshot-full-<version>.zip
 // Run `npm run build` first (npm run package does both). The build stamp
 // (version_name) is a testing aid and is left out of store zips.
 // No dependencies: a minimal ZIP writer (deflate via node:zlib, CRC-32).
@@ -79,7 +79,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   for (const edition of ['lite', 'full']) {
     const dir = path.join(dist, edition);
     if (!fs.existsSync(path.join(dir, 'manifest.json'))) { console.error(`Missing ${dir}; run npm run build first.`); process.exit(1); }
-    const file = path.join(dist, `page-archive-${edition}-${version}.zip`);
+    const file = path.join(dist, `tallshot-${edition}-${version}.zip`);
     fs.writeFileSync(file, packageEdition(dir));
     console.log(`Packaged ${path.relative(root, file)} (${fs.statSync(file).size} bytes)`);
   }

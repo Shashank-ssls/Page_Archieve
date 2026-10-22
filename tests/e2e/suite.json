@@ -22,5 +22,6 @@
   { "name": "end-min-height", "url": "https://gemini.google.com/fx/end-spacer.html?last=1", "settings": { "waitMs": 1000 }, "expect": { "engineIncludes": "Gemini", "absentColor": { "color": [255, 0, 255] }, "maxTrailingBlank": { "color": [27, 27, 27], "px": 120 } }, "lite": false },
   {"name": "chatgpt-composer-stitch", "url": "https://chatgpt.com/fx/chatgpt-thread.html", "settings": {"waitMs": 1000, "engine": "stitch"}, "expect": {"absentColor": {"color": [255,0,255]}}},
   {"name": "end-fab-stitch", "url": "https://gemini.google.com/fx/end-spacer.html?last=1", "settings": {"waitMs": 1000, "engine": "stitch"}, "expect": {"absentColor": {"color": [255,0,255]}}},
-  {"name": "floating-badge", "url": "/fx/floating-badge.html", "settings": {"waitMs": 1000}, "expect": {"absentColor": {"color": [255,0,255]}}}
+  {"name": "floating-badge", "url": "/fx/floating-badge.html", "settings": {"waitMs": 1000}, "expect": {"absentColor": {"color": [255,0,255]}}},
+  {"name": "abs-shell", "url": "/fx/abs-shell.html", "settings": {"waitMs": 1000}, "expect": {"engineIncludes": "Full render"}, "lite": false}
 ]

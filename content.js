@@ -581,10 +581,20 @@
       };
       // Detect an ancestor that clips the panel (overflow hidden with a fixed
       // height). Growing the viewport cannot expose content hidden that way.
+      // Follows CSS: an absolutely positioned box escapes overflow clipping of
+      // every ancestor until its containing block (the next positioned or
+      // transformed ancestor). DeepSeek's app is an absolute layer inside a 0px
+      // tall overflow:hidden body that does not clip it. A fixed box escapes all.
       let clippedBy = 0;
+      let escaping = '';
+      try { escaping = getComputedStyle(el).position; } catch (_) {}
       for (let a = el.parentElement; a && a !== document.documentElement; a = a.parentElement) {
         let cs;
         try { cs = getComputedStyle(a); } catch (_) { continue; }
+        if (escaping === 'fixed') break;
+        const containing = cs.position !== 'static' || cs.transform !== 'none' || cs.contain.includes('paint') || cs.contain === 'strict' || cs.contain === 'content';
+        if (escaping === 'absolute' && !containing) continue;
+        escaping = (cs.position === 'absolute' || cs.position === 'fixed') ? cs.position : '';
         if (cs.overflowY === 'visible' && cs.overflowX === 'visible') continue;
         const ar = a.getBoundingClientRect();
         if (ar.bottom + 2 < out.panel.bottom) clippedBy = Math.max(clippedBy, out.panel.bottom - ar.bottom);

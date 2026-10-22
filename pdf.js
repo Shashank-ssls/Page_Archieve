@@ -105,7 +105,7 @@
     startObj(1); push('<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
     startObj(2); push(`<< /Type /Pages /Count ${pageCount} /Kids [${pageIds.map(id => `${id} 0 R`).join(' ')}] >>\nendobj\n`);
     const esc = s => String(s || '').replace(/[^\x20-\x7E]/g, '?').replace(/([\\()])/g, '\\$1').slice(0, 200);
-    startObj(3); push(`<< /Title (${esc(meta.title)}) /Producer (Page Archive Capture) /Subject (${esc(meta.subject)}) >>\nendobj\n`);
+    startObj(3); push(`<< /Title (${esc(meta.title)}) /Producer (Tallshot) /Subject (${esc(meta.subject)}) >>\nendobj\n`);
 
     pages.forEach((page, i) => {
       const jpeg = page.jpeg instanceof Uint8Array ? page.jpeg : new Uint8Array(page.jpeg);

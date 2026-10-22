@@ -1,11 +1,15 @@
 # Unreleased - Phase 2 store preparation (started early)
 
+- Renamed the product to Tallshot ("Page Archive" sat next to a featured "Archive Page" in the store). Full edition: "Tallshot Full"; Lite: "Tallshot". Popup header "Tall" + accent "shot", stitcher page, PDF producer, default folder hint, store zips (`tallshot-<edition>-<version>.zip`) and docs. Internal ids (storage keys, data attributes, test hook) are unchanged so saved settings survive.
+
 - New: `PRIVACY.md` (draft): no network requests, exactly what is stored locally, permissions, how to delete.
 - New: `docs/store/permissions.md` (single purpose, permission justifications, data-usage answers) and `docs/store/listing.md` (Lite and Full listing copy, screenshot list). Drafts.
 - New: `npm run package` builds and zips each edition (`dist/page-archive-<edition>-<version>.zip`) with a dependency-free ZIP writer; the testing build stamp is left out of store zips.
 - New: one-time review prompt. After the 3rd successful capture the result card shows a short note with "Leave a review" and "No thanks"; it is marked as shown the first time it appears and never repeats. The link is built from the extension's own id (Chrome Web Store, or Edge Add-ons in Edge) and only opens a tab on click. Stores a local success counter.
 
 # Unreleased - Phase 1 fixes
+
+- Fix: Full render gave up on DeepSeek ("panel could not be fully exposed ... clipped 5103px") although nothing was clipped. DeepSeek's app is an absolutely positioned layer inside a 0px tall overflow:hidden body; the clip check now follows CSS containing blocks (absolute boxes escape static ancestors, fixed boxes escape all). Fixture `abs-shell.html`, E2E case `abs-shell`.
 
 - Fix (Lite and the stitch fallback): scroll-and-stitch kept chat composers, floating buttons and bottom bars on the first screen, drawn over content (seen on DeepSeek). It now runs the same hide rules as Full render on every tile. New E2E cases `chatgpt-composer-stitch`, `end-fab-stitch` run on both editions.
 - Fix: fixed badges floating up to 32 px above the bottom edge (reCAPTCHA's badge on Reddit, toasts) are hidden in document captures. Fixture `floating-badge.html`.

@@ -21,8 +21,11 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Real-site results (Phase 1)
 | Date | Site | Edition | Result | Notes |
 | --- | --- | --- | --- | --- |
-| 2026-10-22 | DeepSeek chat (no preset) | Full (stitch) | Fixed, recapture pending | Composer drawn over the first answer. Live DOM: sticky bottom-0 composer inside the virtual-list scroller; Full render would hide it, so the capture came from scroll-and-stitch, which kept floating UI on the first tile. Stitch now applies the Full render hide rules on every tile (affects Lite on every chat site). |
-| 2026-10-22 | itch.io, Higgsfield, Reddit feed, Vercel article (probe only) | Full | Probe OK | Read-only probe in the test Chrome with a Full-render-like tall viewport: all converge (no endless growth), no viewport-sized spacers. Reddit reCAPTCHA badge and a Vercel toast float above the bottom edge: now hidden. Owner captures pending. |
+| 2026-10-22 | DeepSeek chat | Full (stitch) | Pass after fix; Full render recapture pending | Recapture (build 1022-1739): stitch result clean, composer gone. Full render had given up: false "clipped 5103px" from a 0px overflow:hidden body around DeepSeek's absolute app layer; clip check now follows CSS containing blocks (fixture abs-shell). Earlier: stitch kept the composer on the first tile (fixed). |
+| 2026-10-22 | itch.io game page (Rulehouse) | Full | Pass | 2 parts, background art once at the top, comments and devlog complete, 1 folded section expanded. Honest note: some CSS assets unverified. |
+| 2026-10-22 | Higgsfield blog (Zombie dog prompts) | Full | Pass | 2 parts, 13 "show more" expanded, images and comments present, sticky table of contents once. |
+| 2026-10-22 | Reddit thread (r/cyberpunkgame) | Full | Pass | 1 PNG, post, comments (folded sections expanded), sidebars once, reCAPTCHA badge hidden. Honest notes: image time budget and audit limit reached. |
+| 2026-10-22 | Vercel article (All my prompts) | Full | Pass | 3 parts, 39 images, sticky header and table of contents once, toast hidden. |
 | 2026-10-22 | Chrome Web Store page | Full | Fixed | Capture attempt failed with a confusing double message; store pages are now blocked up front like chrome:// pages. |
 | 2026-10-22 | Perplexity | - | Skipped | Thread locked behind sign-in; owner has no account. |
 | 2026-10-22 | Gemini long thread with code (DPR 1.2) | Full | Pass (after 2 fixes) | First run: Full render failed (last turn's min-height = panel height - 112) and fell back to stitch with an honest warning. After fix (build 1022-1620): 3 parts, first message to last reply, no blank end. Remaining: "Scroll to bottom" button once at the end; fixed (build 1022-1635), recapture shows it gone. |
@@ -33,7 +36,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Decisions log
 | Date | Decision | Why |
 | --- | --- | --- |
-| 2026-10-22 | Rename away from "Page Archive" (owner search found "Archive Page", featured, at the top) | Confusing next to a featured extension; candidates to check: Tallshot, Pagestack |
+| 2026-10-22 | Product name: Tallshot (Full edition "Tallshot Full", Lite "Tallshot") | "Page Archive" sat next to a featured "Archive Page"; "Stackshot" and "Unscroll" are taken. Only user-visible strings changed; storage keys, data attributes, folder and repo names stay |
 | 2026-10-22 | Claude Code reviews the store/privacy drafts against the code; owner signs off on facts only | Owner asked; texts verified line by line against manifest and storage keys |
 | 2026-10-22 | Small landing site (own public repo or Vercel), after the name is chosen | Owner: "we can make a small site"; main repo stays private |
 | 2026-10-22 | Start Phase 2 before Phase 1 is complete | Owner request; only store prep that does not depend on Phase 1 results or the Reddit gate |
@@ -51,7 +54,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 | 2026-10-21 | chrome.debugger Full render engine | Only way to render lazy/virtualised/fixed content correctly |
 
 ## Needs the owner's check
-- Store and trademark search for the name "Page Archive".
+- Trademark search for "Tallshot" (IP India, USPTO) before publishing.
 - Payment provider account and fees.
 - Real-site matrix runs (Phase 1): DeepSeek fix, Notion, Colab, itch.io, Reddit/X, a dashboard, DevTools open, chrome://extensions, then the main rows on Lite.
 - PRIVACY.md, docs/store/permissions.md, docs/store/listing.md: drafts to review (contact line, names).

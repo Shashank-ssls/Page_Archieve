@@ -177,3 +177,13 @@ test('document mode hides fixed badges floating just above the bottom edge', () 
   const hide = content.slice(content.indexOf('function renderHideFloating'), content.indexOf('// ---- Expand collapsed content'));
   assert.match(hide, /const bottomAnchored = r\.bottom >= vh - 32 && r\.top > vh \* 0\.45 && r\.height < vh \* 0\.5;/);
 });
+
+test('panel clip check follows CSS containing blocks (absolute app shells are not clipped by a static body)', () => {
+  const m = content.slice(content.indexOf('let clippedBy = 0;'), content.indexOf('out.panel.ancestorClip = clippedBy;'));
+  assert.match(m, /if \(escaping === 'fixed'\) break;/);
+  assert.match(m, /if \(escaping === 'absolute' && !containing\) continue;/, 'static ancestors cannot clip an absolute box');
+  assert.match(m, /const containing = cs\.position !== 'static' \|\| cs\.transform !== 'none'/);
+  const suite = JSON.parse(fs.readFileSync(path.join(__dirname, 'e2e', 'suite.json'), 'utf8'));
+  assert.ok(suite.some(c => c.name === 'abs-shell' && c.expect.engineIncludes === 'Full render'));
+  assert.ok(suite.some(c => c.name === 'offscreen'), 'a genuinely clipped panel stays covered');
+});

@@ -1,13 +1,13 @@
-# Privacy Policy - Page Archive
+# Privacy Policy - Tallshot
 
 Last updated: 2026-10-22 (DRAFT, owner to review before publishing)
 
-Page Archive captures web pages on your own computer. It has no server, no
+Tallshot captures web pages on your own computer. It has no server, no
 account and no analytics. This policy applies to both editions (Lite and Full).
 
 ## What leaves your device
 
-Nothing. Page Archive makes no network requests of its own. Screenshots, page
+Nothing. Tallshot makes no network requests of its own. Screenshots, page
 text, file names and settings never leave your browser.
 
 Planned, not yet in this version:
@@ -31,11 +31,11 @@ In the browser's extension storage (`chrome.storage.local`):
 | Last capture status | Progress, engine name, warnings and the saved file names (taken from the page title) of the most recent capture | Replaced by the next capture; the popup only shows it for 24 hours |
 
 Captured images and PDFs are saved by Chrome's download manager into your
-Downloads folder (or the subfolder you choose). Page Archive keeps no copy.
+Downloads folder (or the subfolder you choose). Tallshot keeps no copy.
 
 ## What the extension reads
 
-When you start a capture (popup, keyboard shortcut), Page Archive reads the
+When you start a capture (popup, keyboard shortcut), Tallshot reads the
 current tab only: its layout, images and text, to render and stitch the page
 and to build the searchable PDF text layer. It does not run on other tabs and
 does nothing in the background.

@@ -47,7 +47,7 @@ fs.writeFileSync(path.join(fullDir, 'manifest.json'), JSON.stringify(base, null,
 const liteDir = path.join(out, 'lite');
 copyRuntime(liteDir);
 const lite = structuredClone(base);
-lite.name = 'Page Archive Lite';
+lite.name = 'Tallshot';
 lite.permissions = lite.permissions.filter(p => p !== 'debugger');
 lite.description = 'Capture whole webpages and AI chat conversations as PNG, JPEG or PDF. No debugger permission. Local processing only.';
 fs.writeFileSync(path.join(liteDir, 'manifest.json'), JSON.stringify(lite, null, 2));

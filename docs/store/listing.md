@@ -1,11 +1,11 @@
 # Store listing copy
 
-DRAFT. No competitor names (store rule). Name pending the owner's trademark
-check (ROADMAP Phase 2); "Page Archive" is used below.
+DRAFT. No competitor names (store rule). Name: Tallshot (owner, 2026-10-22);
+a trademark search (IP India, USPTO) is still advised before publishing.
 
 ## Lite (public listing)
 
-Name: Page Archive - Full Page Screenshot
+Name: Tallshot - Full Page Screenshot (manifest name: Tallshot)
 
 Short description (max 132 characters):
 Save whole web pages and long AI chats as one PNG, JPEG or searchable PDF. Private: everything stays on your computer.
@@ -14,7 +14,7 @@ Long description:
 
 Capture the whole page, not just what fits on screen.
 
-Page Archive saves complete web pages as a single image or a searchable PDF,
+Tallshot saves complete web pages as a single image or a searchable PDF,
 including the pages other tools get wrong:
 
 - Long AI chats: captures only the conversation, every turn, without the
@@ -29,7 +29,7 @@ Formats:
   browser can save in one image.
 - PDF with an invisible text layer, so you can search and copy the text.
 
-Honest results: if part of a page could not be captured, Page Archive tells
+Honest results: if part of a page could not be captured, Tallshot tells
 you exactly what and why. It never quietly saves a shorter image.
 
 Private by design: no account, no server, no analytics. Pages are processed on
@@ -39,10 +39,10 @@ Shortcut: Alt+Shift+P.
 
 ## Full (unlisted, install by link)
 
-Name: Page Archive Full - Full Page Screenshot
+Name: Tallshot Full - Full Page Screenshot (manifest name: Tallshot Full)
 
 Short description:
-Everything in Page Archive plus the Full render engine: whole pages in one pass with Chrome's own renderer. Local only.
+Everything in Tallshot plus the Full render engine: whole pages in one pass with Chrome's own renderer. Local only.
 
 Long description: as Lite, plus:
 
@@ -50,7 +50,7 @@ Full render engine: draws the entire page in one pass using Chrome's built-in
 renderer, for the cleanest result on very long, virtualized or animated pages.
 Chrome shows a "started debugging this browser" bar while it runs; that is the
 renderer at work, attached only to the tab you capture and only while it
-captures. If it cannot be used, Page Archive falls back to scroll-and-stitch
+captures. If it cannot be used, Tallshot falls back to scroll-and-stitch
 and says so.
 
 ## Screenshots to make (1280x800, DESIGN.md style) - OWNER/LATER

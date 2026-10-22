@@ -223,7 +223,7 @@ function renderProgress(message) {
     ready: 'Ready', prepare: 'Preparing', capture: 'Capturing', stitch: 'Assembling',
     done: 'Saved', error: 'Could not capture', cancelled: 'Cancelled'
   };
-  $('status-title').textContent = headings[phase] || 'Page Archive';
+  $('status-title').textContent = headings[phase] || 'Tallshot';
   $('progress-panel').dataset.phase = phase;
   if (message.engineLabel) $('engine-label').textContent = message.engineLabel;
   if (['done', 'error', 'cancelled'].includes(phase)) setRunning(false);

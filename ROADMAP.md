@@ -54,8 +54,8 @@ GATE: 50+ upvotes or several "link?" replies. If not, revisit the pitch first.
 
 Goal: Lite public on Chrome and Edge stores, Full available unlisted.
 
-- [ ] Rename decision recorded (owner checks "Page Archive" against store and
-      trademark search; update names everywhere if it changes).
+- [x] Rename decision recorded: Tallshot (2026-10-22). "Page Archive" clashed with
+      a featured "Archive Page". User-visible names updated; internal ids kept.
 - [ ] (PRIVACY.md drafted 2026-10-22; web page pending) `PRIVACY.md` and a matching web page: local-only, the exact network calls,
       what is stored locally, how to delete it.
 - [x] Permission justification text for each permission, for the store form (docs/store/permissions.md, draft).

@@ -1,4 +1,4 @@
-# DESIGN.md - Page Archive design system
+# DESIGN.md - Tallshot design system
 
 The UI follows the owner's neo-brutalist "app dialect": warm paper and char
 base, one orange accent, hard edges, solid offset shadows, two-font tension.
@@ -33,7 +33,7 @@ Never pure #fff or #000. No gradients anywhere in the UI.
 - Stacked depth (the logo's offset pages) is the brand motif; reuse it sparingly.
 
 ## Components (popup.html)
-- Header: stacked-pages logo (SVG, ink + accent), "Page Archive" with "Archive"
+- Header: stacked-pages logo (SVG, ink + accent), "Tallshot" with "shot"
   in accent, version chip in Doto, square theme toggle.
 - Primary CTA: accent fill, ink border and shadow, title + meta line
   ("Full render - PNG - Smart"), keyboard hint chip.

@@ -1,4 +1,4 @@
-# Page Archive
+# Tallshot
 
 Capture whole web pages and AI conversations exactly as you see them, as PNG,
 JPEG or searchable PDF. Chrome/Edge Manifest V3 extension. Everything runs

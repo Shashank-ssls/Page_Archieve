@@ -4,7 +4,7 @@ DRAFT for the Chrome Web Store and Edge Add-ons forms. Plain text, paste as is.
 
 ## Single purpose
 
-Page Archive captures the web page in the current tab as one complete image or
+Tallshot captures the web page in the current tab as one complete image or
 PDF, including long chats and app panels, and saves it to the user's
 Downloads folder.
 
