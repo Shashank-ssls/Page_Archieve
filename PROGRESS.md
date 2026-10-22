@@ -4,14 +4,16 @@ Update this at the end of every phase. Newest entries at the top of each section
 
 ## Current status
 - Version: 2.3.0 (delivered from the planning chat, not yet on GitHub)
-- Current phase: Phase 0 - Repo and environment gate (started; stopped at the env check, now resolved by project-local browsers)
-- Last green run (Linux, planning environment): `npm run check` 96/96,
-  `npm run e2e` 16/16 (Full), `npm run e2e:lite` 14/14 (Lite).
-- Not yet verified: anything on Windows, any real logged-in site, HiDPI screens.
+- Current phase: Phase 0 - Repo and environment gate (all checks green on Windows; GitHub push pending)
+- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-22): `npm run check` 96/96,
+  `npm run e2e` 16/16 (Full), `npm run e2e:lite` 14/14 (Lite), popup-shot and
+  build OK. No Windows-specific fixes were needed.
+- Not yet verified: any real logged-in site, HiDPI screens.
 
 ## Phase log
 | Date | Phase | Result | Notes |
 | --- | --- | --- | --- |
+| 2026-10-22 | Phase 0 | Green, push pending | git init + .gitattributes (LF). Chromium in .local/ms-playwright, nothing written to C:. chrome-devtools MCP attached to the test Chrome (example.com screenshot). gh not found on PATH, so no remote yet. |
 | 2026-10-22 | v2.3 delivered | Done | Editions, site presets, searchable PDF, auto-expand, naming. |
 
 ## Real-site results (Phase 1)
@@ -34,3 +36,6 @@ Update this at the end of every phase. Newest entries at the top of each section
 - Store and trademark search for the name "Page Archive".
 - Payment provider account and fees.
 - Real-site matrix runs (Phase 1).
+- popup-shot: the capturing/done states show the "browser pages" banner and a
+  disabled capture button; probably a harness artifact (popup opened as an
+  extension page). Check in Phase 1.
