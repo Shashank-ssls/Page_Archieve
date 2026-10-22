@@ -87,3 +87,21 @@ test('ASCII check skips the gitignored local browser and profile folder', () => 
   const skip = check.match(/const SKIP_DIRS = new Set\(\[([^\]]*)\]\)/)[1];
   for (const dir of ['node_modules', '.e2e', '.local', 'dist']) assert.ok(skip.includes(`'${dir}'`), `${dir} must be skipped`);
 });
+
+test('popup file rows truncate in the middle and never widen the popup', () => {
+  const popupJs = fs.readFileSync(path.join(root, 'popup.js'), 'utf8');
+  const css = fs.readFileSync(path.join(root, 'popup.css'), 'utf8');
+  const src = popupJs.match(/function splitFileName\(filename\) \{[\s\S]*?\n\}\n/)[0];
+  const splitFileName = new Function(`${src}; return splitFileName;`)();
+  assert.deepEqual(splitFileName('Extension improvement and overhaul - Claude_part-02-of-03.png'),
+    ['Extension improvement and overhaul - Claude', '_part-02-of-03.png']);
+  assert.deepEqual(splitFileName('a.png'), ['', 'a.png']);
+  assert.equal(splitFileName('History of the Internet - Wikipedia.pdf').join(''), 'History of the Internet - Wikipedia.pdf');
+  // Long names once forced the popup 48px wider than 372px and clipped the card.
+  assert.match(css, /\.files \{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(css, /\.files li \{ min-width: 0;/);
+  assert.match(css, /\.files \.fhead \{ min-width: 0; overflow: hidden; text-overflow: ellipsis; \}/);
+  assert.match(css, /\.files \.ftail \{ flex: none; \}/);
+  // A height cap with hidden scrollbars cut the last warning mid-sentence.
+  assert.doesNotMatch(css.match(/\n\.warnings \{[^}]*\}/)[0], /max-height/);
+});

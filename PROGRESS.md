@@ -19,6 +19,8 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Real-site results (Phase 1)
 | Date | Site | Edition | Result | Notes |
 | --- | --- | --- | --- | --- |
+| 2026-10-22 | Claude long thread (DPR 1.2) | Full | Partial pass | Conversation only, all turns (first upload to last reply), composer hidden, header once, part seams clean (3 PNG parts). Artifact panel was NOT open (capture 1900px wide): re-run with an artifact open. |
+| 2026-10-22 | Wikipedia, History of the Internet (DPR 1.2) | Full | Pass | PNG: 5 parts, header once, images present, 4 part seams continuous. PDF: 5 pages, 7,587 text runs, 0 unmapped, "Jump to content" to "Mobile view". Honest warnings: image time budget reached, 1 image incomplete once. |
 | 2026-10-22 | ChatGPT thread (DPR 1.2) | Full | Pass (after 3 fixes) | All turns, images, no sidebar, no composer/disclaimer, no seams (recapture 3). Fixed: white seam at fractional DPR; outdated preset markers + hidden thread copies; composer and disclaimer inside the scroller. Cosmetic: ~76 px blank band at the end (ChatGPT reserved composer space). PDF (1 page, invisible Unicode text layer, 244 runs, 0 unmapped glyphs) covers first to last line and excludes composer/disclaimer. |
 
 ## Decisions log

@@ -126,6 +126,15 @@ function formatBytes(n) {
   return `${(n / 1024 / 1024).toFixed(1)}MB`;
 }
 
+// Splits a file name into [head, tail] for middle truncation. The tail is the
+// "_part-NN-of-NN.ext" suffix when present, else the last 12 characters.
+function splitFileName(filename) {
+  const s = String(filename);
+  const part = s.match(/_part-\d+-of-\d+\.[^.]+$/);
+  const cut = part ? part.index : Math.max(0, s.length - 12);
+  return [s.slice(0, cut), s.slice(cut)];
+}
+
 function renderFiles(files) {
   const list = $('files');
   list.replaceChildren();
@@ -133,10 +142,19 @@ function renderFiles(files) {
   list.hidden = !items.length;
   for (const f of items) {
     const li = document.createElement('li');
+    // Long names truncate in the middle: the head gets the ellipsis, the tail
+    // (part number and extension) always stays visible so rows differ.
+    const [headText, tailText] = splitFileName(f.filename);
     const name = document.createElement('span');
     name.className = 'fname';
-    name.textContent = f.filename;
-    name.title = f.width && f.height ? `${f.width} \u00d7 ${f.height} px` : f.filename;
+    const head = document.createElement('span');
+    head.className = 'fhead';
+    head.textContent = headText;
+    const tail = document.createElement('span');
+    tail.className = 'ftail';
+    tail.textContent = tailText;
+    name.append(head, tail);
+    name.title = f.width && f.height ? `${f.filename} (${f.width} \u00d7 ${f.height} px)` : f.filename;
     const size = document.createElement('span');
     size.className = 'fsize';
     size.textContent = formatBytes(f.bytes);

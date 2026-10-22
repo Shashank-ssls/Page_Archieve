@@ -55,6 +55,29 @@ for (const scheme of ['light', 'dark']) {
   });
   await page.waitForTimeout(250);
   await page.screenshot({ path: path.join(OUT, `${edition}-${scheme}-3-done.png`), fullPage: true });
+  // A busy result as seen on a real Claude capture: long part names and many
+  // warnings. Chrome widens the popup window to the content, so any horizontal
+  // overflow breaks the card; report it.
+  await page.evaluate(() => {
+    const name = n => `Extension improvement and overhaul - Claude_part-0${n}-of-03.png`;
+    // eslint-disable-next-line no-undef
+    renderProgress({
+      phase: 'done', percent: 100, engineLabel: 'Full render - Claude',
+      message: 'Saved 3 PNG parts. Image audit: saw 23 HTML images and checked 0 CSS/embedded image URLs; no confirmed failures were found in checked assets, but some images could not be fully verified.',
+      files: [{ filename: name(1), bytes: 5800000 }, { filename: name(2), bytes: 4900000 }, { filename: name(3), bytes: 145000 }],
+      warnings: [
+        'Expanded collapsed content (1 "show more" button). Clicked buttons stay expanded on the page after capture.',
+        'The visual image audit reached its safety limit; some CSS or embedded image assets may not have been checked.',
+        'Hid 5 floating element(s) that covered the conversation panel (for example a message composer).',
+        'Captured the main scrollable panel, not the surrounding app shell. Choose Entire document in Target to capture the page shell instead.',
+        'The page was exported as 3 numbered PNG parts to stay within browser image-size limits.'
+      ]
+    });
+  });
+  await page.waitForTimeout(250);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (overflow > 0) console.warn(`${scheme}: popup content is ${overflow}px wider than the 372px popup (horizontal overflow).`);
+  await page.screenshot({ path: path.join(OUT, `${edition}-${scheme}-4-busy.png`), fullPage: true });
 }
 await ctx.close();
 console.log(`Popup screenshots written to ${OUT}`);

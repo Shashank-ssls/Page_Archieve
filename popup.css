@@ -209,12 +209,15 @@ select:hover { box-shadow: 2px 2px 0 var(--shadow); }
 .status-msg { margin: 9px 0 0; font-size: 12px; line-height: 1.45; color: var(--ink); overflow-wrap: anywhere; }
 .status[data-phase="ready"] .status-msg { color: var(--muted); }
 
-.files { list-style: none; margin: 9px 0 0; padding: 0; display: grid; gap: 4px; }
-.files li { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; padding: 5px 7px; background: var(--paper); border: 1px solid var(--faint); }
-.files .fname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.files { list-style: none; margin: 9px 0 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.files li { min-width: 0; display: flex; justify-content: space-between; gap: 8px; font-size: 11px; padding: 5px 7px; background: var(--paper); border: 1px solid var(--faint); }
+.files .fname { min-width: 0; display: flex; white-space: nowrap; }
+.files .fhead { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.files .ftail { flex: none; }
 .files .fsize { font-family: "Doto", monospace; font-weight: 900; font-size: 12px; flex: none; color: var(--muted); }
 
-.warnings { margin-top: 9px; display: grid; gap: 5px; max-height: 150px; overflow: auto; }
+/* No height cap: a capped list hid the last warning mid-sentence (scrollbars are hidden). */
+.warnings { margin-top: 9px; display: grid; gap: 5px; }
 .warnings div { display: grid; grid-template-columns: 12px 1fr; gap: 6px; font-size: 10.5px; line-height: 1.4; color: var(--muted); }
 .warnings .px { width: 12px; height: 12px; color: var(--accent); margin-top: 1px; }
 
