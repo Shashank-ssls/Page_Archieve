@@ -775,18 +775,21 @@
   //    (chat composers, floating buttons);
   //  - document mode: bars pinned to the bottom of the viewport (composers,
   //    cookie banners, chat widgets). Top headers are kept; they render once.
-  // A sticky or absolute element inside the panel that sits on the panel's
-  // bottom edge and is bar-sized. Sticky ones must be anchored by bottom, not
-  // top (Chrome reports unset sticky insets as 'auto'); absolute insets are
-  // resolved to pixels, so only geometry is checked for them.
+  // A bar-sized sticky or absolute element inside the panel, pinned to its
+  // bottom. Sticky ones must be anchored by bottom, not top (Chrome reports
+  // unset sticky insets as 'auto') and may sit up to 400px above the panel
+  // edge: ChatGPT's disclaimer line ends above the space reserved for the
+  // composer. Absolute insets are resolved to pixels, so absolute elements
+  // must touch the bottom edge exactly.
   function isBottomPinnedInPanel(el, cs, r, panelRect) {
+    if (!(r.height <= 320 && r.height < panelRect.h * 0.5)) return false;
+    const panelBottom = panelRect.y + panelRect.h;
     if (cs.position === 'sticky') {
       if (cs.bottom === 'auto' || cs.top !== 'auto') return false;
-    } else if (cs.position !== 'absolute') {
-      return false;
+      return r.bottom <= panelBottom + 4 && r.bottom >= panelBottom - 400;
     }
-    const panelBottom = panelRect.y + panelRect.h;
-    return Math.abs(r.bottom - panelBottom) <= 4 && r.height <= 320 && r.height < panelRect.h * 0.5;
+    if (cs.position !== 'absolute') return false;
+    return Math.abs(r.bottom - panelBottom) <= 4;
   }
 
   function renderHideFloating() {

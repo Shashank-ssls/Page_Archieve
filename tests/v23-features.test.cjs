@@ -75,6 +75,8 @@ test('panel render hides bars pinned to the bottom edge inside the panel', () =>
   const fn = content.slice(content.indexOf('function isBottomPinnedInPanel'), content.indexOf('function renderHideFloating'));
   assert.match(fn, /cs\.bottom === 'auto' \|\| cs\.top !== 'auto'/, 'top-pinned sticky headers must be kept');
   assert.match(fn, /r\.height <= 320 && r\.height < panelRect\.h \* 0\.5/, 'only bar-sized elements may be hidden');
+  assert.match(fn, /r\.bottom >= panelBottom - 400/, 'sticky bars may end above the space reserved for the composer');
+  assert.match(fn, /Math\.abs\(r\.bottom - panelBottom\) <= 4/, 'absolute elements must touch the bottom edge');
   const suite = JSON.parse(fs.readFileSync(path.join(__dirname, 'e2e', 'suite.json'), 'utf8'));
   assert.ok(suite.some(c => c.name === 'chatgpt-composer' && c.expect.absentColor));
   assert.ok(fs.existsSync(path.join(__dirname, 'site-fixture', 'chatgpt-thread.html')));
