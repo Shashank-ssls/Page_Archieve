@@ -882,7 +882,11 @@
           // scroller). Top-pinned headers are kept.
           if (!isBottomPinnedInPanel(el, cs, r, panelRect)) continue;
         } else {
-          if (cs.position !== 'fixed') continue;
+          // Fixed overlays, and button-sized absolute ones such as Gemini's
+          // "Scroll to bottom" button, which hangs from the input area over
+          // the panel's bottom edge.
+          if (cs.position === 'sticky') continue;
+          if (cs.position === 'absolute' && !(r.width <= 120 && r.height <= 120)) continue;
           if (!rectsOverlap(r, panelRect)) continue;
         }
       } else {

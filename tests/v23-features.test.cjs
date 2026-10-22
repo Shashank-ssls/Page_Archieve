@@ -90,6 +90,10 @@ test('panel pin hides paintless end spacers that grow with the viewport', () => 
   assert.match(content, /PAC_RENDER_MEASURE'\) \{\s*if \(!state\)[^\n]*\n\s*renderFreeEndSpacers\(\);/);
   assert.match(content, /el\.removeAttribute\('data-page-archive-free-height'\)/);
   assert.ok(suite.some(c => c.name === 'end-min-height' && c.url.includes('gemini.google.com') && c.expect.maxTrailingBlank));
+  // Button-sized absolute overlays outside the panel (Gemini's scroll-to-bottom button) are hidden.
+  const hide = content.slice(content.indexOf('function renderHideFloating'), content.indexOf('// ---- Expand collapsed content'));
+  assert.match(hide, /cs\.position === 'absolute' && !\(r\.width <= 120 && r\.height <= 120\)\) continue;/);
+  assert.ok(suite.some(c => c.name === 'end-min-height' && c.expect.absentColor));
   assert.ok(fs.existsSync(path.join(__dirname, 'site-fixture', 'end-spacer.html')));
 });
 
