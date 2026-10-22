@@ -14,5 +14,7 @@
   { "name": "expand", "url": "/fx/expand-content.html", "settings": { "waitMs": 1000 }, "expect": { "titleUnchanged": "Page Archive Test Fixture - Collapsed Content" } },
   { "name": "stitch-jpeg", "url": "/fx/app-scroll-panel.html", "settings": { "engine": "stitch", "format": "jpeg", "waitMs": 1000 } },
   { "name": "switch-away", "url": "/fx/virtual-chat.html", "switchAway": true, "settings": { "waitMs": 1000 }, "lite": false },
-  { "name": "visible", "url": "/fx/", "mode": "visible" }
+  { "name": "visible", "url": "/fx/", "mode": "visible" },
+  { "name": "dpr-seam", "url": "/fx/dpr-seam.html", "dpr": 1.2, "settings": { "waitMs": 1000 }, "expect": { "solidEdge": { "color": [27, 27, 27] } } },
+  { "name": "dpr-seam-panel", "url": "/fx/dpr-seam.html?panel=1", "dpr": 1.2, "settings": { "waitMs": 1000 }, "expect": { "solidEdge": { "color": [27, 27, 27] } } }
 ]

@@ -148,6 +148,10 @@
       if (!session) throw new Error('Capture session metadata is missing.');
       let tile = { ...input };
       let scale = tile.viewportW > 0 ? bitmap.width / tile.viewportW : 1;
+      // Chromium rounds each bitmap side to whole device pixels, so the longer
+      // side gives the more precise scale. Tall render chunks at fractional
+      // DPR otherwise drift by a few pixels and leave blank rows at the seams.
+      if (tile.viewportH > tile.viewportW && tile.viewportH > 0) scale = bitmap.height / tile.viewportH;
 
       if (tile.fallbackVisible) {
         session.pageW = bitmap.width;

@@ -130,3 +130,35 @@ test('vh pinning measures all elements before pinning and neutralises fixed back
   assert.match(content, /content-visibility: visible !important/);
   assert.ok(fs.existsSync(path.join(__dirname, 'site-fixture', 'reveal-lazy.html')));
 });
+
+test('render chunks are whole device pixels at fractional Windows display scales', () => {
+  // Chrome reports 120% as 1.2000000476837158.
+  for (const dpr of [1.2000000476837158, 1.25, 1.5, 1.75, 1.1, 4 / 3]) {
+    const h = G.renderChunkHeight(dpr);
+    const device = h * dpr;
+    assert.ok(Math.abs(device - Math.round(device)) < 0.01, `dpr ${dpr}: ${h} CSS px is ${device} device px`);
+    assert.ok(device <= 8192, `dpr ${dpr}: chunk exceeds the 8192 device px limit`);
+    assert.ok(h > 8192 / dpr - 400, `dpr ${dpr}: chunk shrank too far (${h})`);
+  }
+  assert.equal(G.renderChunkHeight(1.2000000476837158), 6825);
+});
+
+test('adjacent render chunks at a fractional scale share a whole-pixel seam row', () => {
+  // Two 6825 CSS px chunks at 1.2: the first bitmap is one device pixel short
+  // (Chromium rounding). The seam must not leave an uncovered canvas row.
+  const scale = 1.2;
+  const part = { x: 0, y: 0, w: 1000, h: 13650 };
+  const a = G.tileDrawMapping({ tileX: 0, tileY: 0, tileW: 1000, tileH: 6825, cropX: 0, cropY: 0, scale },
+    { x: 0, y: 0, w: 1000, h: 6825 }, part, scale, 1200, 8189);
+  const b = G.tileDrawMapping({ tileX: 0, tileY: 6825, tileW: 1000, tileH: 6825, cropX: 0, cropY: 0, scale },
+    { x: 0, y: 6825, w: 1000, h: 6825 }, part, scale, 1200, 8190);
+  for (const m of [a, b]) for (const k of ['dx', 'dy', 'dw', 'dh']) assert.ok(Number.isInteger(m[k]), `${k}=${m[k]} is not a whole pixel`);
+  assert.ok(b.dy - (a.dy + a.dh) <= 1, `gap of ${b.dy - (a.dy + a.dh)} rows between chunks`);
+  assert.equal(b.dy + b.dh, Math.round(part.h * scale));
+});
+
+test('stitcher derives tile scale from the longer bitmap side', () => {
+  const stitcher = fs.readFileSync(path.join(root, 'stitcher.js'), 'utf8');
+  assert.match(stitcher, /if \(tile\.viewportH > tile\.viewportW && tile\.viewportH > 0\) scale = bitmap\.height \/ tile\.viewportH;/);
+  assert.ok(fs.existsSync(path.join(__dirname, 'site-fixture', 'dpr-seam.html')));
+});

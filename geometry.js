@@ -200,6 +200,13 @@
     const dx2 = fullDx + fullDw * (1 - right);
     const dy2 = fullDy + fullDh * (1 - bottom);
     if (![dx1, dy1, dx2, dy2].every(Number.isFinite) || dx2 <= dx1 || dy2 <= dy1) return null;
+    // Snap destination edges to whole canvas pixels (moves an edge by at most
+    // half a pixel). Adjacent tiles then share the same boundary row instead of
+    // each half-covering it over the white canvas fill.
+    const rx1 = Math.round(dx1), ry1 = Math.round(dy1), rx2 = Math.round(dx2), ry2 = Math.round(dy2);
+    if (rx2 > rx1 && ry2 > ry1) {
+      return { sx: sx1, sy: sy1, sw: sx2 - sx1, sh: sy2 - sy1, dx: rx1, dy: ry1, dw: rx2 - rx1, dh: ry2 - ry1 };
+    }
     return { sx: sx1, sy: sy1, sw: sx2 - sx1, sh: sy2 - sy1, dx: dx1, dy: dy1, dw: dx2 - dx1, dh: dy2 - dy1 };
   }
 
@@ -296,7 +303,15 @@
   // GPU texture limits (16384 device px) on HiDPI screens.
   function renderChunkHeight(devicePixelRatio, maxDevicePx = 8192) {
     const dpr = Number.isFinite(Number(devicePixelRatio)) && Number(devicePixelRatio) > 0 ? Number(devicePixelRatio) : 1;
-    return Math.max(256, Math.floor((Number(maxDevicePx) || 8192) / dpr));
+    const cap = Math.max(256, Math.floor((Number(maxDevicePx) || 8192) / dpr));
+    // At fractional scales (Windows display scaling such as 120% or 125%) prefer
+    // a height that is a whole number of device pixels, so chunk boundaries never
+    // fall mid-pixel and leave a blank row between chunks.
+    for (let h = cap; h >= Math.max(256, cap - 400); h--) {
+      const device = h * dpr;
+      if (Math.abs(device - Math.round(device)) < 0.01) return h;
+    }
+    return cap;
   }
 
   // Split [0, total) into contiguous, non-overlapping chunks.

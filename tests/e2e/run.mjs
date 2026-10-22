@@ -90,6 +90,8 @@ for (const c of cases) {
     downloadsPath: path.join(OUT_ROOT, 'downloads'),
     args: [
       ...(headed ? [] : ['--headless=new']),
+      // Optional fractional display scaling, as on Windows at 120% or 125%.
+      ...(c.dpr ? [`--force-device-scale-factor=${c.dpr}`] : []),
       `--window-size=${(c.viewport || [1280, 800]).join(',')}`,
       `--host-resolver-rules=MAP claude.ai 127.0.0.1:${PORT}, MAP chatgpt.com 127.0.0.1:${PORT}`,
       `--disable-extensions-except=${TEST_EXT}`,
@@ -158,6 +160,27 @@ for (const c of cases) {
     if ((expect.phase || 'done') === 'done' && !files.length) problems.push('no file downloaded');
     if (expect.engineIncludes && !String(r.engine || '').includes(expect.engineIncludes)) problems.push(`engine "${r.engine}"`);
     if (expect.titleUnchanged && r.titleAfter !== expect.titleUnchanged) problems.push(`title changed to "${r.titleAfter}"`);
+    if (expect.solidEdge) {
+      // Every row of a margin column must match the page background: catches
+      // blank or seamed rows between render chunks.
+      const { color, x = 4, tolerance = 6 } = expect.solidEdge;
+      for (const file of files.filter(f => f.endsWith('.png'))) {
+        const bad = await page.evaluate(async ({ url, color, x, tolerance }) => {
+          const img = new Image(); img.src = url; await img.decode();
+          const canvas = new OffscreenCanvas(1, img.height);
+          const g = canvas.getContext('2d');
+          g.drawImage(img, x, 0, 1, img.height, 0, 0, 1, img.height);
+          const d = g.getImageData(0, 0, 1, img.height).data;
+          const rows = [];
+          for (let y = 0; y < img.height; y++) {
+            const i = y * 4;
+            if (Math.abs(d[i] - color[0]) > tolerance || Math.abs(d[i + 1] - color[1]) > tolerance || Math.abs(d[i + 2] - color[2]) > tolerance) rows.push(y);
+          }
+          return { height: img.height, rows: rows.slice(0, 8), count: rows.length };
+        }, { url: 'data:image/png;base64,' + fs.readFileSync(file).toString('base64'), color, x, tolerance });
+        if (bad.count) problems.push(`${bad.count} off-colour edge rows in ${path.basename(file)} (first: ${bad.rows.join(',')} of ${bad.height})`);
+      }
+    }
     r.problems = problems;
     r.ok = problems.length === 0;
   } catch (error) {

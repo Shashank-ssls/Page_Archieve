@@ -4,7 +4,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 
 ## Current status
 - Version: 2.3.0 (on GitHub: Shashank-ssls/Page_Archieve, private)
-- Current phase: Phase 0 done, awaiting owner review before Phase 1
+- Current phase: Phase 1 - Real-site validation (in progress)
 - Last green run (Windows, GEHRMAN_SPARROW, 2026-10-22): `npm run check` 96/96,
   `npm run e2e` 16/16 (Full), `npm run e2e:lite` 14/14 (Lite), popup-shot and
   build OK. No Windows-specific fixes were needed.
@@ -19,6 +19,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Real-site results (Phase 1)
 | Date | Site | Edition | Result | Notes |
 | --- | --- | --- | --- | --- |
+| 2026-10-22 | ChatGPT thread (DPR 1.2) | Full | Fail -> partly fixed | All turns, images, no sidebar. 2 px white seam at row 8191: fixed (fractional DPR chunking). Composer + disclaimer included: open, waiting for popup engine line/warnings. |
 
 ## Decisions log
 | Date | Decision | Why |

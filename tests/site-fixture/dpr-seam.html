@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Page Archive Test Fixture - Fractional DPR Seams</title>
+<style>
+  /* Solid dark page with an empty 40px left margin. At a fractional device
+     scale factor (Windows display scaling, e.g. 120%) Full render chunks are
+     not whole device pixels; any gap between chunks shows the stitcher's
+     white canvas fill in that margin. */
+  html, body { margin: 0; background: #1b1b1b; color: #d8d8d8; font: 16px/1.6 sans-serif; }
+  main { margin-left: 40px; padding: 8px 24px; }
+  p { margin: 0 0 18px; }
+  /* ?panel=1: an app-style scroll panel with a fractional CSS width, like a
+     chat column, so the panel render path is exercised too. */
+  body.panel { height: 100vh; overflow: hidden; }
+  body.panel main { position: absolute; top: 0; bottom: 0; left: 0; width: 1000.4px; margin: 0; padding: 8px 24px 8px 64px; overflow-y: auto; box-sizing: border-box; }
+</style>
+</head>
+<body>
+<main id="content"></main>
+<script>
+  const main = document.getElementById('content');
+  if (/[?&]panel=1/.test(location.search)) document.body.classList.add('panel');
+  for (let i = 1; i <= 420; i++) {
+    const p = document.createElement('p');
+    p.textContent = `Line ${i}: the margin to the left of this text must stay one solid colour from top to bottom.`;
+    main.appendChild(p);
+  }
+</script>
+</body>
+</html>

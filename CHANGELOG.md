@@ -1,3 +1,7 @@
+# Unreleased - Phase 1 fixes
+
+- Fix: blank 1-2 px rows between Full render sections at fractional display scaling (Windows 120%/125%). Chunk heights are now whole device pixels, the stitcher takes the scale from the longer bitmap side, and draw edges snap to whole canvas pixels. Coverage validation unchanged. Fixture `dpr-seam.html`, E2E cases `dpr-seam` and `dpr-seam-panel` (DPR 1.2) with a new pixel check on a solid margin.
+
 # Unreleased - Claude Code handoff (tooling only, no behaviour change)
 
 - Source converted to pure ASCII (Unicode via \u escapes and HTML entities); `scripts/check-ascii.mjs` enforces it in `npm run check`.
