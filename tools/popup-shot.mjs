@@ -69,7 +69,7 @@ for (const scheme of ['light', 'dark']) {
         'Expanded collapsed content (1 "show more" button). Clicked buttons stay expanded on the page after capture.',
         'The visual image audit reached its safety limit; some CSS or embedded image assets may not have been checked.',
         'Hid 5 floating element(s) over the captured panel (message boxes, toolbars, floating buttons).',
-        'Captured the main scrollable panel, not the surrounding app shell. Choose Entire document in Target to capture the page shell instead.',
+        'Captured the main scrollable panel, not the surrounding app shell. Choose Document in Target to capture the page shell instead.',
         'The page was exported as 3 numbered PNG parts to stay within browser image-size limits.',
         // A long unbroken image URL (seen on YouTube) must wrap, not widen the popup.
         '1 HTML <img> element(s) appeared broken, undecoded, or incomplete in the rendered page. Examples: HTML img: yt3.ggpht.com/7Cif0ybqMEPYeXAa1OP7fe3_6mupMU878HY1lE0iADsd4KRZVHLGXSR142tQT42px49jdFf-=s88-c-k-c0x00ffffff-no-rj.'

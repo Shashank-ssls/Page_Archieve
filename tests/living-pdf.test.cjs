@@ -186,3 +186,17 @@ test('a long hash list continues on further cover pages instead of being cut', (
   const text = coverPages.map(id => objs[Number(objs[id].match(/\/Contents (\d+)/)[1])]).join('');
   for (let i = 0; i < 120; i++) assert.ok(text.includes(`${String(i + 1).padStart(4, ' ')}  ${hashes[i]}) Tj`), `hash ${i + 1} listed`);
 });
+
+test('endSpacerCut trims a panel that ends in more than a viewport of nothing', () => {
+  assert.equal(G.endSpacerCut(20000, 5000, 900), 5064);
+  assert.equal(G.endSpacerCut(6000, 5000, 900), 6000, 'a blank tail under a viewport is kept');
+  assert.equal(G.endSpacerCut(20000, 0, 900), 20000, 'no measured content: never cut');
+  assert.equal(G.endSpacerCut(20000, 19990, 900), 20000);
+});
+
+test('floating-element hiding has a high cap, spares text-heavy boxes and names examples', () => {
+  const content = read('content.js');
+  assert.match(content, /if \(count >= 400\) \{ state\.hiddenCapReached = true; break; \}/);
+  assert.match(content, /textContent \|\| ''\)\.length > 300 && !el\.querySelector\('textarea/);
+  assert.match(read('background.js'), /function hiddenDetail\(settled\)/);
+});

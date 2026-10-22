@@ -29,5 +29,7 @@
   {"name": "living-pdf", "url": "/fx/living-article.html", "settings": {"waitMs": 1000, "format": "pdf", "pdfCover": true}, "expect": {"pdf": {"minUriLinks": 10, "minGoToLinks": 6, "bookmarks": 13, "cover": true, "uris": ["https://example.com/living-one", "mailto:test@example.com", "https://example.com/wrapping", "https://example.com/s6"], "forbidUris": ["javascript:"]}}, "lite": false},
   {"name": "doc-end-spacer", "url": "http://claude.ai/fx/end-spacer.html?doc=1", "settings": {"waitMs": 1000, "captureTarget": "document"}, "expect": {"maxTrailingBlank": {"color": [27,27,27], "px": 400}, "warningAbsent": "Max height"}, "lite": false},
   {"name": "doc-end-spacer-pdf", "url": "http://claude.ai/fx/end-spacer.html?doc=1", "settings": {"waitMs": 1000, "format": "pdf"}, "expect": {"warningAbsent": "Max height", "pdf": {"bookmarks": 15}}, "lite": false},
-  {"name": "clipped-text", "url": "/fx/clipped-text.html", "settings": {"waitMs": 1000, "expandContent": false}, "expect": {"engineIncludes": "Full render", "warningAbsent": "scroll-and-stitch"}, "lite": false}
+  {"name": "clipped-text", "url": "/fx/clipped-text.html", "settings": {"waitMs": 1000, "expandContent": false}, "expect": {"engineIncludes": "Full render", "warningAbsent": "scroll-and-stitch"}, "lite": false},
+  {"name": "panel-paint-spacer", "url": "http://claude.ai/fx/end-spacer.html?paint=1", "settings": {"waitMs": 1000, "format": "pdf"}, "expect": {"engineIncludes": "Claude", "warningAbsent": "Max height", "warningIncludes": "end spacer", "pdf": {"bookmarks": 15}}, "lite": false},
+  {"name": "doc-shell-hint", "url": "http://claude.ai/fx/end-spacer.html", "settings": {"waitMs": 1000, "captureTarget": "document"}, "expect": {"warningIncludes": "Choose Smart or Panel"}, "lite": false}
 ]

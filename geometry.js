@@ -353,6 +353,16 @@
     return out;
   }
 
+  // Height to export when a captured panel ends in more than a viewport of
+  // nothing after its last text or media (a window-sized end spacer the
+  // spacer rules did not catch), else the height unchanged. contentEnd is the
+  // content bottom relative to the capture top.
+  function endSpacerCut(height, contentEnd, viewportH) {
+    const h = Number(height), end = Number(contentEnd), vh = Number(viewportH) || 0;
+    if (!(h > 0) || !(end > 0) || h - end <= vh + 200) return h;
+    return Math.min(h, Math.ceil(end + 64));
+  }
+
   // Paint check for one render screenshot. rowPlain[i] is 1 when device row i
   // of the screenshot is a single flat colour; bands are [top, bottom] CSS px
   // within the chunk where the DOM has visible text; scale = device px per CSS
@@ -432,7 +442,7 @@
     return Math.max(1, Math.min(width, 16000));
   }
 
-  const api = { applyNameTemplate, safeFolder, asciiFilename, renderChunkHeight, renderChunks, panelGrowthNeeded, panelFullyExposed, renderDocumentWidth, rootPageSize, anchorCorrection, isHeavilyClippedPanel, shouldUseInnerScroller, axisPositions, safeTileDriftTolerance, adjustedFinalPanelHeight, intersectRect, partSize, filenameBase, buildParts, pdfPageParts, partAt, unpaintedInk, validateTileCoverage, tileDrawMapping };
+  const api = { applyNameTemplate, safeFolder, asciiFilename, renderChunkHeight, renderChunks, panelGrowthNeeded, panelFullyExposed, renderDocumentWidth, rootPageSize, anchorCorrection, isHeavilyClippedPanel, shouldUseInnerScroller, axisPositions, safeTileDriftTolerance, adjustedFinalPanelHeight, intersectRect, partSize, filenameBase, buildParts, pdfPageParts, partAt, unpaintedInk, endSpacerCut, validateTileCoverage, tileDrawMapping };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.PageArchiveGeometry = api;
 })(globalThis);

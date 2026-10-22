@@ -230,8 +230,17 @@ async function storeTiles(job, tiles) {
   }
 }
 
-function floatingWarning(report, hidden) {
-  if (hidden) report.warnings.push(`Hid ${hidden} floating bar(s) pinned to the bottom of the window (composers, cookie banners, chat widgets) so they do not cover content. Turn off \u201cHide floating bars\u201d to keep them.`);
+// Names a few hidden elements so a capture's warning shows what was removed.
+function hiddenDetail(settled) {
+  const examples = settled && Array.isArray(settled.hiddenExamples) ? settled.hiddenExamples.slice(0, 4) : [];
+  let text = examples.length ? ` Examples: ${examples.join(', ')}.` : '';
+  if (settled && settled.hiddenCapReached) text += ' The safety limit of 400 was reached; some floating elements may still show.';
+  return text;
+}
+
+function floatingWarning(report, settled) {
+  const hidden = settled && settled.hidden;
+  if (hidden) report.warnings.push(`Hid ${hidden} floating bar(s) pinned to the bottom of the window (composers, cookie banners, chat widgets) so they do not cover content. Turn off \u201cHide floating bars\u201d to keep them.${hiddenDetail(settled)}`);
 }
 
 // One flag per device row of a screenshot: 1 when the row is a single flat
@@ -291,9 +300,9 @@ async function renderDocumentGrow(job, report, settleMsg) {
   const targetHeight = async () => {
     const docH = Math.ceil(measure.docH);
     const ink = await getContentMessage(tabId, { type: 'PAC_INK_BANDS' }).catch(() => null);
-    if (!ink || !(ink.bottom > 0)) return Math.min(cap, endCut || docH);
+    if (!ink || !(ink.extent > 0)) return Math.min(cap, endCut || docH);
     if (!endCut) {
-      const tail = docH - ink.bottom;
+      const tail = docH - ink.extent;
       const prev = lastTail;
       lastTail = { tail, viewportH };
       const chasing = prev && viewportH - prev.viewportH > 200 && tail > baseH + 200 && tail - prev.tail >= (viewportH - prev.viewportH) * 0.5;
@@ -301,7 +310,7 @@ async function renderDocumentGrow(job, report, settleMsg) {
       await getContentMessage(tabId, { type: 'PAC_RENDER_TRIM_END' }).catch(() => null);
     }
     // Re-measured every round: images that load during settle may extend the content.
-    endCut = Math.max(endCut, baseH, Math.ceil(ink.bottom + 64));
+    endCut = Math.max(endCut, baseH, Math.ceil(ink.extent + 64));
     return Math.min(cap, endCut);
   };
   for (let round = 0; round < 6; round++) {
@@ -328,7 +337,7 @@ async function renderDocumentGrow(job, report, settleMsg) {
     measure = settled.measure;
   }
   absorbAudit(report, settled, 'in the rendered page');
-  floatingWarning(report, settled.hidden);
+  floatingWarning(report, settled);
   const lm2 = await cdp.layoutMetrics();
   const content = lm2.cssContentSize || lm2.contentSize;
   const width = G.renderDocumentWidth(content.width, measure.docW, baseW);
@@ -337,6 +346,12 @@ async function renderDocumentGrow(job, report, settleMsg) {
   const fullH = endCut ? Math.min(endCut, Math.ceil(Math.max(measure.docH, content.height))) : Math.ceil(Math.max(measure.docH, content.height));
   const height = Math.min(viewportH, fullH, settings.maxHeight);
   if (endCut) report.warnings.push('The page adds empty space that grows with the window after its last content (an end spacer). The capture ends 64 px below the last visible text or image.');
+  // An app shell (chat, notebook) does not scroll as a document: its content
+  // sits in a scroll panel. Say so instead of handing back one screen silently.
+  const inkEnd = await getContentMessage(tabId, { type: 'PAC_INK_BANDS' }).catch(() => null);
+  if (inkEnd && inkEnd.extent > height + 200) {
+    report.warnings.push(`The document itself is only ${height.toLocaleString()} px tall; most of the content (to about ${Math.round(inkEnd.extent).toLocaleString()} px) is inside a scroll panel the document does not grow. Choose Smart or Panel in Target to capture it.`);
+  }
   return { width, height, fullH, x: 0, y: 0, beyondViewport: width > baseW + 1, dpr: measure.dpr, title: measure.title, url: measure.url };
 }
 
@@ -346,7 +361,7 @@ async function renderDocumentBeyondViewport(job, report, settleMsg) {
   progress(tabId, 'prepare', 8, 'Settling images and fonts\u2026');
   const settled = await getContentMessage(tabId, settleMsg);
   absorbAudit(report, settled, 'during preparation');
-  floatingWarning(report, settled.hidden);
+  floatingWarning(report, settled);
   const lm = await cdp.layoutMetrics();
   const content = lm.cssContentSize || lm.contentSize;
   const measure = settled.measure;
@@ -438,17 +453,29 @@ async function runRender(job, report) {
     if (!truncated && !G.panelFullyExposed(measure)) {
       throw new Error(`The panel could not be fully exposed (overflow ${Math.round(p.overflow)}px, clipped ${Math.round(p.ancestorClip || 0)}px).`);
     }
-    if (settled.hidden) report.warnings.push(`Hid ${settled.hidden} floating element(s) over the captured panel (message boxes, toolbars, floating buttons).`);
-    report.warnings.push('Captured the main scrollable panel, not the surrounding app shell. Choose Entire document in Target to capture the page shell instead.');
+    if (settled.hidden) report.warnings.push(`Hid ${settled.hidden} floating element(s) over the captured panel (message boxes, toolbars, floating buttons).${hiddenDetail(settled)}`);
+    report.warnings.push('Captured the main scrollable panel, not the surrounding app shell. Choose Document in Target to capture the page shell instead.');
     const height = Math.min(Math.floor(p.height), settings.maxHeight);
     plan = {
       width: Math.floor(p.width), height, fullH: Math.max(p.height, p.scrollHeight),
       x: Math.max(0, p.left), y: Math.max(0, p.top), beyondViewport: false,
-      dpr: measure.dpr, title: measure.title, url: measure.url
+      dpr: measure.dpr, title: measure.title, url: measure.url, viewportH: baseH
     };
   }
 
   if (!(plan.width > 0) || !(plan.height > 0)) throw new Error('Could not measure the area to render.');
+  // Text bands (paint check) and content extent, in viewport CSS px.
+  const ink = await getContentMessage(tabId, { type: 'PAC_INK_BANDS' }).catch(() => null);
+  if (scrollerType === 'inner' && ink && ink.extent > 0) {
+    // Backstop for window-sized end spacers in panels (Claude, 2026-10: 12
+    // blank PDF pages up to Max height) that the spacer rules did not hide.
+    const cut = G.endSpacerCut(plan.height, ink.extent - plan.y, plan.viewportH);
+    if (cut < plan.height) {
+      report.warnings.push(`The panel ended in ${Math.round(plan.height - cut).toLocaleString()} px of empty space after its last content (an end spacer); the capture ends 64 px below the last visible text or image.`);
+      plan.height = cut;
+      plan.fullH = cut;
+    }
+  }
   const truncated = plan.fullH > plan.height + 1;
   if (truncated) report.warnings.push(`The capture was limited to ${plan.height.toLocaleString()} CSS pixels (Max height setting) to protect browser memory.`);
   const chunks = G.renderChunks(plan.height, G.renderChunkHeight(plan.dpr));
@@ -497,8 +524,6 @@ async function runRender(job, report) {
     }
   }
 
-  // Text bands for the paint check, in capture CSS px.
-  const ink = await getContentMessage(tabId, { type: 'PAC_INK_BANDS' }).catch(() => null);
   const bands = ink && Array.isArray(ink.bands) ? ink.bands.map(b => [b[0] - plan.y, b[1] - plan.y]) : [];
   for (let i = 0; i < chunks.length; i++) {
     checkCancel(job);
@@ -577,9 +602,9 @@ async function runStitch(job, report) {
   const truncated = metrics.pageH > capH;
   if (truncated) report.warnings.push(`The page height was limited to ${capH.toLocaleString()} CSS pixels to protect browser memory.`);
   if (metrics.scrollerType === 'inner') {
-    report.warnings.push('A main scrollable panel was selected. This captures the panel content, not the entire surrounding application shell. Choose Entire document in Capture target to prioritize the page shell.');
+    report.warnings.push('A main scrollable panel was selected. This captures the panel content, not the entire surrounding application shell. Choose Document in Target to prioritize the page shell.');
   } else if (metrics.pageH <= metrics.captureH + 1 && settings.captureTarget === 'document') {
-    report.warnings.push('The document itself does not scroll, so this mode captures only the current viewport. Choose Smart or Main scrollable panel to capture long content inside an app.');
+    report.warnings.push('The document itself does not scroll, so this mode captures only the current viewport. Choose Smart or Panel to capture long content inside an app.');
   }
   if (metrics.cropClipped) {
     report.warnings.push('The selected inner scroll panel is partly outside the viewport; a clipped edge may be incomplete.');
@@ -639,7 +664,7 @@ async function runStitch(job, report) {
       const toleranceX = G.safeTileDriftTolerance(metrics.captureW, 0.14);
       const toleranceY = G.safeTileDriftTolerance(metrics.captureH, 0.14);
       if (driftX > toleranceX || driftY > toleranceY) {
-        throw new Error(`The selected inner panel moved too far near section ${i + 1} (requested ${Math.round(req.x)},${Math.round(req.y)}; actual ${Math.round(actualX)},${Math.round(actualY)}; allowed shift ${toleranceX}px horizontally/${toleranceY}px vertically). No PNG was exported because tile coverage may be unsafe. Choose Entire document if the page itself scrolls, or retry after the app has stopped reflowing.`);
+        throw new Error(`The selected inner panel moved too far near section ${i + 1} (requested ${Math.round(req.x)},${Math.round(req.y)}; actual ${Math.round(actualX)},${Math.round(actualY)}; allowed shift ${toleranceX}px horizontally/${toleranceY}px vertically). No PNG was exported because tile coverage may be unsafe. Choose Document if the page itself scrolls, or retry after the app has stopped reflowing.`);
       }
       if ((driftX > 2 || driftY > 2) && !boundedPanelDriftWarned) {
         report.warnings.push(`The selected panel adjusted its scroll position slightly during capture (first observed shift ${Math.round(driftX)}px horizontally and ${Math.round(driftY)}px vertically). The extension used the measured tile coordinates and will still reject the export if the final image has a coverage gap.`);

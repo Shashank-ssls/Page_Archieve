@@ -63,7 +63,13 @@
     size = () => { lastTurn.style.minHeight = Math.max(0, chat.clientHeight - 112) + 'px'; };
   } else {
     const spacer = document.createElement('div'); spacer.className = 'grow'; list.append(spacer);
-    size = () => { spacer.style.minHeight = Math.max(0, innerHeight - lastTurn.offsetHeight - 40) + 'px'; };
+    // ?paint=1: the spacer paints the panel colour, so the paintless-spacer
+    // rule cannot hide it; only the end-of-content backstop can.
+    // It also sets height, not min-height, so the rule that frees script-set
+    // min-heights does not apply either.
+    if (/[?&]paint=1/.test(location.search)) spacer.style.background = '#1b1b1b';
+    const prop = /[?&]paint=1/.test(location.search) ? 'height' : 'minHeight';
+    size = () => { spacer.style[prop] = Math.max(0, innerHeight - lastTurn.offsetHeight - 40) + 'px'; };
   }
   size(); addEventListener('resize', size); new ResizeObserver(size).observe(document.documentElement);
   for (let i = 1; i <= 20; i++) { const a = document.createElement('div'); a.className = 'art'; side.append(a); }

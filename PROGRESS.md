@@ -15,6 +15,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Phase log
 | Date | Phase | Result | Notes |
 | --- | --- | --- | --- |
+| 2026-10-22 | Phase 3 hardening 2 | Done | Owner recaptures: Smart PNG and PDF clean (no blank bands, 30 A4 pages, 42 bookmarks). Document PDF cut to one screen (regression from clipped ink) fixed with an extent measure; Document mode now warns when content lives in a panel. Earlier 12-blank-page PDF re-diagnosed as Smart (panel) and covered by a panel backstop. Claude message box left in captures: floating hide cap of 60 was reached; raised to 400 with examples in the warning. |
 | 2026-10-22 | Phase 3 hardening | Done | Owner's Claude capture (Target Document): PDF had 12 blank pages (window-sized end spacer chased to Max height) and PNG part 1 had 6,100 px unpainted (Chrome returned the chunk before painting). Fixed both (end-spacer guard in document grow, paint check with retry then stitch fallback). PDF now paged A4-style with breaks between lines; clipped text excluded; cover hash list unlimited. |
 | 2026-10-22 | Phase 3 | Built, green | Links (URI + same-page), bookmarks (headings or one per chat prompt), optional cover page with per-page SHA-256. E2E checks the PDF objects directly (no pdftotext on Windows). Opened in Chrome PDF viewer: cover renders. Acrobat and real sites not yet checked [VERIFY ON FIRST RUN]. Not Pro-gated yet (Phase 5). |
 | 2026-10-22 | Phase 1 | Done (Full) | All Full rows pass after fixes; Lite rows deferred. Store launch moved to the final phase. Report: docs/sessions/2026-10-22-phase0-1.md |
@@ -24,7 +25,8 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Real-site results (Phase 1)
 | Date | Site | Edition | Result | Notes |
 | --- | --- | --- | --- | --- |
-| 2026-10-22 | Claude long thread, Target Document, PDF and PNG | Full | Fail, fixed | PDF: 19 pages, 12 blank, false Max height warning. PNG: part 1 blank from 2,079 to 8,190 px (first render chunk unpainted). Recapture needed [VERIFY ON FIRST RUN]. |
+| 2026-10-22 | Claude recapture: Smart PNG, Smart PDF, Document PDF | Full | Smart pass; Document fixed | Smart: 7 PNG parts and a 30-page PDF, complete, no blank bands; message box still at the end (fixed, recapture needed). Document: one screen (fixed: now explained by a warning, Smart/Panel is the right target for Claude). |
+| 2026-10-22 | Claude long thread, PDF (Smart) and PNG | Full | Fail, fixed | PDF: 19 pages, 12 blank, false Max height warning. PNG: part 1 blank from 2,079 to 8,190 px (first render chunk unpainted). Recapture needed [VERIFY ON FIRST RUN]. |
 | 2026-10-22 | DeepSeek chat | Full | Pass (after 3 fixes) | Recapture (build 1022-1902): clean, composer gone, no scrollbar strip. Fixed: stitch kept floating UI on the first tile; false "clipped 5103px" from a 0px overflow:hidden body around the absolute app layer (fixture abs-shell). |
 | 2026-10-22 | YouTube watch page | Full | Pass (popup fix) | 1 PNG: player frame, description, 244 comments, recommendations column. Popup was widened by a long image URL in a warning (fixed). Slow on a heavy page (127 images), expected. |
 | 2026-10-22 | Colab recapture | Full | Pass | 2 PNG parts; shadow-DOM fix holds, 2 floating elements hidden instead of 60. |
@@ -68,7 +70,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 | 2026-10-21 | chrome.debugger Full render engine | Only way to render lazy/virtualised/fixed content correctly |
 
 ## Needs the owner's check
-- Phase 3: recapture the same Claude thread (Target Document, PNG and PDF): no blank band in part 1, PDF ends at the last message, pages break between lines [VERIFY ON FIRST RUN].
+- Phase 3: recapture the Claude thread with Smart: message box (Reply, model bar) gone at the end; check the "Hid N floating element(s)" examples name only UI, not content [VERIFY ON FIRST RUN].
 - Phase 3: open a captured long article and a captured chat PDF (with cover page) in Chrome and Acrobat Reader; links open, bookmarks jump, text selects [VERIFY ON FIRST RUN].
 - Trademark search for "Tallshot" (IP India, USPTO) before publishing.
 - Payment provider account and fees.

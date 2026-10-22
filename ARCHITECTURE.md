@@ -56,6 +56,11 @@ Fallback chain: Full render (document grow) -> Full render (captureBeyondViewpor
   below the content, with a warning.
 - Settle (images and fonts, at least 3 s), hide bottom-anchored floating bars,
   screenshot in chunks of 8192 device px.
+- PAC_INK_BANDS returns bands and bottom (clipped by every overflow ancestor,
+  i.e. what is painted now) and extent (clipped only by overflow hidden/clip,
+  not by scrollers or <body>, i.e. what growth can expose). Growth decisions
+  use extent; the paint check uses bands. Document mode warns when extent is
+  far below the captured height (content lives in a panel).
 - Paint check (all render chunks): Chrome can return a tall chunk before it
   has rastered all of it. Each screenshot is reduced to per-row "flat" flags and
   checked against the DOM text bands (`G.unpaintedInk`); flat text bands -> wait
@@ -68,6 +73,8 @@ Fallback chain: Full render (document grow) -> Full render (captureBeyondViewpor
   (measured with the box collapsed to 0, because scrollHeight never reports
   less than the box).
 - Verify it is fully exposed (`G.panelFullyExposed`), else fall back to stitch.
+- Backstop: `G.endSpacerCut` ends the capture 64 px below the content extent
+  when more than a viewport of empty space follows it (warning).
 - Hide fixed overlays covering the panel (composers), screenshot the panel rect.
 
 ### 3c. Scroll-and-stitch

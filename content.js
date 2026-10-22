@@ -320,7 +320,7 @@
   async function stabilizeInnerScroller() {
     if (!state || state.scrollerType !== 'inner' || !state.scroller) return;
     const el = state.scroller;
-    if (!el.isConnected) throw new Error('The selected inner scroll panel was replaced during capture. Retry with Entire document or after the page settles.');
+    if (!el.isConnected) throw new Error('The selected inner scroll panel was replaced during capture. Retry with Document or after the page settles.');
     if (!state.scrollerAnchor || !state.scrollerBaseTranslate) return;
 
     // Some application shells scroll or animate the selected panel's parent while
@@ -335,10 +335,10 @@
     }
 
     for (let attempt = 0; attempt < 3; attempt++) {
-      if (!el.isConnected) throw new Error('The selected inner scroll panel was replaced during capture. Retry with Entire document or after the page settles.');
+      if (!el.isConnected) throw new Error('The selected inner scroll panel was replaced during capture. Retry with Document or after the page settles.');
       const r = el.getBoundingClientRect();
       if (Math.abs(r.width - state.scrollerAnchor.width) > 3 || Math.abs(r.height - state.scrollerAnchor.height) > 3) {
-        throw new Error('The selected inner scroll panel changed size during capture. Its tiles no longer share a stable crop; retry after the page settles or choose Entire document.');
+        throw new Error('The selected inner scroll panel changed size during capture. Its tiles no longer share a stable crop; retry after the page settles or choose Document.');
       }
       const correction = G.anchorCorrection(state.scrollerAnchor, { left: r.left, top: r.top });
       if (!correction.valid || (Math.abs(correction.x) <= 1 && Math.abs(correction.y) <= 1)) return;
@@ -354,7 +354,7 @@
     const remainingX = Math.abs(finalRect.left - state.scrollerAnchor.left);
     const remainingY = Math.abs(finalRect.top - state.scrollerAnchor.top);
     if (remainingX > 3 || remainingY > 3) {
-      throw new Error(`Could not stabilize the selected inner panel (remaining shift ${Math.round(remainingX)}px horizontally, ${Math.round(remainingY)}px vertically). Choose Entire document or retry after the page settles.`);
+      throw new Error(`Could not stabilize the selected inner panel (remaining shift ${Math.round(remainingX)}px horizontally, ${Math.round(remainingY)}px vertically). Choose Document or retry after the page settles.`);
     }
   }
 
@@ -373,7 +373,7 @@
       left: r.left, top: r.top, right: r.right, bottom: r.bottom,
       clientWidth: el.clientWidth, clientHeight: el.clientHeight, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight
     })) {
-      throw new Error('The selected scroll panel is mostly outside the browser viewport. Scroll the outer page until the panel begins near the viewport, then retry; alternatively choose Smart or Entire document if the page itself scrolls.');
+      throw new Error('The selected scroll panel is mostly outside the browser viewport. Scroll the outer page until the panel begins near the viewport, then retry; alternatively choose Smart or Document if the page itself scrolls.');
     }
     const contentLeft = r.left + el.clientLeft;
     const contentTop = r.top + el.clientTop;
@@ -905,6 +905,9 @@
       if (state.hiddenPinnedElements.has(el)) continue;
       const r = el.getBoundingClientRect();
       if (r.width < 1 || r.height < 1) continue;
+      // Floating UI is short. A box holding real text is content, unless it is
+      // the message box itself (it holds an input).
+      if ((el.textContent || '').length > 300 && !el.querySelector('textarea, input, [contenteditable="true"], [contenteditable=""]')) continue;
       if (panelRect) {
         if (el === state.scroller || composedContains(el, state.scroller)) continue;
         if (composedContains(state.scroller, el)) {
@@ -931,9 +934,20 @@
       el.style.setProperty('visibility', 'hidden', 'important');
       state.hiddenPinnedElements.add(el);
       count++;
-      if (count >= 60) break;
+      if (!state.hiddenExamples) state.hiddenExamples = new Set();
+      if (state.hiddenExamples.size < 4) state.hiddenExamples.add(describeElement(el));
+      // A generous cap: the walk order is DOM order, and a message box late in
+      // the DOM (Claude, 2026-10) was missed when the old cap of 60 was reached.
+      if (count >= 400) { state.hiddenCapReached = true; break; }
     }
     return count;
+  }
+
+  // Short, human-readable name for a hidden element, for warnings.
+  function describeElement(el) {
+    const label = (el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 28);
+    const tag = el.tagName.toLowerCase();
+    return label ? `${tag} "${label}"` : tag;
   }
 
   // ---- Expand collapsed content -------------------------------------------
@@ -1011,17 +1025,21 @@
   // Vertical clip [top, bottom] that overflow ancestors apply to an element,
   // memoised per call site. Text in a collapsed "Show more" box still has
   // rects below the box; they never paint, so they are neither ink, nor
-  // searchable PDF text, nor clickable.
-  function makeClipper() {
+  // searchable PDF text, nor clickable. With scrollers = false only
+  // overflow hidden/clip boxes count: text inside a scrolling panel is not
+  // painted yet but growing the viewport can expose it.
+  function makeClipper(scrollers = true) {
     const clips = new WeakMap();
     const clipOf = el => {
-      if (!el || el === document.documentElement) return [-Infinity, Infinity];
+      // <body> grows with the viewport, so for the extent its clip does not count.
+      if (!el || el === document.documentElement || (!scrollers && el === document.body)) return [-Infinity, Infinity];
       if (clips.has(el)) return clips.get(el);
       const parent = el.parentElement || (el.getRootNode && el.getRootNode().host) || null;
       let clip = clipOf(parent);
       try {
         const cs = getComputedStyle(el);
-        if (cs.overflowY !== 'visible' || cs.overflowX !== 'visible') {
+        const clipsY = scrollers ? cs.overflowY !== 'visible' : (cs.overflowY === 'hidden' || cs.overflowY === 'clip');
+        if (clipsY || (scrollers && cs.overflowX !== 'visible')) {
           const r = el.getBoundingClientRect();
           clip = [Math.max(clip[0], r.top), Math.min(clip[1], r.bottom)];
         }
@@ -1150,8 +1168,9 @@
     }
   }
 
-  // Vertical bands (viewport CSS px, merged) where visible text is drawn, plus
-  // the bottom of the last visible text or media. The worker uses the bands to
+  // Vertical bands (viewport CSS px, merged) where visible text is drawn, the
+  // bottom of the last visible text or media, and its extent: the same bottom
+  // counting text that scrolling panels hide but viewport growth exposes. The worker uses the bands to
   // prove each render screenshot was painted (Chrome can return a tall chunk
   // before it has rastered all of it) and the bottom to spot pages that add
   // blank space growing with the window. Media is left out of the bands: an
@@ -1171,6 +1190,8 @@
       return ok;
     };
     const clipOf = makeClipper();
+    const extentClipOf = makeClipper(false);
+    let extent = 0;
     const roots = [rootNode];
     let nodes = 0;
     for (let ri = 0; ri < roots.length && nodes < maxNodes; ri++) {
@@ -1182,7 +1203,7 @@
           if (node.shadowRoot) roots.push(node.shadowRoot);
           if (/^(IMG|CANVAS|VIDEO|svg|PICTURE|IFRAME)$/.test(node.tagName) && isVisible(node)) {
             const r = node.getBoundingClientRect();
-            if (r.width > 4 && r.height > 4) bottom = Math.max(bottom, r.bottom);
+            if (r.width > 4 && r.height > 4) { bottom = Math.max(bottom, r.bottom); extent = Math.max(extent, r.bottom); }
           }
           continue;
         }
@@ -1191,9 +1212,11 @@
         if (!parent || /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|TEXTAREA)$/.test(parent.tagName) || !isVisible(parent)) continue;
         range.selectNodeContents(node);
         const clip = clipOf(parent);
+        const extentClip = extentClipOf(parent);
         for (const r of range.getClientRects()) {
           // Screen-reader-only text is clipped to 1px; it never paints.
           if (r.height < 6 || r.width < 2) continue;
+          if (Math.min(r.bottom, extentClip[1]) - Math.max(r.top, extentClip[0]) >= 6) extent = Math.max(extent, Math.min(r.bottom, extentClip[1]));
           const top = Math.max(r.top, clip[0]), bot = Math.min(r.bottom, clip[1]);
           if (bot - top < 6) continue;
           raw.push([top, bot]);
@@ -1208,7 +1231,7 @@
       if (last && b[0] <= last[1] + 2) last[1] = Math.max(last[1], b[1]);
       else bands.push([b[0], b[1]]);
     }
-    return { bands: bands.slice(0, 20000).map(b => [Math.round(b[0] * 10) / 10, Math.round(b[1] * 10) / 10]), bottom: Math.round(bottom) };
+    return { bands: bands.slice(0, 20000).map(b => [Math.round(b[0] * 10) / 10, Math.round(b[1] * 10) / 10]), bottom: Math.round(bottom), extent: Math.round(Math.max(bottom, extent)) };
   }
 
   // Document target: hide paintless end spacers under <body> (same rules as the
@@ -1729,10 +1752,10 @@
         const preset = target === 'document' ? null : detectPreset();
         const inner = target === 'document' ? null : ((preset && preset.scroller) || getInnerScroller(target === 'panel'));
         if (target === 'auto' && !inner && lastPanelSelectionIssue && rootMetrics().pageH <= window.innerHeight + 220) {
-          throw new Error(`${lastPanelSelectionIssue} The document itself does not scroll enough to capture the hidden content. Scroll the app until the conversation panel begins within the viewport, or choose Main scrollable panel after repositioning it.`);
+          throw new Error(`${lastPanelSelectionIssue} The document itself does not scroll enough to capture the hidden content. Scroll the app until the conversation panel begins within the viewport, or choose Panel after repositioning it.`);
         }
         if (target === 'panel' && !inner) {
-          throw new Error('No suitable main scrollable panel was detected. Select Smart or Entire document, or enlarge the browser window and retry.');
+          throw new Error('No suitable main scrollable panel was detected. Select Smart or Document, or enlarge the browser window and retry.');
         }
         state = {
           settings,
@@ -1888,6 +1911,7 @@
         throwIfCancelled();
         return {
           ok: true, hidden, measure: renderMeasure(),
+          hiddenExamples: [...(state.hiddenExamples || [])], hiddenCapReached: !!state.hiddenCapReached,
           brokenImages: audit.brokenImages,
           cssImageFailures: audit.cssImageFailures,
           auditWarnings: audit.auditWarnings,
