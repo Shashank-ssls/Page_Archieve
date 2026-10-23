@@ -8,13 +8,14 @@ Update this at the end of every phase. Newest entries at the top of each section
   Claude capture (2026-10-22). Awaiting the owner's viewer check. Next: Phase 4.
   Store launch (old Phase 2) moved to the final phase by the owner; its finished
   parts stay done. Lite real-site repeats deferred until Full is final.
-- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-23, Claude incognito and Show more fixes): `npm run check` 128/128,
-  `npm run e2e` 35/35 (Full). Lite suite paused until Full is final.
+- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-23, Claude incognito and Show more fixes): `npm run check` 129/129,
+  `npm run e2e` 37/37 (Full). Lite suite paused until Full is final.
 - Not yet verified: any real logged-in site, HiDPI screens.
 
 ## Phase log
 | Date | Phase | Result | Notes |
 | --- | --- | --- | --- |
+| 2026-10-23 | Phase 3 hardening 4 | Done | Claude incognito: the app height comes from a script variable that does not follow the viewport, so Full render could not grow the panel (fell back to stitch). Script-set ancestor heights now follow the viewport during render. End-spacer regression from hardening 3 fixed. |
 | 2026-10-23 | Phase 3 hardening 3 | Done | Owner: long Claude thread kept "Show more" collapsed (virtualised turns mount late; expand now repeats during render). End-spacer rule no longer drops a virtual list's unmounted rows. Incognito Document PDF now warns that a panel hides content. Incognito Smart PDF (one screen) not reproduced yet. |
 | 2026-10-22 | Phase 3 hardening 2 | Done | Owner recaptures: Smart PNG and PDF clean (no blank bands, 30 A4 pages, 42 bookmarks). Document PDF cut to one screen (regression from clipped ink) fixed with an extent measure; Document mode now warns when content lives in a panel. Earlier 12-blank-page PDF re-diagnosed as Smart (panel) and covered by a panel backstop. Claude message box left in captures: floating hide cap of 60 was reached; raised to 400 with examples in the warning. |
 | 2026-10-22 | Phase 3 hardening | Done | Owner's Claude capture (Target Document): PDF had 12 blank pages (window-sized end spacer chased to Max height) and PNG part 1 had 6,100 px unpainted (Chrome returned the chunk before painting). Fixed both (end-spacer guard in document grow, paint check with retry then stitch fallback). PDF now paged A4-style with breaks between lines; clipped text excluded; cover hash list unlimited. |
@@ -73,9 +74,9 @@ Update this at the end of every phase. Newest entries at the top of each section
 | 2026-10-21 | chrome.debugger Full render engine | Only way to render lazy/virtualised/fixed content correctly |
 
 ## Needs the owner's check
-- Claude incognito: recapture Smart + PDF and send the popup warnings if it is still one screen (not reproduced here) [VERIFY ON FIRST RUN].
 - Long Claude thread: recapture (single PNG and parts); long user messages expanded, no 199,279 px end-spacer warning [VERIFY ON FIRST RUN].
-- Claude incognito: was DevTools device toolbar on during the captures? Smart PDF fell back to stitch (panel never grew) and the Document PDF was blurry; recapture with DevTools closed.
+- Claude incognito: recapture Smart + PDF; it should now say Full render (not Scroll & stitch), with a text layer [VERIFY ON FIRST RUN].
+- Claude incognito Document PDF (Claude (3).pdf) was blurry at 19 KB; recapture with DevTools closed and send it if still blurry.
 - Phase 3: Claude Smart recapture passed (message box gone, examples are UI only). Optional: one more capture to confirm the ~280 px end strip is gone [VERIFY ON FIRST RUN].
 - Phase 3: open a captured long article and a captured chat PDF (with cover page) in Chrome and Acrobat Reader; links open, bookmarks jump, text selects [VERIFY ON FIRST RUN].
 - Trademark search for "Tallshot" (IP India, USPTO) before publishing.

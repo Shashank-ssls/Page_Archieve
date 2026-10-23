@@ -850,6 +850,31 @@
     if (!state || state.endSpacersChecked || state.scrollerType !== 'inner' || !state.scroller || !state.scroller.isConnected) return;
     state.endSpacersChecked = true;
     state.endSpacersHidden = hideTrailingSpacers(state.scroller);
+    state.viewportHeightsFreed = followViewportHeights(state.scroller);
+  }
+
+  // Claude's incognito shell (2026-10) sizes the app with an inline
+  // height: calc(var(--app-visual-viewport-height, 100dvh) - ...), where a
+  // script sets the variable and does not update it when the debugger grows
+  // the viewport. The panel then never grows. Script-set inline heights on the
+  // panel's ancestors are rewritten to follow the viewport by the same offset:
+  // calc(100vh - <how much shorter than the viewport it is now>). Restored afterwards.
+  function followViewportHeights(scroller) {
+    let freed = 0;
+    const innerH = window.innerHeight;
+    for (let a = scroller.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+      const inline = a.style.height;
+      if (!inline || !/var\(|px/.test(inline) || /v(h|min|max)\b|%/.test(inline.replace(/var\([^)]*\)/g, ''))) continue;
+      const h = a.getBoundingClientRect().height;
+      // No upper bound: the variable may hold an older, larger window height.
+      if (!(h > 0)) continue;
+      snapshotStyleOnce(a, 'height');
+      // A stale, larger value would keep the box taller than the viewport, so
+      // every growth round would need more: never exceed the viewport.
+      a.style.setProperty('height', `calc(100vh - ${Math.max(0, innerH - h)}px)`, 'important');
+      freed++;
+    }
+    return freed;
   }
 
   function renderPinPanel() {

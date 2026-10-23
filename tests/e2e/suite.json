@@ -33,5 +33,7 @@
   {"name": "clipped-text", "url": "/fx/clipped-text.html", "settings": {"waitMs": 1000, "expandContent": false}, "expect": {"engineIncludes": "Full render", "warningAbsent": "scroll-and-stitch"}, "lite": false},
   {"name": "panel-paint-spacer", "url": "http://claude.ai/fx/end-spacer.html?paint=1", "settings": {"waitMs": 1000, "format": "pdf"}, "expect": {"engineIncludes": "Claude", "warningAbsent": "Max height", "warningIncludes": "end spacer", "pdf": {"bookmarks": 15}}, "lite": false},
   {"name": "doc-panel-hidden", "url": "/fx/virtual-chat.html", "settings": {"waitMs": 1000, "captureTarget": "document", "format": "pdf"}, "expect": {"warningIncludes": "scroll panel holds about"}, "lite": false},
+  {"name": "script-vh-shell", "url": "/fx/script-vh-shell.html", "settings": {"waitMs": 1000, "format": "pdf"}, "expect": {"engineIncludes": "Full render", "warningAbsent": "scroll-and-stitch"}, "lite": false},
+  {"name": "script-vh-shell-png", "url": "/fx/script-vh-shell.html", "settings": {"waitMs": 1000}, "expect": {"engineIncludes": "Full render", "presentColor": {"color": [255, 0, 255], "minPixels": 20000}}, "lite": false},
   {"name": "doc-shell-hint", "url": "http://claude.ai/fx/end-spacer.html", "settings": {"waitMs": 1000, "captureTarget": "document"}, "expect": {"warningIncludes": "Choose Smart or Panel"}, "lite": false}
 ]

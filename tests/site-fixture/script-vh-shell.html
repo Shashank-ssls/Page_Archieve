@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en" style="height: 100vh">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Archive Test Fixture - Script-Sized App Shell</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; font: 15px/1.5 system-ui, sans-serif; }
+  body { height: 100%; }
+  .grid { display: grid; width: 100%; overflow: hidden; }
+  .frame { display: flex; flex-direction: column; overflow: hidden; height: 100%; }
+  .bar { height: 56px; flex: none; padding: 16px 20px; background: #eee; border-bottom: 1px solid #ccc; }
+  .panel { flex: 1 1 0%; min-height: 0; overflow-y: auto; padding: 0 20px; background: #fff; }
+  .msg { margin: 16px 0; padding: 14px; border: 1px solid #ccd; border-radius: 10px; background: #f8f9ff; height: 180px; }
+  .last { height: 40px; background: #ff00ff; color: #ff00ff; margin: 16px 0; }
+</style>
+</head>
+<body>
+<!-- Like Claude's incognito shell (2026-10): the app height comes from a
+     script-set variable that is NOT updated when the viewport changes. -->
+<div class="grid" id="grid" style="height: calc(var(--app-visual-viewport-height, 100dvh) - 0px)">
+  <div class="frame">
+    <div class="bar">Incognito title bar</div>
+    <div class="panel" id="panel"></div>
+  </div>
+</div>
+<script>
+  document.documentElement.style.setProperty('--app-visual-viewport-height', window.innerHeight + 'px');
+  const panel = document.getElementById('panel');
+  for (let i = 1; i <= 30; i++) {
+    const m = document.createElement('div'); m.className = 'msg'; m.textContent = `Incognito message ${i}`;
+    panel.append(m);
+  }
+  const last = document.createElement('div'); last.className = 'last'; last.textContent = 'END'; panel.append(last);
+</script>
+</body>
+</html>
