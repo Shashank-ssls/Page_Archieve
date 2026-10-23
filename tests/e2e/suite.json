@@ -11,6 +11,7 @@
   { "name": "fixed-art", "url": "/fx/fixed-art-backdrop.html", "settings": { "waitMs": 1000 } },
   { "name": "viewport-hero", "url": "/fx/viewport-hero.html", "settings": { "waitMs": 1000 } },
   { "name": "claude-preset", "url": "http://claude.ai/fx/chat-preset.html", "settings": { "waitMs": 1000, "format": "pdf" }, "expect": { "engineIncludes": "Claude", "pdf": { "bookmarks": 20, "cover": false } }, "lite": false },
+  { "name": "virtual-showmore", "url": "/fx/virtual-showmore.html", "settings": { "waitMs": 1000 }, "expect": { "engineIncludes": "Full render", "warningIncludes": "Expanded more collapsed content while rendering", "presentColor": { "color": [255, 0, 255], "minPixels": 172800 } }, "lite": false },
   { "name": "expand", "url": "/fx/expand-content.html", "settings": { "waitMs": 1000 }, "expect": { "titleUnchanged": "Page Archive Test Fixture - Collapsed Content" } },
   { "name": "stitch-jpeg", "url": "/fx/app-scroll-panel.html", "settings": { "engine": "stitch", "format": "jpeg", "waitMs": 1000 } },
   { "name": "switch-away", "url": "/fx/virtual-chat.html", "switchAway": true, "settings": { "waitMs": 1000 }, "lite": false },
@@ -31,5 +32,6 @@
   {"name": "doc-end-spacer-pdf", "url": "http://claude.ai/fx/end-spacer.html?doc=1", "settings": {"waitMs": 1000, "format": "pdf"}, "expect": {"warningAbsent": "Max height", "pdf": {"bookmarks": 15}}, "lite": false},
   {"name": "clipped-text", "url": "/fx/clipped-text.html", "settings": {"waitMs": 1000, "expandContent": false}, "expect": {"engineIncludes": "Full render", "warningAbsent": "scroll-and-stitch"}, "lite": false},
   {"name": "panel-paint-spacer", "url": "http://claude.ai/fx/end-spacer.html?paint=1", "settings": {"waitMs": 1000, "format": "pdf"}, "expect": {"engineIncludes": "Claude", "warningAbsent": "Max height", "warningIncludes": "end spacer", "pdf": {"bookmarks": 15}}, "lite": false},
+  {"name": "doc-panel-hidden", "url": "/fx/virtual-chat.html", "settings": {"waitMs": 1000, "captureTarget": "document", "format": "pdf"}, "expect": {"warningIncludes": "scroll panel holds about"}, "lite": false},
   {"name": "doc-shell-hint", "url": "http://claude.ai/fx/end-spacer.html", "settings": {"waitMs": 1000, "captureTarget": "document"}, "expect": {"warningIncludes": "Choose Smart or Panel"}, "lite": false}
 ]

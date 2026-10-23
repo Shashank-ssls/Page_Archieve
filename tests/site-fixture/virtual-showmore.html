@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Archive Test Fixture - Virtualized Show More</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; font: 15px/1.5 system-ui, sans-serif; }
+  .col { display: flex; flex-direction: column; height: 100vh; }
+  .topbar { height: 52px; flex: none; border-bottom: 1px solid #ccc; padding: 14px 20px; background: #fafafa; }
+  .thread { flex: 1; overflow-y: auto; background: #fff; padding: 0 20px; }
+  .slot { margin: 16px 0; }
+  .placeholder { height: 300px; }
+  .msg { border: 1px solid #ccd; border-radius: 10px; background: #f8f9ff; padding: 14px; }
+  /* Collapsed like Claude's long user messages: clipped, faded, a button below. */
+  .body.collapsed { max-height: 120px; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent); }
+  .tail { height: 24px; background: #ff00ff; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="col">
+  <div class="topbar">Chat title bar</div>
+  <div class="thread" id="thread"></div>
+</div>
+<script>
+  // Messages mount only when their slot comes near the scrollport (like
+  // Claude, 2026-10, which keeps ~5 turns in the DOM). Each long message is
+  // collapsed behind a "Show more" button; its magenta tail paints only when
+  // expanded, so the E2E case can count it in the PNG.
+  const COUNT = 12, thread = document.getElementById('thread'), expanded = new Set();
+  const lines = Array.from({ length: 30 }, (_, i) => `Line ${i + 1} of a long pasted message.`).join('<br>');
+  const slots = [];
+  for (let i = 0; i < COUNT; i++) {
+    const slot = document.createElement('div'); slot.className = 'slot';
+    slot.innerHTML = '<div class="placeholder"></div>';
+    thread.append(slot); slots.push(slot);
+  }
+  function mount(i) {
+    const slot = slots[i];
+    if (slot.dataset.mounted) return;
+    slot.dataset.mounted = '1';
+    const open = expanded.has(i);
+    slot.innerHTML = `<div class="msg"><b>Message ${i + 1}</b><div class="body${open ? '' : ' collapsed'}">${lines}<div class="tail"></div></div>${open ? '' : '<button type="button">Show more</button>'}</div>`;
+    const btn = slot.querySelector('button');
+    if (btn) btn.addEventListener('click', () => { expanded.add(i); delete slot.dataset.mounted; mount(i); render(); });
+  }
+  function unmount(i) {
+    const slot = slots[i];
+    if (!slot.dataset.mounted) return;
+    const h = slot.offsetHeight;
+    delete slot.dataset.mounted;
+    slot.innerHTML = `<div class="placeholder" style="height:${h}px"></div>`;
+  }
+  // Mounting changes slot heights, so repeat until nothing changes (a real
+  // virtualiser re-measures on every layout change).
+  function render() {
+    for (let pass = 0; pass < 20 && renderOnce(); pass++) {}
+  }
+  function renderOnce() {
+    let changed = false;
+    const top = thread.scrollTop - 200, bottom = thread.scrollTop + thread.clientHeight + 200;
+    const base = thread.getBoundingClientRect().top - thread.scrollTop;
+    slots.forEach((slot, i) => {
+      const r = slot.getBoundingClientRect();
+      const y = r.top - base;
+      const want = y + r.height >= top && y <= bottom;
+      if (want !== !!slot.dataset.mounted) { changed = true; if (want) mount(i); else unmount(i); }
+    });
+    return changed;
+  }
+  thread.addEventListener('scroll', render, { passive: true });
+  new ResizeObserver(() => render()).observe(thread);
+  window.addEventListener('resize', () => render());
+  // Headless viewport overrides do not always fire resize; poll as a backstop.
+  setInterval(render, 100);
+  render();
+</script>
+</body>
+</html>

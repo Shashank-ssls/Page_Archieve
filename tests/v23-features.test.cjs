@@ -44,7 +44,10 @@ test('auto-expand never clicks real links, form submits or destructive labels', 
   assert.match(content, /if \(href && href !== '#' && !\/\^javascript:\/i\.test\(href\)\) return false;/);
   assert.match(content, /if \(type === 'submit' && el\.form\) return false;/);
   assert.match(content, /const NEVER_CLICK = \/delete\|remove/);
-  assert.match(content, /round < 3 && clicks < 40/);
+  assert.match(content, /const EXPAND_CLICK_CAP = 80;/);
+  assert.match(content, /round < 3 && state.expandClicks < EXPAND_CLICK_CAP/);
+  // Virtualised chats mount messages late: the render settle step clicks again.
+  assert.match(content, /lateExpanded = await clickExpanders\(\)/);
   assert.match(content, /d\.open = false/);
 });
 

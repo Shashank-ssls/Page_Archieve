@@ -808,16 +808,13 @@
         hidden++;
       }
       let next = null;
+      const spacers = [];
       for (let child = parent.lastElementChild; child; child = child.previousElementSibling) {
         const cs = getComputedStyle(child);
         if (cs.display === 'none' || cs.position === 'absolute' || cs.position === 'fixed') continue;
         if (isPaintlessBox(child)) {
           const r = child.getBoundingClientRect();
-          if (r.height > 0 || (parseFloat(cs.minHeight) || 0) > 0 || (parseFloat(cs.flexGrow) || 0) > 0) {
-            snapshotStyleOnce(child, 'display');
-            child.style.setProperty('display', 'none', 'important');
-            hidden++;
-          }
+          if (r.height > 0 || (parseFloat(cs.minHeight) || 0) > 0 || (parseFloat(cs.flexGrow) || 0) > 0) spacers.push(child);
           continue;
         }
         // An empty zero-height box (Notion ends its scroller with one) is not the content end.
@@ -829,6 +826,16 @@
         }
         if (child.getBoundingClientRect().height >= contentH * 0.5) next = child;
         break;
+      }
+      // A chat ends in one or two spacers. A longer run of empty boxes is a
+      // virtualised list's unmounted rows (placeholders that fill in once the
+      // viewport grows), so it is content, not an end spacer.
+      if (spacers.length <= 2) {
+        for (const child of spacers) {
+          snapshotStyleOnce(child, 'display');
+          child.style.setProperty('display', 'none', 'important');
+          hidden++;
+        }
       }
       parent = next;
     }
@@ -958,6 +965,8 @@
   const EXPAND_TEXT = /^(?:\s*(?:[+\u2026.]+\s*)?(?:view|show|read|see|load|expand|display)\s+(?:the\s+)?(?:more|rest|all|full|entire|whole|remaining)(?:\s+(?:text|comment|comments|replies|reply|content|post|message|answer|review|details))?|more|\u2026\s*more|expand(?:\s+all)?|show\s+\d+\s+more(?:\s+\w+)?|\d+\s+more\s+(?:replies|comments))\s*[.\u2026\u203a>\u2193\u25be]*\s*$/i;
   const NEVER_CLICK = /delete|remove|log\s*out|sign\s*out|unsubscribe|subscribe|buy|purchase|checkout|pay|donate|report|block|follow|like|upvote|downvote|share|send|submit|post\b|reply\b|translate|download|install|accept|agree|close|dismiss|cancel/i;
 
+  const EXPAND_CLICK_CAP = 80;
+
   function safeToClick(el) {
     const tag = el.tagName;
     if (tag === 'A') {
@@ -1006,24 +1015,35 @@
         clamps++;
       }
     }
-    // Clicks are bounded and repeated a few rounds because one expansion can
-    // reveal another ("show 3 more replies" inside an expanded thread).
-    const clicked = new WeakSet();
-    for (let round = 0; round < 3 && clicks < 40; round++) {
+    state.expandClicks = 0;
+    clicks = await clickExpanders();
+    return { details, clamps, clicks };
+  }
+
+  // Clicks are bounded (EXPAND_CLICK_CAP per capture) and repeated a few rounds
+  // because one expansion can reveal another ("show 3 more replies" inside an
+  // expanded thread). Also called again after the render engine has grown the
+  // panel: virtualised chats (Claude, 2026-10) mount only the messages near the
+  // viewport, so most "Show more" buttons do not exist during preparation.
+  async function clickExpanders() {
+    if (!state) return 0;
+    state.clickedExpanders = state.clickedExpanders || new WeakSet();
+    const clicked = state.clickedExpanders;
+    let clicks = 0;
+    for (let round = 0; round < 3 && state.expandClicks < EXPAND_CLICK_CAP; round++) {
       let roundClicks = 0;
       for (const el of walkOpenDom()) {
-        if (clicks >= 40) break;
+        if (state.expandClicks >= EXPAND_CLICK_CAP) break;
         if (clicked.has(el) || !['A', 'BUTTON', 'SPAN', 'DIV', 'INPUT', 'SUMMARY'].includes(el.tagName)) continue;
         if (!safeToClick(el)) continue;
         clicked.add(el);
-        try { el.click(); clicks++; roundClicks++; } catch (_) {}
+        try { el.click(); clicks++; roundClicks++; state.expandClicks++; } catch (_) {}
       }
       if (!roundClicks) break;
       await sleep(450);
       throwIfCancelled();
     }
-    state.expandClicks = clicks;
-    return { details, clamps, clicks };
+    return clicks;
   }
 
   // Vertical clip [top, bottom] that overflow ancestors apply to an element,
@@ -1824,7 +1844,16 @@
         if (inner) await stabilizeInnerScroller();
         const metrics = currentMetrics();
         if (expandWarning) warnings = [expandWarning, ...warnings];
-        return { ok: true, metrics, warnings, pinnedCount: state.pinned.length, preset: preset ? preset.name : null };
+        // Document target on an app shell: report how much a scroll panel
+        // hides, so the worker can say the capture is only the shell. Text
+        // clipped inside the panel does not count as ink, so the ink extent
+        // alone misses this (Claude incognito, 2026-10).
+        let panelHidden = 0;
+        if (target === 'document') {
+          const panel = getInnerScroller(true);
+          if (panel) panelHidden = Math.max(0, panel.scrollHeight - panel.clientHeight);
+        }
+        return { ok: true, metrics, warnings, pinnedCount: state.pinned.length, preset: preset ? preset.name : null, panelHidden };
       }
       if (message.type === 'PAC_SET_TILE') {
         if (!state) throw new Error('The page capture session is not active.');
@@ -1909,12 +1938,17 @@
         throwIfCancelled();
         setScroll(0, 0);
         await waitForSettle(message.waitMs || 800);
+        let lateExpanded = 0;
+        if (state.settings.expandContent !== false) {
+          lateExpanded = await clickExpanders();
+          if (lateExpanded) await waitForSettle(400);
+        }
         const hidden = message.hideFloating === false ? 0 : renderHideFloating();
         const audit = await waitForVisibleImages(message.imageWaitMs || message.waitMs || 800);
         await afterPaint();
         throwIfCancelled();
         return {
-          ok: true, hidden, measure: renderMeasure(),
+          ok: true, hidden, lateExpanded, measure: renderMeasure(),
           hiddenExamples: [...(state.hiddenExamples || [])], hiddenCapReached: !!state.hiddenCapReached,
           brokenImages: audit.brokenImages,
           cssImageFailures: audit.cssImageFailures,

@@ -327,6 +327,7 @@ async function renderDocumentGrow(job, report, settleMsg) {
     }
     // Stable: let images that just became "visible" load, then re-check growth.
     settled = await getContentMessage(tabId, { ...settleMsg, imageWaitMs: Math.max(3000, settings.waitMs) });
+    noteLateExpand(report, settled);
     measure = settled.measure;
     const after = await targetHeight();
     if (after <= viewportH + 1 && !(endCut && after < viewportH - 1)) break;
@@ -334,6 +335,7 @@ async function renderDocumentGrow(job, report, settleMsg) {
   }
   if (!settled) {
     settled = await getContentMessage(tabId, { ...settleMsg, imageWaitMs: Math.max(3000, settings.waitMs) });
+    noteLateExpand(report, settled);
     measure = settled.measure;
   }
   absorbAudit(report, settled, 'in the rendered page');
@@ -349,6 +351,9 @@ async function renderDocumentGrow(job, report, settleMsg) {
   // An app shell (chat, notebook) does not scroll as a document: its content
   // sits in a scroll panel. Say so instead of handing back one screen silently.
   const inkEnd = await getContentMessage(tabId, { type: 'PAC_INK_BANDS' }).catch(() => null);
+  if (job.panelHidden > 200 && !(inkEnd && inkEnd.extent > height + 200)) {
+    report.warnings.push(`This page does not scroll as a document: a scroll panel holds about ${Math.round(job.panelHidden).toLocaleString()} px more content that this capture does not include. Choose Smart or Panel in Target to capture it.`);
+  }
   if (inkEnd && inkEnd.extent > height + 200) {
     report.warnings.push(`The document itself is only ${height.toLocaleString()} px tall; most of the content (to about ${Math.round(inkEnd.extent).toLocaleString()} px) is inside a scroll panel the document does not grow. Choose Smart or Panel in Target to capture it.`);
   }
@@ -360,6 +365,7 @@ async function renderDocumentBeyondViewport(job, report, settleMsg) {
   const { tabId, settings, cdp } = job;
   progress(tabId, 'prepare', 8, 'Settling images and fonts\u2026');
   const settled = await getContentMessage(tabId, settleMsg);
+  noteLateExpand(report, settled);
   absorbAudit(report, settled, 'during preparation');
   floatingWarning(report, settled);
   const lm = await cdp.layoutMetrics();
@@ -378,6 +384,16 @@ async function renderDocumentBeyondViewport(job, report, settleMsg) {
 // (chat apps, notebooks) are exposed by growing the emulated viewport until the
 // panel no longer overflows, then screenshotting the panel rectangle.
 // ---------------------------------------------------------------------------
+// Virtualised chats mount messages only once the panel is grown, so the
+// render settle step clicks "Show more" again; report those clicks honestly.
+function noteLateExpand(report, settled) {
+  const n = settled && settled.lateExpanded;
+  if (!n) return;
+  report.lateExpanded = (report.lateExpanded || 0) + n;
+  report.warnings = report.warnings.filter(w => !w.startsWith('Expanded more collapsed content'));
+  report.warnings.push(`Expanded more collapsed content while rendering (${report.lateExpanded} \u201cshow more\u201d button${report.lateExpanded === 1 ? '' : 's'}). Clicked buttons stay expanded on the page after capture.`);
+}
+
 async function runRender(job, report) {
   const { tabId, settings, cdp } = job;
   progress(tabId, 'prepare', 3, 'Preparing the page for a full render\u2026', { engineLabel: 'Full render' });
@@ -387,6 +403,7 @@ async function runRender(job, report) {
   const prepared = await getContentMessage(tabId, { type: 'PAC_PREPARE', settings: { ...settings, engine: 'render' } });
   checkCancel(job);
   if (prepared.warnings) report.warnings.push(...prepared.warnings);
+  job.panelHidden = prepared.panelHidden || 0;
   if (prepared.preset) progress(tabId, 'prepare', 5, `Detected ${prepared.preset} layout\u2026`, { engineLabel: `Full render \u00b7 ${prepared.preset}` });
   const scrollerType = prepared.metrics && prepared.metrics.scrollerType === 'inner' ? 'inner' : 'root';
   const settleMsg = { type: 'PAC_RENDER_SETTLE', waitMs: Math.min(settings.waitMs, 2500), hideFloating: settings.hideFloating };
@@ -415,13 +432,16 @@ async function runRender(job, report) {
     let lastNeed = Infinity;
     let settled = null;
     let truncated = false;
-    for (let round = 0; round < 10; round++) {
+    // 20 rounds: each late "Show more" pass in a virtualised chat costs a
+    // grow round and a settle round.
+    for (let round = 0; round < 20; round++) {
       checkCancel(job);
       const need = G.panelGrowthNeeded(measure);
       if (need === 0) {
         // Exposed. One full settle lets lazy images load and floating UI hide;
         // if that grows the panel again, keep looping.
         settled = await getContentMessage(tabId, settleMsg);
+        noteLateExpand(report, settled);
         measure = settled.measure;
         if (G.panelGrowthNeeded(measure) === 0) break;
         continue;
@@ -445,6 +465,7 @@ async function runRender(job, report) {
     }
     if (!settled) {
       settled = await getContentMessage(tabId, settleMsg);
+      noteLateExpand(report, settled);
       measure = settled.measure;
     }
     absorbAudit(report, settled, 'in the expanded panel');
