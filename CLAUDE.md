@@ -129,7 +129,10 @@ After UI changes, run `npm run popup-shot` and LOOK at the images before saying 
 ## 6. Definition of done for any change
 
 1. `npm run check` is green.
-2. `npm run e2e` and `npm run e2e:lite` are green, if capture code changed.
+2. `npm run e2e` is green, if capture code changed. Do NOT run `npm run e2e:lite`
+   for now: the owner finishes the Full edition first, then the Lite suite is
+   finalized in one pass (owner decision, 2026-10-23). Never run both suites in
+   one go.
 3. `npm run popup-shot` reviewed, if UI changed.
 4. `CHANGELOG.md` and `PROGRESS.md` updated; version bumped in `manifest.json`
    and `package.json` together when shipping.

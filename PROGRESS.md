@@ -9,7 +9,7 @@ Update this at the end of every phase. Newest entries at the top of each section
   Store launch (old Phase 2) moved to the final phase by the owner; its finished
   parts stay done. Lite real-site repeats deferred until Full is final.
 - Last green run (Windows, GEHRMAN_SPARROW, 2026-10-23, Claude incognito and Show more fixes): `npm run check` 128/128,
-  `npm run e2e` 35/35 (Full), `npm run e2e:lite` 20/20 (Lite).
+  `npm run e2e` 35/35 (Full). Lite suite paused until Full is final.
 - Not yet verified: any real logged-in site, HiDPI screens.
 
 ## Phase log
@@ -52,6 +52,7 @@ Update this at the end of every phase. Newest entries at the top of each section
 ## Decisions log
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-23 | Run only the Full E2E suite until Full is final; finalize Lite afterwards in one pass | Owner: complete Full first; never run both suites together |
 | 2026-10-22 | Product name: Tallshot (Full edition "Tallshot Full", Lite "Tallshot") | "Page Archive" sat next to a featured "Archive Page"; "Stackshot" and "Unscroll" are taken. Only user-visible strings changed; storage keys, data attributes, folder and repo names stay |
 | 2026-10-22 | Lite real-site testing deferred to the end | Owner tests Lite once Full is final, to avoid repeat work. Lite still runs in the E2E harness |
 | 2026-10-22 | Store launch (old Phase 2) moved to the final phase | Owner wants to launch once, with the product complete. Phases 3-7 run first. The Phase 1 social-post gate and the install gate are deferred with it, so Pro is built before demand is measured |
@@ -73,7 +74,8 @@ Update this at the end of every phase. Newest entries at the top of each section
 
 ## Needs the owner's check
 - Claude incognito: recapture Smart + PDF and send the popup warnings if it is still one screen (not reproduced here) [VERIFY ON FIRST RUN].
-- Long Claude thread: recapture; long user messages should now be fully expanded [VERIFY ON FIRST RUN].
+- Long Claude thread: recapture (single PNG and parts); long user messages expanded, no 199,279 px end-spacer warning [VERIFY ON FIRST RUN].
+- Claude incognito: was DevTools device toolbar on during the captures? Smart PDF fell back to stitch (panel never grew) and the Document PDF was blurry; recapture with DevTools closed.
 - Phase 3: Claude Smart recapture passed (message box gone, examples are UI only). Optional: one more capture to confirm the ~280 px end strip is gone [VERIFY ON FIRST RUN].
 - Phase 3: open a captured long article and a captured chat PDF (with cover page) in Chrome and Acrobat Reader; links open, bookmarks jump, text selects [VERIFY ON FIRST RUN].
 - Trademark search for "Tallshot" (IP India, USPTO) before publishing.

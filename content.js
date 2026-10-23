@@ -827,10 +827,13 @@
         if (child.getBoundingClientRect().height >= contentH * 0.5) next = child;
         break;
       }
-      // A chat ends in one or two spacers. A longer run of empty boxes is a
-      // virtualised list's unmounted rows (placeholders that fill in once the
-      // viewport grows), so it is content, not an end spacer.
-      if (spacers.length <= 2) {
+      // A chat ends in one or two spacers, and a script-sized spacer has a
+      // min-height or flex-grow (Claude, 2026-10, whose run can be longer). A
+      // longer run of plain fixed-height empty boxes is a virtualised list's
+      // unmounted rows (placeholders that fill in once the viewport grows), so
+      // it is content, not an end spacer.
+      const sized = el => { const c = getComputedStyle(el); return (parseFloat(c.minHeight) || 0) > 0 || (parseFloat(c.flexGrow) || 0) > 0; };
+      if (spacers.length <= 2 || spacers.some(sized)) {
         for (const child of spacers) {
           snapshotStyleOnce(child, 'display');
           child.style.setProperty('display', 'none', 'important');
