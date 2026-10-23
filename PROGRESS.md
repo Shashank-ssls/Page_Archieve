@@ -12,6 +12,34 @@ Update this at the end of every phase. Newest entries at the top of each section
   `npm run e2e` 37/37 (Full). Lite suite paused until Full is final.
 - Not yet verified: any real logged-in site, HiDPI screens.
 
+## Session summary (2026-10-23): Claude incognito and "Show more"
+Planned start of Phase 4 (Share-safe Redact) was paused: the owner's captures
+of Claude incognito chats and a long Claude thread showed capture bugs, and
+incognito chats are a key use case (they are not saved by the chat app).
+Diagnosis used read-only console snippets the owner ran on the live pages.
+
+Fixed (commits 42d7853, 5b29aca, 63bb78d):
+- "Show more" in long user messages stayed collapsed. Claude keeps about 5
+  turns in the DOM, so the expand pass at preparation missed most buttons.
+  The render settle step now clicks newly mounted expand buttons again (cap
+  80 per capture); panel growth allows 20 rounds. Fixture virtual-showmore.
+- End-spacer rule: first changed to keep long runs of empty boxes (virtual
+  list rows), which regressed Claude (its list ends in 3 empty boxes; the
+  spacer grew to Max height, 199,279 px trimmed). Now a run is hidden when any
+  box has min-height or flex-grow, as Claude's spacer does.
+- Incognito Smart PDF fell back to scroll-and-stitch ("panel could not be
+  fully exposed, overflow 2159px"): the shell height is
+  calc(var(--app-visual-viewport-height, 100dvh) - ...), set once by a script.
+  Script-set ancestor heights now follow the viewport during render, capped at
+  the viewport. Fixture script-vh-shell. Not yet confirmed on the real page.
+- Document target on an app shell now warns how much a scroll panel hides
+  (clipped text never counted as ink). E2E case doc-panel-hidden.
+
+Tried and reverted: pinning the panel with flex: none (broke virtual-showmore).
+Process: CLAUDE.md now says run only the Full E2E suite until Full is final.
+Open: incognito Smart recapture; blurry incognito Document PDF (19 KB, maybe
+DevTools device toolbar); long-thread recapture. Then Phase 4.
+
 ## Phase log
 | Date | Phase | Result | Notes |
 | --- | --- | --- | --- |
