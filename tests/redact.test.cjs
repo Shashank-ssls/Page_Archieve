@@ -89,7 +89,7 @@ test('the stitcher burns boxes before encoding and scrubs links, bookmarks and t
   assert.ok(burn > 0 && burn < encode);
   assert.match(st, /textRuns\.set\(message\.captureId, RD\.stripRunsUnder\(original, boxes\)\)/);
   assert.match(st, /extras\.links = \(extras\.links \|\| \[\]\)\.filter\(l => !hit\(l\)/);
-  assert.match(st, /session\.title = scrub\(/);
+  assert.match(st, /session\.title = RD\.scrubWords\(scrub\(/);
   assert.ok(src('stitcher.html').includes('<script src="redact.js"></script>'));
   assert.ok(src('tools/build-editions.mjs').includes("'redact.js'"));
 });
@@ -146,4 +146,23 @@ test('a value split over several pieces on one line is still found', () => {
   assert.deepStrictEqual(res.runs.map(r => r[5]), ['Visa']);
   assert.deepStrictEqual(res.counts, { card: 1 });
   assert.deepStrictEqual(kinds('STORYWEAVE_LLM_MODEL=qwen2.5:7b'), []);
+});
+
+test('words under the final boxes are scrubbed from titles and bookmarks', () => {
+  const run = [0, 0, 100, 10, 12, 'Account notes', [0, 50, 55, 100]];
+  const hidden = R.hiddenWords([run], [[-2, -2, 54, 14]]);
+  assert.deepStrictEqual([...hidden], ['account']);
+  assert.strictEqual(R.scrubWords('Account notes', hidden), '[redacted] notes');
+  assert.strictEqual(R.scrubWords('Account notes', new Set()), 'Account notes');
+});
+
+test('the review hides a clicked word everywhere and the panel follows a rebuilt scroller', () => {
+  const st = src('stitcher.js');
+  assert.match(st, /if \(r\.w \* scale < 4 \|\| r\.h \* scale < 4\) \{ hideWordAt\(draft0\); return; \}/);
+  assert.match(st, /reviewRedactions\(message\.captureId, tiles, width, height, res\.boxes, format, original\)/);
+  assert.match(st, /RD\.scrubWords\(scrub\(m\[3\]\), hidden\)/);
+  const c = src('content.js');
+  assert.match(c, /function liveScroller\(\)/);
+  assert.match(c, /if \(twins\.length !== 1\) throw/);
+  assert.match(c, /scrollerSig: inner \? \{ tag: inner\.tagName, cls: inner\.className \} : null/);
 });

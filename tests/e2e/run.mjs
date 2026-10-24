@@ -159,6 +159,10 @@ for (const c of cases) {
         await rv.mouse.move(box.x + x + w, box.y + y + h, { steps: 4 });
         await rv.mouse.up();
       }
+      if (c.review.clickWord) {
+        const box = await rv.locator('#review-stage').boundingBox();
+        await rv.mouse.click(box.x + c.review.clickWord[0], box.y + c.review.clickWord[1]);
+      }
       await rv.screenshot({ path: path.join(OUT, `${c.name}__review.png`) });
       await rv.click(c.review.cancel ? '#review-cancel' : '#review-save');
     }

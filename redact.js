@@ -219,6 +219,32 @@
     return out;
   }
 
+  const normWord = w => String(w).toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+
+  // The words the final boxes cover, normalised. Bookmarks and the PDF title
+  // repeat page text without a position, so they are scrubbed by word.
+  function hiddenWords(runs, boxes) {
+    const hit = (x, y, w, h) => (boxes || []).some(b => x < b[0] + b[2] && x + w > b[0] && y < b[1] + b[3] && y + h > b[1]);
+    const out = new Set();
+    for (const run of runs || []) {
+      const list = String(run[5]).split(' ');
+      const edges = run[6];
+      list.forEach((word, i) => {
+        const covered = Array.isArray(edges) && edges.length === list.length * 2
+          ? hit(run[0] + edges[i * 2], run[1], edges[i * 2 + 1] - edges[i * 2], run[3])
+          : hit(run[0], run[1], run[2], run[3]);
+        const key = normWord(word);
+        if (covered && key.length >= 2) out.add(key);
+      });
+    }
+    return out;
+  }
+
+  function scrubWords(text, hidden) {
+    if (!hidden || !hidden.size) return String(text || '');
+    return String(text || '').split(/(\s+)/).map(t => hidden.has(normWord(t)) ? '[redacted]' : t).join('');
+  }
+
   function redactString(text, words) {
     const s = String(text || '');
     const hits = findSecrets(s, words);
@@ -232,7 +258,7 @@
     return Object.keys(counts).map(k => `${counts[k]} ${counts[k] === 1 ? (LABELS[k] || k) : (plural[k] || `${LABELS[k] || k}s`)}`).join(', ');
   }
 
-  const api = { findSecrets, redactRuns, stripRunsUnder, redactString, parseWordList, summary, luhn, ibanValid, entropy };
+  const api = { findSecrets, redactRuns, stripRunsUnder, hiddenWords, scrubWords, redactString, parseWordList, summary, luhn, ibanValid, entropy };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.PageArchiveRedact = api;
 })(globalThis);

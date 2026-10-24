@@ -357,7 +357,7 @@
   // [x, y, w, h, kind] in capture CSS px; rejects when cancelled. The image is
   // drawn in 1500 px segments, only near the visible area, so a very tall
   // capture never needs one giant canvas.
-  function reviewRedactions(captureId, tiles, width, height, suggested, format) {
+  function reviewRedactions(captureId, tiles, width, height, suggested, format, runs = []) {
     const $ = id => document.getElementById(id);
     const stage = $('review-stage');
     // Reading order, so Tab moves through the boxes top to bottom.
@@ -490,15 +490,41 @@
       const onUp = e => {
         if (!draft) return;
         const r = rectOf(draft, point(e));
+        const draft0 = { x: draft.x0, y: draft.y0 };
         draft.el.remove();
         draft = null;
-        // Ignore plain clicks; a box needs a few screen pixels each way.
-        if (r.w * scale < 4 || r.h * scale < 4) return;
+        // A plain click on a word hides that word everywhere on the page:
+        // the universal tool for names, IDs and anything no pattern knows.
+        if (r.w * scale < 4 || r.h * scale < 4) { hideWordAt(draft0); return; }
         const it = { ...r, kind: 'manual', on: true, manual: true };
         items.push(it);
         addBox(it);
         stats();
       };
+      // Word boxes from the text map: [x, y, w, h, word] for every word that
+      // has known edges (shadow pieces too, so wrapped copies are covered).
+      const words = [];
+      for (const run of runs) {
+        const list = String(run[5]).split(' ');
+        if (!Array.isArray(run[6]) || run[6].length !== list.length * 2) continue;
+        list.forEach((word, i) => words.push([run[0] + run[6][i * 2], run[1], run[6][i * 2 + 1] - run[6][i * 2], run[3], word]));
+      }
+      const norm = w => w.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+      function hideWordAt(p) {
+        const hit = words.find(w => p.x >= w[0] && p.x <= w[0] + w[2] && p.y >= w[1] && p.y <= w[1] + w[3]);
+        const key = hit && norm(hit[4]);
+        if (!key || key.length < 2) return;
+        let added = 0;
+        for (const w of words) {
+          if (norm(w[4]) !== key) continue;
+          if (items.some(it => it.on && it.x <= w[0] + 1 && it.y <= w[1] + 1 && it.x + it.w >= w[0] + w[2] - 1 && it.y + it.h >= w[1] + w[3] - 1)) continue;
+          const it = { x: w[0] - 2, y: w[1] - 2, w: w[2] + 4, h: w[3] + 4, kind: 'manual', on: true, manual: true };
+          items.push(it);
+          addBox(it);
+          added++;
+        }
+        if (added) stats();
+      }
       stage.addEventListener('pointerdown', onDown);
       stage.addEventListener('pointermove', onMove);
       stage.addEventListener('pointerup', onUp);
@@ -585,13 +611,14 @@
       let boxes = res.boxes;
       if (message.review) {
         status('Waiting for you to check the redactions\u2026', 70);
-        reviewed = await reviewRedactions(message.captureId, tiles, width, height, res.boxes, format);
+        reviewed = await reviewRedactions(message.captureId, tiles, width, height, res.boxes, format, original);
         boxes = reviewed.boxes;
         status('Burning in the redactions\u2026', 72);
       }
       // The final boxes decide what leaves the PDF text, so a drawn box
       // removes words too and a box turned off keeps them.
       textRuns.set(message.captureId, RD.stripRunsUnder(original, boxes));
+      const hidden = RD.hiddenWords(original, boxes);
       redactBoxes.set(message.captureId, boxes);
       redactCount = boxes.length;
       const counts = {};
@@ -604,9 +631,9 @@
         extras.links = (extras.links || []).filter(l => !hit(l) && (!l[4] || RD.findSecrets(l[4], redactWords).length === 0));
         // A bookmark whose heading sits under a box would repeat its text.
         const covers = m => boxes.some(b => m[0] + 2 >= b[0] && m[0] + 2 <= b[0] + b[2] && m[1] + 2 >= b[1] && m[1] + 2 <= b[1] + b[3]);
-        extras.marks = (extras.marks || []).filter(m => !covers(m)).map(m => [m[0], m[1], m[2], scrub(m[3])]);
+        extras.marks = (extras.marks || []).filter(m => !covers(m)).map(m => [m[0], m[1], m[2], RD.scrubWords(scrub(m[3]), hidden)]);
       }
-      session.title = scrub(session.title || '');
+      session.title = RD.scrubWords(scrub(session.title || ''), hidden);
       session.url = scrub(session.url || '');
     }
     // PDFs get readable pages broken between text lines; images keep the largest parts.

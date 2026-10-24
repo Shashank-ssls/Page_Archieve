@@ -11,8 +11,8 @@ Update this at the end of every phase. Newest entries at the top of each section
   check still pending.
   Store launch (old Phase 2) moved to the final phase by the owner; its finished
   parts stay done. Lite real-site repeats deferred until Full is final.
-- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-24, Document switches to the panel on app shells): `npm run check` 145/145,
-  `npm run e2e` 46/46 (Full). Lite suite paused until Full is final.
+- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-24, Document switches to the panel on app shells): `npm run check` 147/147,
+  `npm run e2e` 48/48 (Full). Lite suite paused until Full is final.
 - Not yet verified: any real logged-in site, HiDPI screens.
 
 ## Session summary (2026-10-23): Claude incognito and "Show more"
@@ -108,7 +108,7 @@ DevTools device toolbar); long-thread recapture. Then Phase 4.
 | 2026-10-21 | chrome.debugger Full render engine | Only way to render lazy/virtualised/fixed content correctly |
 
 ## Needs the owner's check
-- Claude UI update (2026-10-24) broke capture: "selected inner scroll area was replaced" (render) and "changed size during capture" (stitch). Waiting for the owner's diagnostic snippet output before fixing [VERIFY ON FIRST RUN].
+- Claude redesign (2026-10-24): owner diagnostic showed a virtualised chat scroller (height 49,858 -> 25,341 while scrolling) under data-testid chat-column-body. Fix: adopt the rebuilt scroller. Recapture a long Claude chat (Smart PNG and PDF) [VERIFY ON FIRST RUN].
 - Recheck Stripe test cards page with Redact (table numbers) and Visible area + Redact.
 - Owner recapture 2026-10-24: Claude incognito Smart PNG and Smart PDF good; ChatGPT Smart PNG and PDF good. Document + PDF saved one screen on both; fixed (Document now captures the panel on app shells, with a warning). Recapture Document + PDF on both [VERIFY ON FIRST RUN].
 - Owner Redact test on Testaroo 2026-10-24: wrapped footer email half-boxed and two file names over-redacted; both fixed. Cover page option removed (owner decision).

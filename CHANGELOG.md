@@ -1,9 +1,12 @@
 # Unreleased (after 2.4.0)
 
+- Fix (owner, Claude redesign 2026-10): capture failed with "the selected inner scroll area was replaced". Claude rebuilds its chat scroller when the window grows. Tallshot now adopts the one element that takes its place (same tag and classes, laid out, set to scroll) and warns that it did; anything less certain still fails. Fixture rebuilt-panel.html, E2E rebuilt-panel.
+- Review: click a word to hide it everywhere on the page (names, IDs, anything no pattern knows). Words under the final boxes are also scrubbed from bookmark titles and the PDF title. E2E redact-review-word.
+- Popup: the 2.4.0 Redact card is back (owner preferred it over the segmented row).
+
 - Redact now works with Visible area only (owner request): the page text is read before the screenshot, scaled to screenshot pixels, and goes through the same review screen. Browser pages still refuse. E2E redact-visible.
 - Fix (owner, Stripe test-card page): card numbers in tables were missed because each group of digits is its own element. Detection now reads each visual line across elements. NAME=value settings are no longer flagged as keys (GitHub README).
 - Review boxes are listed in reading order (Tab goes top to bottom).
-- Popup: Redact is a third segmented row (Off / Hide private info) like Format and Target; its hint and word box appear underneath when on.
 
 # 2.4.0 - Phase 4 Share-safe Redact
 

@@ -206,11 +206,28 @@
     return null;
   }
 
+  // Some apps rebuild their chat panel when the window size changes (Claude,
+  // 2026-10: Full render grows the window). When the selected panel leaves
+  // the page, adopt the one element that took its place: same tag and class
+  // list, laid out, set to scroll. Anything less certain still fails.
+  function liveScroller() {
+    const old = state.scroller;
+    if (old && old.isConnected) return old;
+    const sig = state.scrollerSig;
+    const twins = sig ? [...document.getElementsByTagName(sig.tag)].filter(el => {
+      if (el.className !== sig.cls || !isLaidOut(el)) return false;
+      try { return ['auto', 'scroll', 'overlay'].includes(getComputedStyle(el).overflowY); } catch (_) { return false; }
+    }) : [];
+    if (twins.length !== 1) throw new Error('The selected inner scroll area was replaced by the website during capture. Retry using the root page if this keeps happening.');
+    state.scroller = twins[0];
+    state.scrollerReplaced = (state.scrollerReplaced || 0) + 1;
+    return twins[0];
+  }
+
   function currentMetrics() {
     if (!state) throw new Error('No capture session has been prepared.');
     if (state.scrollerType === 'inner') {
-      if (!state.scroller || !state.scroller.isConnected) throw new Error('The selected inner scroll area was replaced by the website during capture. Retry using the root page if this keeps happening.');
-      const el = state.scroller;
+      const el = liveScroller();
       const r = el.getBoundingClientRect();
       const contentLeft = r.left + el.clientLeft;
       const contentTop = r.top + el.clientTop;
@@ -257,9 +274,9 @@
     const safeX = Math.max(0, Number(x) || 0);
     const safeY = Math.max(0, Number(y) || 0);
     if (state && state.scrollerType === 'inner') {
-      if (!state.scroller || !state.scroller.isConnected) throw new Error('The selected inner scroll area was replaced by the website during capture.');
-      state.scroller.scrollLeft = safeX;
-      state.scroller.scrollTop = safeY;
+      const el = liveScroller();
+      el.scrollLeft = safeX;
+      el.scrollTop = safeY;
     } else {
       window.scrollTo(safeX, safeY);
     }
@@ -319,8 +336,7 @@
 
   async function stabilizeInnerScroller() {
     if (!state || state.scrollerType !== 'inner' || !state.scroller) return;
-    const el = state.scroller;
-    if (!el.isConnected) throw new Error('The selected inner scroll panel was replaced during capture. Retry with Document or after the page settles.');
+    const el = liveScroller();
     if (!state.scrollerAnchor || !state.scrollerBaseTranslate) return;
 
     // Some application shells scroll or animate the selected panel's parent while
@@ -574,7 +590,8 @@
       innerH: window.innerHeight,
       dpr: window.devicePixelRatio || 1,
       title: document.title,
-      url: location.href
+      url: location.href,
+      replaced: (state && state.scrollerReplaced) || 0
     };
     if (state && state.scrollerType === 'inner' && state.scroller && state.scroller.isConnected) {
       const el = state.scroller;
@@ -1872,6 +1889,7 @@
           captureTarget: target,
           presetTurns: preset ? preset.turns : null,
           scroller: inner,
+          scrollerSig: inner ? { tag: inner.tagName, cls: inner.className } : null,
           scrollerType: inner ? 'inner' : 'root',
           originalX: inner ? inner.scrollLeft : window.scrollX,
           originalY: inner ? inner.scrollTop : window.scrollY,

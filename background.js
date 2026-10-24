@@ -525,6 +525,7 @@ async function runRender(job, report) {
     }
     if (settled.hidden) report.warnings.push(`Hid ${settled.hidden} floating element(s) over the captured panel (message boxes, toolbars, floating buttons).${hiddenDetail(settled)}`);
     report.warnings.push('Captured the main scrollable panel, not the surrounding app shell. Choose Document in Target to capture the page shell instead.');
+    if (measure.replaced) report.warnings.push('The site rebuilt its scroll panel while the window grew; the capture followed the new panel. Check that the start and end of the conversation are present.');
     const height = Math.min(Math.floor(p.height), settings.maxHeight);
     plan = {
       width: Math.floor(p.width), height, fullH: Math.max(p.height, p.scrollHeight),
