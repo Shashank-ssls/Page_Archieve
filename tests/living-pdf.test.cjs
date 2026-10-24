@@ -125,9 +125,10 @@ test('links and outline marks travel content -> worker -> stitcher', () => {
   assert.match(content, /\/\^H\[1-3\]\$\/\.test\(tag\)/);
   assert.match(content, /links: links\.map[\s\S]{0,200}marks: marks\.map/);
   assert.match(background, /PAC_STORE_TEXT[\s\S]{0,200}links: pdfLinks, marks: pdfMarks/);
-  assert.match(background, /cover: settings\.pdfCover, capturedAt: job\.startedAt/);
-  assert.match(stitcher, /crypto\.subtle\.digest\('SHA-256', page\.jpeg\)/);
-  assert.match(stitcher, /PDF\.buildPdf\(pdfPages, \{[^}]*outline, cover \}\)/);
+  // The cover page option was removed (owner, 2026-10-24); pdf.js keeps it.
+  assert.ok(!/pdfCover/.test(background));
+  assert.ok(!read('popup.html').includes('pdf-cover'));
+  assert.match(stitcher, /PDF\.buildPdf\(pdfPages, \{[^}]*outline \}\)/);
 });
 
 test('unpaintedInk flags text bands drawn as flat rows and ignores painted ones', () => {

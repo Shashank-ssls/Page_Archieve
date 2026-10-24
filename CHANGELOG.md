@@ -1,5 +1,9 @@
 # Unreleased - Phase 4 Share-safe Redact (in progress)
 
+- Removed the PDF cover page option (owner: not useful or understandable). pdf.js keeps the cover writer for a later Proof Stamp; nothing calls it.
+- Fix (owner, Testaroo page): an email broken across lines in a narrow footer was boxed on its first line only ("solutions.com" stayed visible). Later lines of a wrapped word are now shadow runs that Redact boxes and the PDF text skips. File names with digits (application-for-payment-002-summary.csv) were boxed as keys; random-token detection now needs upper case, lower case and digits (hex: 32+ chars).
+- Fix: the Chrome PDF viewer refusal was wrapped in a second "Full render could not complete" message. Refusals that already say "Nothing was saved" are reported as they are.
+
 - Fix (owner, PDF opened in Chrome): a full capture of Chrome's PDF viewer saved one screen, and Redact found nothing because the viewer has no page text. Such tabs are now refused with an explanation (never a silent one-screen capture). Fixture pdf-viewer-shell.html, E2E pdf-viewer-refused.
 - Redact (owner, ChatGPT document preview): pages drawn into a canvas, embed or frame cannot be read, so Redact now warns how many such areas it could not check instead of implying the capture is clean. Fixture drawn-preview.html, E2E redact-drawn-warn.
 

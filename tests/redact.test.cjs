@@ -98,3 +98,19 @@ test('PDF viewer tabs are refused and drawn areas are reported under Redact', ()
   assert.match(c, /\/\^\(CANVAS\|EMBED\|OBJECT\|IFRAME\)\$\/\.test\(node\.tagName\)/);
   assert.match(src('background.js'), /settings\.redact && collected\.drawn > 0/);
 });
+
+test('a wrapped word is boxed on every line; shadows never reach the PDF text', () => {
+  const runs = [
+    [0, 0, 150, 20, 16, 'examples@novusstreamsolutions.com', [0, 150]],
+    [0, 20, 90, 20, 16, 'examples@novusstreamsolutions.com', [0, 90], 1],
+    [0, 40, 60, 20, 16, 'harmless', [0, 60], 1]
+  ];
+  const res = R.redactRuns(runs, []);
+  assert.strictEqual(res.boxes.length, 2);
+  assert.deepStrictEqual(res.runs, []);
+});
+
+test('file names with digits are not mistaken for keys', () => {
+  assert.deepStrictEqual(kinds('see application-for-payment-002-summary.csv and certificate-for-payment-002.pdf'), []);
+  assert.deepStrictEqual(kinds('DEMO_API_KEY_7f2c9e14a8b6d3f0').map(k => k[1]), ['key']);
+});

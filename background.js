@@ -21,7 +21,6 @@ const DEFAULTS = {
   maxHeight: 200000,
   waitMs: 2500,
   captureTarget: 'auto',
-  pdfCover: false,
   redact: false,
   redactWords: ''
 };
@@ -185,7 +184,7 @@ async function takeVisibleCapture(tab, job, stitcherTabId, title, url, warnings 
   return sendToStitcher(stitcherTabId, {
     type: 'PAC_COMPOSE', captureId: job.captureId, expectedTileCount: 1,
     baseName: cleanBaseName(title, url, job.settings.nameTemplate), folder: job.settings.folder, format: job.settings.format,
-    cover: job.settings.pdfCover, capturedAt: job.startedAt
+    capturedAt: job.startedAt
   });
 }
 
@@ -200,7 +199,6 @@ function normalizeSettings(userSettings, tabId) {
   settings.autoLoadMore = settings.autoLoadMore === true;
   settings.hideFloating = settings.hideFloating !== false;
   settings.expandContent = settings.expandContent !== false;
-  settings.pdfCover = settings.pdfCover === true;
   // Lite has no text map, so Redact is never on there.
   settings.redact = settings.redact === true && IS_FULL_EDITION;
   settings.redactWords = String(settings.redactWords || '').slice(0, 4000);
@@ -528,7 +526,7 @@ async function runRender(job, report) {
       const collected = await getContentMessage(tabId, { type: 'PAC_COLLECT_TEXT', maxWords: 150000, wordEdges: settings.redact });
       const inside = (x, y, w, h) => y + h > 0 && y < plan.height && x + w > 0 && x < plan.width;
       textRuns = (collected.runs || [])
-        .map(r => r.length > 6 ? [r[0] - plan.x, r[1] - plan.y, r[2], r[3], r[4], r[5], r[6]] : [r[0] - plan.x, r[1] - plan.y, r[2], r[3], r[4], r[5]])
+        .map(r => r.length > 6 ? [r[0] - plan.x, r[1] - plan.y, r[2], r[3], r[4], r[5], r[6], r[7]] : [r[0] - plan.x, r[1] - plan.y, r[2], r[3], r[4], r[5]])
         .filter(r => inside(r[0], r[1], r[2], r[3]));
       // Same-page links keep their target offset too; the stitcher drops any
       // whose target falls outside the captured area.
@@ -814,6 +812,9 @@ async function startCapture(tabId, mode, userSettings) {
         captured = await runRender(job, report);
       } catch (error) {
         if (job.cancel || /cancelled/i.test(errorText(error))) throw new Error('Capture cancelled.');
+        // A refusal that already says "Nothing was saved" (Chrome PDF viewer)
+        // would fail the same way in stitch mode: report it as it is.
+        if (/Nothing was saved/.test(errorText(error))) throw error;
         if (settings.redact) throw new Error(`Full render could not complete (${errorText(error).slice(0, 200)}). ${REDACT_NEEDS_TEXT}, so nothing was saved instead of falling back to scroll-and-stitch.`);
         // Fall back to the stitch engine (still a full-page capture, never a
         // viewport screenshot). Reset everything the render pass touched.
@@ -843,7 +844,7 @@ async function startCapture(tabId, mode, userSettings) {
     const result = await sendToStitcher(job.stitcherTabId, {
       type: 'PAC_COMPOSE', captureId: job.captureId, expectedTileCount: captured.tileCount,
       pageHeightOverride: captured.outputPageHeight, format: settings.format,
-      folder: settings.folder, cover: settings.pdfCover, capturedAt: job.startedAt,
+      folder: settings.folder, capturedAt: job.startedAt,
       redact: settings.redact, redactWords: settings.redactWords,
       baseName: cleanBaseName(redactTitle(captured.title || latestTab.title, settings), captured.url || latestTab.url, settings.nameTemplate)
     }, 300000);

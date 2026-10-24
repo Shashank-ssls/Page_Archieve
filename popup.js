@@ -13,7 +13,7 @@ let lastNameField = 'name-template';
 
 let running = false;
 
-const defaults = { engine: 'auto', format: 'png', prepareImages: true, autoLoadMore: false, hideFloating: true, expandContent: true, nameTemplate: '{title}', folder: '', maxHeight: 200000, waitMs: 3500, captureTarget: 'auto', pdfCover: false, redact: false, redactWords: '' };
+const defaults = { engine: 'auto', format: 'png', prepareImages: true, autoLoadMore: false, hideFloating: true, expandContent: true, nameTemplate: '{title}', folder: '', maxHeight: 200000, waitMs: 3500, captureTarget: 'auto', redact: false, redactWords: '' };
 let restrictedActiveTab = false;
 
 // Shared with the worker (url-policy.js): browser-internal pages and the
@@ -60,7 +60,6 @@ function readSettings() {
     autoLoadMore: $('auto-load').checked,
     hideFloating: $('hide-floating').checked,
     expandContent: $('expand-content').checked,
-    pdfCover: $('pdf-cover').checked,
     redact: IS_FULL_EDITION && $('redact').checked,
     redactWords: $('redact-words').value.trim(),
     nameTemplate: $('name-template').value.trim() || '{title}',
@@ -304,7 +303,7 @@ document.querySelectorAll('.token').forEach(btn => btn.addEventListener('click',
   updateMeta();
   void saveSettings();
 }));
-['prepare-images', 'auto-load', 'hide-floating', 'expand-content', 'pdf-cover', 'redact', 'redact-words', 'name-template', 'folder', 'engine', 'max-height', 'wait-ms'].forEach(id => {
+['prepare-images', 'auto-load', 'hide-floating', 'expand-content', 'redact', 'redact-words', 'name-template', 'folder', 'engine', 'max-height', 'wait-ms'].forEach(id => {
   $(id).addEventListener('change', () => { void saveSettings(); });
 });
 $('redact').addEventListener('change', updateMeta);
@@ -354,7 +353,6 @@ chrome.runtime.onMessage.addListener(message => {
   $('auto-load').checked = settings.autoLoadMore === true;
   $('hide-floating').checked = settings.hideFloating !== false;
   $('expand-content').checked = settings.expandContent !== false;
-  $('pdf-cover').checked = settings.pdfCover === true;
   $('redact').checked = settings.redact === true;
   $('redact-words').value = settings.redactWords || '';
   $('name-template').value = settings.nameTemplate || '{title}';

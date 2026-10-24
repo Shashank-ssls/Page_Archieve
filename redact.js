@@ -58,8 +58,10 @@
     // Long random-looking tokens without a known prefix.
     each(/[A-Za-z0-9_\-+/=]{24,}/g, m => {
       const t = m[0];
-      if (!/[0-9]/.test(t) || !/[A-Za-z]/.test(t)) return;
       const hex = /^[0-9a-fA-F]+$/.test(t);
+      // Hex needs 32+ chars; other tokens need upper, lower and digits, so
+      // file names like application-for-payment-002-summary stay readable.
+      if (hex ? t.length < 32 || !/[0-9]/.test(t) || !/[a-fA-F]/.test(t) : !/[0-9]/.test(t) || !/[a-z]/.test(t) || !/[A-Z]/.test(t)) return;
       if (entropy(t) >= (hex ? 3.0 : 3.6)) add(m.index, m.index + t.length, 'key');
     });
     each(/(?<![\w])(?:\d[ -]?){12,18}\d(?![\w])/g, m => {
@@ -115,8 +117,11 @@
     const out = [];
     const counts = {};
     for (const run of runs || []) {
-      const [x, y, w, h, fs, text, edges] = run;
+      const [x, y, w, h, fs, text, edges, shadow] = run;
       const hits = findSecrets(text, words);
+      // A shadow run is a later line of a wrapped word: boxed when its word
+      // is a secret, never written to the PDF text (the first piece is).
+      if (shadow) { if (hits.length) boxes.push([x - pad, y - pad, w + pad * 2, h + pad * 2]); continue; }
       if (!hits.length) { out.push([x, y, w, h, fs, text]); continue; }
       const list = text.split(' ');
       const ok = Array.isArray(edges) && edges.length === list.length * 2;

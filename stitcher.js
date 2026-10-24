@@ -456,23 +456,9 @@
         .map(m => ({ dest: toDest(m[0], m[1]), level: m[2], title: m[3] }))
         .filter(m => m.dest)
         .map(m => ({ page: m.dest.page, y: m.dest.y, level: m.level, title: m.title }));
-      let cover = null;
-      if (message.cover) {
-        const hashes = [];
-        for (const page of pdfPages) {
-          const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', page.jpeg));
-          hashes.push(Array.from(digest, b => b.toString(16).padStart(2, '0')).join(''));
-        }
-        const at = new Date(Number(message.capturedAt) || Date.now());
-        const pad = n => String(n).padStart(2, '0');
-        const offset = -at.getTimezoneOffset();
-        const local = `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())} ${pad(at.getHours())}:${pad(at.getMinutes())}:${pad(at.getSeconds())} UTC${offset >= 0 ? '+' : '-'}${pad(Math.floor(Math.abs(offset) / 60))}:${pad(Math.abs(offset) % 60)}`;
-        cover = { title: session.title || baseName, url: session.url || '', captured: `${local} (${at.toISOString()})`, hashes };
-      }
-      const bytes = PDF.buildPdf(pdfPages, { title: session.title || baseName, subject: session.url || '', outline, cover });
+      const bytes = PDF.buildPdf(pdfPages, { title: session.title || baseName, subject: session.url || '', outline });
       if (textCount) warnings.push(`PDF includes a searchable, selectable text layer (${textCount.toLocaleString()} lines).`);
       if (linkCount || outline.length) warnings.push(`PDF includes ${linkCount.toLocaleString()} clickable link area(s) and ${outline.length.toLocaleString()} bookmark(s).`);
-      if (cover) warnings.push('PDF starts with a cover page: title, URL, capture time and a SHA-256 hash of each page image.');
       pdfPages.length = 0;
       const pdfBlob = new Blob([bytes], { type: 'application/pdf' });
       status('Downloading PDF\u2026', 98);

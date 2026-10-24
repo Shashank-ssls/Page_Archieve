@@ -1130,6 +1130,7 @@
     const clipOf = makeClipper();
     const shown = (r, clip) => r.top >= clip[0] - 1 && r.bottom <= clip[1] + 1;
     let words = 0;
+    const shadows = [];
     const range = document.createRange();
     const visible = new WeakMap();
     const isVisible = el => {
@@ -1174,6 +1175,13 @@
           if (!rects.length) continue;
           const r = rects[0];
           if (r.width <= 0 || r.height <= 0 || !shown(r, clipOf(parent))) continue;
+          // A long word broken across lines (an email in a narrow footer,
+          // Testaroo 2026-10) has a rect per line. The later pieces become
+          // shadow runs: Redact boxes them, the PDF text layer skips them.
+          for (let k = 1; k < rects.length; k++) {
+            const p = rects[k];
+            if (p.width > 0 && p.height > 0) shadows.push({ x: p.left, y: p.top, w: p.width, h: p.height, fs: fontPx, text: m[0], edges: [0, p.width], shadow: true });
+          }
           if (line && Math.abs(r.top - line.y) < 1 && r.left >= line.x + line.w - 1 && r.left - (line.x + line.w) < fontPx * 1.5) {
             line.text += ' ' + m[0];
             line.w = r.right - line.x;
@@ -1188,6 +1196,7 @@
     }
     range.detach && range.detach();
     // A chat outline lists the user's turns; headings are the fallback.
+    runs.push(...shadows);
     if (turns.length) result.marks = turns;
     return result;
 
@@ -1995,7 +2004,7 @@
           drawn,
           links: links.map(l => l.map(v => typeof v === 'number' ? r1(v) : v)),
           marks: marks.map(m => [r1(m[0]), r1(m[1]), m[2], m[3]]),
-          runs: runs.map(r => message.wordEdges && r.edges ? [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text, r.edges.map(r1)] : [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text])
+          runs: runs.filter(r => message.wordEdges || !r.shadow).map(r => message.wordEdges && r.edges ? [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text, r.edges.map(r1), r.shadow ? 1 : 0] : [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text])
         };
       }
       if (message.type === 'PAC_INK_BANDS') {
