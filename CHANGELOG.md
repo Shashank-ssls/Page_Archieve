@@ -1,5 +1,8 @@
 # Unreleased - Phase 4 Share-safe Redact (in progress)
 
+- Fix (owner, PDF opened in Chrome): a full capture of Chrome's PDF viewer saved one screen, and Redact found nothing because the viewer has no page text. Such tabs are now refused with an explanation (never a silent one-screen capture). Fixture pdf-viewer-shell.html, E2E pdf-viewer-refused.
+- Redact (owner, ChatGPT document preview): pages drawn into a canvas, embed or frame cannot be read, so Redact now warns how many such areas it could not check instead of implying the capture is clean. Fixture drawn-preview.html, E2E redact-drawn-warn.
+
 - Removed JPEG output (owner: lossy text blurs when zoomed). A saved JPEG setting falls back to PNG; PDF pages still embed JPEG internally. E2E case jpeg-falls-back.
 - Fix (owner, Amizone profile page): Redact missed phones, emails and addresses because they were form field values, which have no text node. Visible input, textarea and select values are now collected (one run per field, boxed whole). They also join the PDF text layer. Fixture and E2E cases extended.
 

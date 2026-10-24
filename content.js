@@ -1113,7 +1113,10 @@
     const links = [];
     const headings = [];
     const turns = [];
-    const result = { runs, links, marks: headings };
+    // drawn: visible canvases, embeds and frames of at least 200x200 px.
+    // Text painted there is invisible to the text map (ChatGPT's document
+    // preview, 2026-10), so Redact must say it could not check it.
+    const result = { runs, links, marks: headings, drawn: 0 };
     const rootNode = state && state.scrollerType === 'inner' && state.scroller ? state.scroller : document.body;
     if (!rootNode) return result;
     const turnSelector = state && state.presetTurns;
@@ -1149,6 +1152,10 @@
           if (node.shadowRoot) roots.push(node.shadowRoot);
           collectMark(node);
           collectField(node);
+          if (/^(CANVAS|EMBED|OBJECT|IFRAME)$/.test(node.tagName) && isVisible(node)) {
+            const r = firstRect(node);
+            if (r && r.width >= 200 && r.height >= 200) result.drawn++;
+          }
           continue;
         }
         const text = node.nodeValue;
@@ -1827,6 +1834,12 @@
       }
       if (message.type === 'PAC_PREPARE') {
         if (state) restoreAll();
+        // Chrome's PDF viewer draws pages itself: nothing to scroll or read,
+        // so a full capture would be one screen (owner, 2026-10-24).
+        const only = document.body && document.body.children.length === 1 ? document.body.firstElementChild : null;
+        if (document.contentType === 'application/pdf' || (only && /^(EMBED|OBJECT)$/.test(only.tagName) && /pdf/i.test(only.type || ''))) {
+          throw new Error('This tab is Chrome\u2019s built-in PDF viewer. Chrome draws its pages itself, so Tallshot cannot capture them as one long page or read their text. Nothing was saved. Use Visible area for the current screen.');
+        }
         const settings = message.settings || {};
         let target = ['auto', 'document', 'panel'].includes(settings.captureTarget) ? settings.captureTarget : 'auto';
         // Document on an app shell (Claude, ChatGPT, 2026-10): the document
@@ -1971,7 +1984,7 @@
       }
       if (message.type === 'PAC_COLLECT_TEXT') {
         if (!state) throw new Error('The page capture session is not active.');
-        const { runs, links, marks } = collectTextRuns(message.maxWords || 120000);
+        const { runs, links, marks, drawn } = collectTextRuns(message.maxWords || 120000);
         const r1 = v => Math.round(v * 10) / 10;
         // Compact encoding keeps the message small: runs [x, y, w, h, fontSize, text];
         // links [x, y, w, h, href] or [x, y, w, h, '', destX, destY]; marks [x, y, level, title].
@@ -1979,6 +1992,7 @@
         // [start, end] x offsets, so a redaction box covers exactly its words.
         return {
           ok: true,
+          drawn,
           links: links.map(l => l.map(v => typeof v === 'number' ? r1(v) : v)),
           marks: marks.map(m => [r1(m[0]), r1(m[1]), m[2], m[3]]),
           runs: runs.map(r => message.wordEdges && r.edges ? [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text, r.edges.map(r1)] : [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text])

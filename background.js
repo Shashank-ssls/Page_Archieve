@@ -539,6 +539,9 @@ async function runRender(job, report) {
         .map(m => [m[0] - plan.x, m[1] - plan.y, m[2], m[3]])
         .filter(m => m[1] >= -2 && m[1] < plan.height)
         .map(m => [Math.max(0, m[0]), Math.max(0, m[1]), m[2], m[3]]);
+      if (settings.redact && collected.drawn > 0) {
+        report.warnings.push(`Share-safe Redact could not check ${collected.drawn} drawn area(s) (canvas, embedded document or frame), such as a PDF or document preview. Text painted there is not redacted: check those areas yourself before sharing.`);
+      }
     } catch (error) {
       if (settings.redact) throw new Error(`Could not read the page text for Share-safe Redact (${errorText(error).slice(0, 120)}). Nothing was saved.`);
       report.warnings.push(`The PDF text layer was skipped (${errorText(error).slice(0, 120)}).`);

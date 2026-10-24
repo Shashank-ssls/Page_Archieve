@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Page Archive Test Fixture - Drawn Document Preview</title>
+<style>body { margin: 0; padding: 24px; font: 16px system-ui, sans-serif; }</style></head>
+<body>
+<!-- A document preview that paints its text into a canvas (ChatGPT, 2026-10). -->
+<p>Preview of the attached file:</p>
+<canvas id="c" width="600" height="300" style="border: 1px solid #ccc"></canvas>
+<script>
+  const g = document.getElementById('c').getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, 600, 300);
+  g.fillStyle = '#111'; g.font = '20px sans-serif';
+  g.fillText('Email: drawn.user@example.com', 20, 60);
+</script>
+</body></html>

@@ -90,3 +90,11 @@ test('JPEG output is gone from the popup and falls back to PNG', () => {
   assert.match(src('background.js'), /const FORMATS = \['png', 'pdf'\];/);
   assert.match(src('stitcher.js'), /const FORMATS = \['png', 'pdf'\];/);
 });
+
+test('PDF viewer tabs are refused and drawn areas are reported under Redact', () => {
+  const c = src('content.js');
+  assert.match(c, /document\.contentType === 'application\/pdf'/);
+  assert.ok(c.includes('built-in PDF viewer. Chrome draws its pages itself'));
+  assert.match(c, /\/\^\(CANVAS\|EMBED\|OBJECT\|IFRAME\)\$\/\.test\(node\.tagName\)/);
+  assert.match(src('background.js'), /settings\.redact && collected\.drawn > 0/);
+});

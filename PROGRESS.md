@@ -108,6 +108,7 @@ DevTools device toolbar); long-thread recapture. Then Phase 4.
 
 ## Needs the owner's check
 - Owner recapture 2026-10-24: Claude incognito Smart PNG and Smart PDF good; ChatGPT Smart PNG and PDF good. Document + PDF saved one screen on both; fixed (Document now captures the panel on app shells, with a warning). Recapture Document + PDF on both [VERIFY ON FIRST RUN].
+- Owner Redact tests 2026-10-24 (FreeRedact page, Chrome PDF viewer, ChatGPT document preview): web page partly redacted (emails, phone, key; name and account ID need the word list or the preview screen; SHA-256 hashes over-redacted as keys). Chrome PDF viewer now refused; drawn previews now warned. ChatGPT preview capture also missed its first page [VERIFY ON FIRST RUN, not yet investigated]. Next: the preview screen.
 - Owner Redact test on Amizone (2026-10-24): form field values (mobile, email, address) were missed; fixed. Still not detected by design: names, enrollment numbers, dates of birth and photos. Use the word list for the name and ID until the preview screen (drag to add a box) exists. Retest on Amizone [VERIFY ON FIRST RUN].
 - Owner Document + PDF recapture on Claude: full chat, fixed.
 - JPEG removed (owner decision 2026-10-24).
