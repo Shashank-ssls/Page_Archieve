@@ -40,6 +40,7 @@ for (const scheme of ['light', 'dark']) {
     // Show Redact on, so its hint and word box are reviewed too (Full only).
     const on = document.getElementById('redact');
     if (on && !document.getElementById('redact-group').hidden) { on.checked = true; on.dispatchEvent(new Event('change', { bubbles: true })); }
+    document.getElementById('save-edit').click();
     // eslint-disable-next-line no-undef
     running = true;
     // eslint-disable-next-line no-undef

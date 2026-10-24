@@ -89,12 +89,18 @@
         </label>
 
         <div class="sub">Saving</div>
-        <div class="row stack">
-          <label class="row-text" for="name-template"><strong>File name</strong><small>Click to insert: <button type="button" class="token" data-token="{title}" title="The page title">{title}</button> <button type="button" class="token" data-token="{site}" title="The site, like claude.ai">{site}</button> <button type="button" class="token" data-token="{date}" title="Today, like 2026-10-24">{date}</button> <button type="button" class="token" data-token="{time}" title="The time, like 14-05-09">{time}</button></small></label>
-          <input id="name-template" class="text-in" type="text" spellcheck="false" maxlength="120" value="{title}" placeholder="{title}">
-          <label class="row-text" for="folder"><strong>Folder in Downloads</strong><small>Optional. Leave empty to save straight to Downloads.</small></label>
-          <input id="folder" class="text-in" type="text" spellcheck="false" maxlength="120" placeholder="e.g. Tallshot/{site}">
-          <div class="name-preview" id="name-preview"></div>
+        <div class="row stack save-box">
+          <div class="save-line">
+            <span class="name-preview" id="name-preview"></span>
+            <button type="button" class="link-btn" id="save-edit" aria-expanded="false" aria-controls="save-fields">Change</button>
+          </div>
+          <div class="save-fields" id="save-fields" hidden>
+            <label class="row-text" for="name-template"><strong>File name</strong></label>
+            <input id="name-template" class="text-in" type="text" spellcheck="false" maxlength="120" value="{title}" placeholder="{title}">
+            <div class="tokens"><span>Insert:</span> <button type="button" class="token" data-token="{title}" title="The page title">title</button> <button type="button" class="token" data-token="{site}" title="The site, like claude.ai">site</button> <button type="button" class="token" data-token="{date}" title="Today, like 2026-10-24">date</button> <button type="button" class="token" data-token="{time}" title="The time, like 14-05-09">time</button></div>
+            <label class="row-text" for="folder"><strong>Folder</strong> <small class="inline">inside Downloads, optional</small></label>
+            <input id="folder" class="text-in" type="text" spellcheck="false" maxlength="120" placeholder="e.g. Tallshot/{site}">
+          </div>
         </div>
 
         <div class="sub">Advanced</div>

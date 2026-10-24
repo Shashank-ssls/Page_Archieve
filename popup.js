@@ -82,7 +82,7 @@ function previewName() {
   const ext = s.format;
   const folder = fill(s.folder).split(/[\\/]+/).map(x => x.trim()).filter(x => x && x !== '..' && x !== '.').join('/');
   const el = $('name-preview');
-  el.replaceChildren('Downloads/', ...(folder ? [folder + '/'] : []));
+  el.replaceChildren('Saves as Downloads/', ...(folder ? [folder + '/'] : []));
   const b = document.createElement('b');
   b.textContent = `${fill(s.nameTemplate)}.${ext}`;
   el.append(b);
@@ -292,6 +292,14 @@ document.querySelectorAll('input[name="format"], input[name="target"]').forEach(
 ['name-template', 'folder'].forEach(id => {
   $(id).addEventListener('input', () => { updateMeta(); });
   $(id).addEventListener('focus', () => { lastNameField = id; });
+});
+// The save line shows the result; the fields open only when asked.
+$('save-edit').addEventListener('click', () => {
+  const open = $('save-fields').hidden;
+  $('save-fields').hidden = !open;
+  $('save-edit').setAttribute('aria-expanded', String(open));
+  $('save-edit').textContent = open ? 'Done' : 'Change';
+  if (open) $('name-template').focus();
 });
 // Token chips insert at the cursor of the last focused name field.
 document.querySelectorAll('.token').forEach(btn => btn.addEventListener('click', () => {
