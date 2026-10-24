@@ -8,7 +8,7 @@ a trademark search (IP India, USPTO) is still advised before publishing.
 Name: Tallshot - Full Page Screenshot (manifest name: Tallshot)
 
 Short description (max 132 characters):
-Save whole web pages and long AI chats as one PNG, JPEG or searchable PDF. Private: everything stays on your computer.
+Save whole web pages and long AI chats as one PNG or searchable PDF. Private: everything stays on your computer.
 
 Long description:
 
@@ -25,7 +25,7 @@ including the pages other tools get wrong:
 - Floating bars: hides cookie banners, chat bubbles and sticky composers.
 
 Formats:
-- PNG or JPEG, split into numbered parts when a page is taller than the
+- PNG, split into numbered parts when a page is taller than the
   browser can save in one image.
 - PDF with an invisible text layer, so you can search and copy the text.
 

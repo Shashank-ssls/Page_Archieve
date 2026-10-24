@@ -77,3 +77,16 @@ test('the stitcher burns boxes before encoding and scrubs links, bookmarks and c
   assert.ok(src('stitcher.html').includes('<script src="redact.js"></script>'));
   assert.ok(src('tools/build-editions.mjs').includes("'redact.js'"));
 });
+
+test('form field values are collected so Redact sees them', () => {
+  const c = src('content.js');
+  assert.match(c, /collectField\(node\);/);
+  assert.match(c, /tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT'/);
+  assert.match(c, /message\.wordEdges && r\.edges \?/);
+});
+
+test('JPEG output is gone from the popup and falls back to PNG', () => {
+  assert.ok(!src('popup.html').includes('value="jpeg"'));
+  assert.match(src('background.js'), /const FORMATS = \['png', 'pdf'\];/);
+  assert.match(src('stitcher.js'), /const FORMATS = \['png', 'pdf'\];/);
+});

@@ -10,7 +10,7 @@
   const MAX_DIMENSION_PX = 14000;
   const MAX_PART_PIXELS = 24000000;
   const JPEG_QUALITY = 0.92;
-  const FORMATS = ['png', 'jpeg', 'pdf'];
+  const FORMATS = ['png', 'pdf'];
   const PDF = window.PageArchivePdf;
   const G = window.PageArchiveGeometry;
   const P = window.PageArchiveProtocol;

@@ -1,5 +1,8 @@
 # Unreleased - Phase 4 Share-safe Redact (in progress)
 
+- Removed JPEG output (owner: lossy text blurs when zoomed). A saved JPEG setting falls back to PNG; PDF pages still embed JPEG internally. E2E case jpeg-falls-back.
+- Fix (owner, Amizone profile page): Redact missed phones, emails and addresses because they were form field values, which have no text node. Visible input, textarea and select values are now collected (one run per field, boxed whole). They also join the PDF text layer. Fixture and E2E cases extended.
+
 - New: Share-safe Redact (More options, Full edition). Detects emails, phone numbers, card numbers (Luhn), IBANs (mod 97), API keys and tokens (known prefixes plus an entropy check), IPv4/IPv6 addresses, URLs with token parameters, and a user word list. Matching words are painted black in the image before encoding and removed from the PDF text layer; links under a box or carrying a secret, bookmark titles, the cover title/URL, the PDF title and the file name are scrubbed too. Word positions come from the page (PAC_COLLECT_TEXT wordEdges), so boxes cover exactly the words. A redacted capture never falls back to scroll-and-stitch or a visible-area shot (they cannot read text); it stops with "Nothing was saved". Pure module redact.js, fixture redact-secrets.html, E2E cases redact-png (no secret pixel left) and redact-pdf (no seeded string in the PDF bytes or text layer). Not yet built: the preview screen (toggle boxes, drag to add) and on-device name detection.
 
 # Phase 3 Living PDF (hardening)

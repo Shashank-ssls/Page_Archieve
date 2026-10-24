@@ -30,7 +30,7 @@ rule, so only Lite is public.
 | Feature | Free | Pro |
 | --- | --- | --- |
 | Full-page capture, chat presets, auto-expand | Yes | Yes |
-| PNG, JPEG, image PDF, naming templates, folders | Yes | Yes |
+| PNG, image PDF, naming templates, folders | Yes | Yes |
 | Searchable PDF text layer | Yes | Yes |
 | Living PDF (links, bookmarks, cover) | - | Yes |
 | Share-safe Redact | - | Yes |

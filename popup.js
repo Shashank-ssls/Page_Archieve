@@ -80,7 +80,7 @@ function previewName() {
   const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   const time = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
   const fill = t => t.replace(/\{title\}/gi, () => previewTab.title).replace(/\{site\}/gi, () => previewTab.site).replace(/\{date\}/gi, date).replace(/\{time\}/gi, time).replace(/\{datetime\}/gi, `${date}_${time}`);
-  const ext = s.format === 'jpeg' ? 'jpg' : s.format;
+  const ext = s.format;
   const folder = fill(s.folder).split(/[\\/]+/).map(x => x.trim()).filter(x => x && x !== '..' && x !== '.').join('/');
   const el = $('name-preview');
   el.replaceChildren('Downloads/', ...(folder ? [folder + '/'] : []));
@@ -93,7 +93,7 @@ function updateMeta() {
   const s = readSettings();
   previewName();
   const engine = !IS_FULL_EDITION || s.engine === 'stitch' ? 'Scroll & stitch' : 'Full render';
-  const fmt = s.format === 'jpeg' ? 'JPEG' : s.format.toUpperCase();
+  const fmt = s.format.toUpperCase();
   const target = { auto: 'Smart', document: 'Document', panel: 'Panel' }[s.captureTarget];
   $('cta-meta').textContent = `${engine} \u00b7 ${fmt} \u00b7 ${target}${s.redact ? ' \u00b7 Redact' : ''}`;
   $('redact-words').hidden = !s.redact;
@@ -344,11 +344,11 @@ chrome.runtime.onMessage.addListener(message => {
     if (!pageArchiveSettings || [1000, 1500, 2500].includes(Number(settings.waitMs))) settings.waitMs = 3500;
     if (!['auto', 'document', 'panel'].includes(settings.captureTarget)) settings.captureTarget = 'auto';
     settings.engine = 'auto';
-    if (!['png', 'jpeg', 'pdf'].includes(settings.format)) settings.format = 'png';
+    if (!['png', 'pdf'].includes(settings.format)) settings.format = 'png';
     await chrome.storage.local.set({ pageArchiveSettings: settings, pageArchiveSettingsVersion: 5 }).catch(() => {});
   }
   $('engine').value = ['auto', 'stitch'].includes(settings.engine) ? settings.engine : 'auto';
-  setRadio('format', ['png', 'jpeg', 'pdf'].includes(settings.format) ? settings.format : 'png');
+  setRadio('format', ['png', 'pdf'].includes(settings.format) ? settings.format : 'png');
   setRadio('target', ['auto', 'document', 'panel'].includes(settings.captureTarget) ? settings.captureTarget : 'auto');
   $('prepare-images').checked = settings.prepareImages !== false;
   $('auto-load').checked = settings.autoLoadMore === true;

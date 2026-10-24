@@ -27,7 +27,9 @@ const DEFAULTS = {
 };
 const REDACT_NEEDS_TEXT = 'Share-safe Redact needs the page text that only the Full render engine reads';
 const ENGINES = ['auto', 'stitch'];
-const FORMATS = ['png', 'jpeg', 'pdf'];
+// JPEG output was removed (owner, 2026-10-24): lossy text blurs when zoomed.
+// A saved 'jpeg' setting falls back to PNG. PDF pages still embed JPEG.
+const FORMATS = ['png', 'pdf'];
 let activeJob = null;
 const IS_FULL_EDITION = ((chrome.runtime.getManifest().permissions) || []).includes('debugger');
 

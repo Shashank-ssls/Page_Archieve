@@ -108,6 +108,9 @@ DevTools device toolbar); long-thread recapture. Then Phase 4.
 
 ## Needs the owner's check
 - Owner recapture 2026-10-24: Claude incognito Smart PNG and Smart PDF good; ChatGPT Smart PNG and PDF good. Document + PDF saved one screen on both; fixed (Document now captures the panel on app shells, with a warning). Recapture Document + PDF on both [VERIFY ON FIRST RUN].
+- Owner Redact test on Amizone (2026-10-24): form field values (mobile, email, address) were missed; fixed. Still not detected by design: names, enrollment numbers, dates of birth and photos. Use the word list for the name and ID until the preview screen (drag to add a box) exists. Retest on Amizone [VERIFY ON FIRST RUN].
+- Owner Document + PDF recapture on Claude: full chat, fixed.
+- JPEG removed (owner decision 2026-10-24).
 - Phase 4: try Share-safe Redact on a real page with an email or key (PNG and PDF); boxes cover the words, PDF search finds nothing [VERIFY ON FIRST RUN].
 - Phase 4 decision: Redact is in the Full edition with no Pro gate yet; gating comes in Phase 5.
 - Popup file-name section reworded, tokens clickable, preview shows the real tab; check it reads clearly.

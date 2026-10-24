@@ -21,7 +21,7 @@ The script measures the page, scrolls it, opens collapsed sections and hides
 floating bars so the capture is complete, then restores every change.
 
 downloads:
-Saves the finished PNG, JPEG or PDF into the user's Downloads folder (or the
+Saves the finished PNG or PDF into the user's Downloads folder (or the
 subfolder the user chooses) and offers "Show in folder".
 
 storage:

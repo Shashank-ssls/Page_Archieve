@@ -1148,6 +1148,7 @@
         if (node.nodeType === 1) {
           if (node.shadowRoot) roots.push(node.shadowRoot);
           collectMark(node);
+          collectField(node);
           continue;
         }
         const text = node.nodeValue;
@@ -1182,6 +1183,32 @@
     // A chat outline lists the user's turns; headings are the fallback.
     if (turns.length) result.marks = turns;
     return result;
+
+    // Form fields show their value without a text node (Amizone profile
+    // pages, 2026-10), so the walker never saw it. One run per field covers
+    // its content box; it has no word edges, so Redact boxes the whole value.
+    function collectField(el) {
+      const tag = el.tagName;
+      if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return;
+      if (tag === 'INPUT' && !/^(|text|email|tel|url|search|number|date|datetime-local|month|week|time)$/i.test(el.type || '')) return;
+      const value = tag === 'SELECT' ? (el.selectedOptions && el.selectedOptions[0] ? el.selectedOptions[0].text : '') : String(el.value || '');
+      const text = value.replace(/\s+/g, ' ').trim();
+      if (!text || !isVisible(el)) return;
+      const r = firstRect(el);
+      if (!r) return;
+      let cs;
+      try { cs = getComputedStyle(el); } catch (_) { return; }
+      const px = v => parseFloat(v) || 0;
+      const x = r.left + px(cs.borderLeftWidth) + px(cs.paddingLeft);
+      const y = r.top + px(cs.borderTopWidth) + px(cs.paddingTop);
+      const w = r.right - px(cs.borderRightWidth) - px(cs.paddingRight) - x;
+      const h = r.bottom - px(cs.borderBottomWidth) - px(cs.paddingBottom) - y;
+      if (!(w > 0 && h > 0)) return;
+      const box = { top: y, bottom: y + h };
+      if (!shown(box, clipOf(el.parentElement || el))) return;
+      words += text.split(' ').length;
+      runs.push({ x, y, w, h, fs: px(cs.fontSize) || 16, text });
+    }
 
     function collectMark(el) {
       const tag = el.tagName;
@@ -1954,7 +1981,7 @@
           ok: true,
           links: links.map(l => l.map(v => typeof v === 'number' ? r1(v) : v)),
           marks: marks.map(m => [r1(m[0]), r1(m[1]), m[2], m[3]]),
-          runs: runs.map(r => message.wordEdges ? [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text, r.edges.map(r1)] : [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text])
+          runs: runs.map(r => message.wordEdges && r.edges ? [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text, r.edges.map(r1)] : [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text])
         };
       }
       if (message.type === 'PAC_INK_BANDS') {
