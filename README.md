@@ -1,6 +1,6 @@
 # Tallshot
 
-Capture whole web pages and AI conversations exactly as you see them, as PNG,
+Capture whole web pages and AI conversations exactly as you see them, as PNG or
 searchable PDF. Chrome/Edge Manifest V3 extension. Everything runs
 locally: no backend, no analytics, no uploads.
 
