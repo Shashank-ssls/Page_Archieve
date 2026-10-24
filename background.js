@@ -809,7 +809,9 @@ async function startCapture(tabId, mode, userSettings) {
 
     // A redacted capture must never fall back to an engine that cannot see
     // the text: it would save the secrets unredacted.
-    if (settings.redact && !job.cdp) throw new Error(`${REDACT_NEEDS_TEXT}, and it was unavailable. Nothing was saved. Close DevTools on this tab and retry, or turn off Share-safe Redact.`);
+    if (settings.redact && !job.cdp) throw new Error(settings.engine === 'stitch'
+      ? `${REDACT_NEEDS_TEXT}, and Engine is set to Scroll & stitch. Nothing was saved. Set Engine to Full render under More options, or turn off Redact.`
+      : `${REDACT_NEEDS_TEXT}, and it was unavailable. Nothing was saved. Close DevTools on this tab and retry, or turn off Redact.`);
     let captured = null;
     if (job.cdp) {
       try {

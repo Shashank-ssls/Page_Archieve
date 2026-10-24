@@ -97,8 +97,8 @@ function updateMeta() {
   $('cta-meta').textContent = `${engine} \u00b7 ${fmt} \u00b7 ${target}${s.redact ? ' \u00b7 Redact' : ''}`;
   $('redact-words').hidden = !s.redact;
   $('engine-note').textContent = s.engine === 'stitch'
-    ? 'Scrolls and screenshots one screen at a time. Slower, and fixed bars can repeat, but Chrome shows no debugging bar.'
-    : 'Draws the whole page in one pass. Chrome shows a \u201cdebugging this browser\u201d bar while it runs; falls back to stitching if needed.';
+    ? 'One screen at a time. Slower, no PDF text, but no debugging bar.'
+    : 'Sharper, keeps text in PDFs. Chrome shows a debugging bar while it runs.';
 }
 
 async function saveSettings() {
@@ -138,7 +138,7 @@ function formatBytes(n) {
   return `${(n / 1024 / 1024).toFixed(1)}MB`;
 }
 
-// Built copies carry "2.3.0 build MMDD-HHMM <commit>" in version_name (set by
+// Built copies carry "2.4.0 build MMDD-HHMM <commit>" in version_name (set by
 // tools/build-editions.mjs); show it so a tester can confirm a reload took.
 function showBuildStamp() {
   const name = String(chrome.runtime.getManifest().version_name || '');

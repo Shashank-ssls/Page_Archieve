@@ -71,7 +71,7 @@ viewer and Acrobat Reader with working links, bookmarks and selectable text.
       numbers (Luhn), IBANs, API keys and tokens (common prefixes plus entropy),
       IP addresses, URLs with tokens in query strings.
 - [x] Optional user word list ("always redact these names").
-- [ ] Preview screen: boxes over the capture, click to toggle each, add a box by drag.
+- [x] Preview screen: boxes over the capture, click to toggle each, add a box by drag.
 - [x] Redaction burned into pixels AND removed from the PDF text layer; test that
       redacted words are absent from the PDF bytes.
 - [ ] Names via Chrome's on-device Prompt API only when available; the owner's

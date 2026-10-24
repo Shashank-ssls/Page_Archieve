@@ -1,4 +1,4 @@
-# ARCHITECTURE.md - how Tallshot works (v2.3)
+# ARCHITECTURE.md - how Tallshot works (v2.4)
 
 Read this before changing capture code. It describes the current design and
 the reasons behind each choice, so that fixes do not undo hard-won behaviour.
@@ -114,6 +114,13 @@ background); without it, `captureVisibleTab` (2 per second, tab must stay active
   `meta.cover` for a later Proof Stamp, but nothing calls it.) Links whose
   target lies outside the capture are dropped. Stitch-engine PDFs carry none of
   this, as before.
+- Redaction review: with Redact on (`redactReview`, default true) the worker
+  brings the stitcher tab forward and `PAC_COMPOSE` waits up to an hour. The
+  stitcher shows the capture (drawn in 1500 px canvas segments near the
+  viewport) with the suggested boxes; the user toggles boxes and drags new
+  ones. The final boxes feed `RD.stripRunsUnder` (PDF text), the burn step,
+  the link filter and the bookmark filter. The review tab pings
+  `PAC_REVIEW_ALIVE` every 20 s so the worker is not stopped as idle.
 - Share-safe Redact (Full render only): `PAC_COLLECT_TEXT` with `wordEdges`
   adds each word's x span to its run; `redact.js` finds secrets per run and
   returns black boxes plus runs with those words removed. The stitcher swaps

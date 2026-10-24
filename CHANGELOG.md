@@ -1,4 +1,11 @@
-# Unreleased - Phase 4 Share-safe Redact (in progress)
+# 2.4.0 - Phase 4 Share-safe Redact
+
+- New: redaction review screen. With Redact on, the capture opens in a Tallshot tab with every suggested box before anything is saved: click a box to keep that text visible, drag to cover anything else (names, photos, text in pictures), then Save or Cancel. The final boxes decide the burned pixels and which words leave the PDF text, links and bookmarks. E2E cases redact-review (toggle one box, draw one, check the PDF) and redact-review-cancel (nothing saved).
+- Popup cleanup: Redact moved to the main screen ("Redact private info") with a word box that appears when it is on. More options is split into Page, Saving and Advanced, with one-line descriptions. "Auto-load more" is now "Load older messages".
+- Removed dead code: the PDF cover page writer (no caller since the option was removed) and its tests.
+- Fix: with Engine set to Scroll & stitch, Redact said to close DevTools; it now says to switch the engine. E2E redact-stitch-refused.
+- Fix: assembly cleanup also drops redaction boxes for a cancelled capture.
+- Version 2.4.0.
 
 - Removed the PDF cover page option (owner: not useful or understandable). pdf.js keeps the cover writer for a later Proof Stamp; nothing calls it.
 - Fix (owner, Testaroo page): an email broken across lines in a narrow footer was boxed on its first line only ("solutions.com" stayed visible). Later lines of a wrapped word are now shadow runs that Redact boxes and the PDF text skips. File names with digits (application-for-payment-002-summary.csv) were boxed as keys; random-token detection now needs upper case, lower case and digits (hex: 32+ chars).

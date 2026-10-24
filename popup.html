@@ -17,7 +17,7 @@
         </div>
       </div>
       <div class="top-tools">
-        <span class="ver" title="Version">2.3</span>
+        <span class="ver" title="Version">2.4</span>
         <button id="theme" class="icon-btn" type="button" title="Toggle light / dark" aria-label="Toggle light or dark theme">
           <svg class="px sun" viewBox="0 0 12 12" aria-hidden="true"><path d="M5 0h2v1h-2zM1 1h1v1h-1zM5 1h2v1h-2zM10 1h1v1h-1zM2 2h1v1h-1zM9 2h1v1h-1zM4 3h4v1h-4zM3 4h6v1h-6zM0 5h2v1h-2zM3 5h6v1h-6zM10 5h2v1h-2zM0 6h2v1h-2zM3 6h6v1h-6zM10 6h2v1h-2zM3 7h6v1h-6zM4 8h4v1h-4zM2 9h1v1h-1zM9 9h1v1h-1zM1 10h1v1h-1zM5 10h2v1h-2zM10 10h1v1h-1zM5 11h2v1h-2z"/></svg>
           <svg class="px moon" viewBox="0 0 12 12" aria-hidden="true"><path d="M4 0h4v1h-4zM2 1h3v1h-3zM1 2h3v1h-3zM1 3h2v1h-2zM0 4h2v1h-2zM0 5h2v1h-2zM0 6h2v1h-2zM0 7h2v1h-2zM11 7h1v1h-1zM1 8h2v1h-2zM10 8h2v1h-2zM1 9h4v1h-4zM8 9h3v1h-3zM2 10h8v1h-8zM4 11h4v1h-4z"/></svg>
@@ -59,46 +59,52 @@
       </div>
     </section>
 
+    <section class="privacy" id="redact-group" aria-label="Privacy">
+      <label class="row" for="redact">
+        <span class="row-text"><strong>Redact private info</strong><small>Blacks out emails, phone and card numbers, keys and IP addresses. You check every box before saving.</small></span>
+        <input id="redact" class="switch" type="checkbox">
+      </label>
+      <input id="redact-words" class="text-in" type="text" spellcheck="false" maxlength="4000" placeholder="Also hide these words (names, IDs), comma-separated" aria-label="Words to always redact">
+    </section>
+
     <details class="more" id="more">
       <summary><span>More options</span><span class="chev" aria-hidden="true"></span></summary>
       <div class="more-body">
+        <div class="sub">Page</div>
+        <label class="row" for="hide-floating">
+          <span class="row-text"><strong>Hide floating bars</strong><small>Message boxes, cookie banners, chat bubbles.</small></span>
+          <input id="hide-floating" class="switch" type="checkbox" checked>
+        </label>
+        <label class="row" for="expand-content">
+          <span class="row-text"><strong>Expand collapsed text</strong><small>Clicks &#x201c;Show more&#x201d; and opens folded sections.</small></span>
+          <input id="expand-content" class="switch" type="checkbox" checked>
+        </label>
+        <label class="row" for="prepare-images">
+          <span class="row-text"><strong>Load lazy images</strong><small>Scrolls through first so late images appear.</small></span>
+          <input id="prepare-images" class="switch" type="checkbox" checked>
+        </label>
+        <label class="row" for="auto-load">
+          <span class="row-text"><strong>Load older messages</strong><small>Pulls in earlier chat history or feed items.</small></span>
+          <input id="auto-load" class="switch" type="checkbox">
+        </label>
+
+        <div class="sub">Saving</div>
+        <div class="row stack">
+          <label class="row-text" for="name-template"><strong>File name</strong><small>Click to insert: <button type="button" class="token" data-token="{title}" title="The page title">{title}</button> <button type="button" class="token" data-token="{site}" title="The site, like claude.ai">{site}</button> <button type="button" class="token" data-token="{date}" title="Today, like 2026-10-24">{date}</button> <button type="button" class="token" data-token="{time}" title="The time, like 14-05-09">{time}</button></small></label>
+          <input id="name-template" class="text-in" type="text" spellcheck="false" maxlength="120" value="{title}" placeholder="{title}">
+          <label class="row-text" for="folder"><strong>Folder in Downloads</strong><small>Optional. Leave empty to save straight to Downloads.</small></label>
+          <input id="folder" class="text-in" type="text" spellcheck="false" maxlength="120" placeholder="e.g. Tallshot/{site}">
+          <div class="name-preview" id="name-preview"></div>
+        </div>
+
+        <div class="sub">Advanced</div>
         <label class="row" for="engine" id="engine-row">
-          <span class="row-text"><strong>Engine</strong><small id="engine-note">Full render draws the whole page in one pass. Chrome shows a &#x201c;debugging this browser&#x201d; bar while it runs.</small></span>
+          <span class="row-text"><strong>Engine</strong><small id="engine-note">Full render is sharper and keeps text in PDFs.</small></span>
           <select id="engine">
             <option value="auto" selected>Full render</option>
             <option value="stitch">Scroll &amp; stitch</option>
           </select>
         </label>
-        <label class="row" for="hide-floating">
-          <span class="row-text"><strong>Hide floating bars</strong><small>Composers, cookie banners and chat bubbles that would cover content.</small></span>
-          <input id="hide-floating" class="switch" type="checkbox" checked>
-        </label>
-        <label class="row" for="expand-content">
-          <span class="row-text"><strong>Expand collapsed text</strong><small>Opens &#x201c;show more&#x201d;, &#x201c;view rest&#x201d; and folded sections before capturing.</small></span>
-          <input id="expand-content" class="switch" type="checkbox" checked>
-        </label>
-        <div class="row stack" id="redact-group">
-          <label class="row" for="redact">
-            <span class="row-text"><strong>Share-safe Redact</strong><small>Blacks out emails, phone and card numbers, IBANs, keys and tokens, IP addresses and the words below, and removes them from the PDF text. Full render only.</small></span>
-            <input id="redact" class="switch" type="checkbox">
-          </label>
-          <input id="redact-words" class="text-in" type="text" spellcheck="false" maxlength="4000" placeholder="Also redact these words, comma-separated" aria-label="Words to always redact">
-        </div>
-        <label class="row" for="prepare-images">
-          <span class="row-text"><strong>Load lazy images</strong><small>Scroll through first so late images arrive.</small></span>
-          <input id="prepare-images" class="switch" type="checkbox" checked>
-        </label>
-        <label class="row" for="auto-load">
-          <span class="row-text"><strong>Auto-load more</strong><small>Bounded visits to the top and bottom to pull in older chat history or feed items.</small></span>
-          <input id="auto-load" class="switch" type="checkbox">
-        </label>
-        <div class="row stack">
-          <label class="row-text" for="name-template"><strong>File name</strong><small>Words in braces are filled in when saving. Click one to add it: <button type="button" class="token" data-token="{title}" title="The page title">{title}</button> <button type="button" class="token" data-token="{site}" title="The site, like claude.ai">{site}</button> <button type="button" class="token" data-token="{date}" title="Today, like 2026-10-24">{date}</button> <button type="button" class="token" data-token="{time}" title="The time, like 14-05-09">{time}</button></small></label>
-          <input id="name-template" class="text-in" type="text" spellcheck="false" maxlength="120" value="{title}" placeholder="{title}">
-          <label class="row-text" for="folder"><strong>Save to folder</strong><small>A folder inside Downloads; braces work here too. Leave empty to save straight to Downloads.</small></label>
-          <input id="folder" class="text-in" type="text" spellcheck="false" maxlength="120" placeholder="e.g. Tallshot/{site}">
-          <div class="name-preview" id="name-preview"></div>
-        </div>
         <label class="row" for="max-height">
           <span class="row-text"><strong>Max height</strong><small>Longer pages are cut here.</small></span>
           <select id="max-height">
@@ -111,7 +117,7 @@
           </select>
         </label>
         <label class="row" for="wait-ms">
-          <span class="row-text"><strong>Settle wait</strong><small>Longer helps slow pages.</small></span>
+          <span class="row-text"><strong>Settle wait</strong><small>Raise it for slow pages.</small></span>
           <select id="wait-ms">
             <option value="500">0.5 s</option>
             <option value="1000">1 s</option>

@@ -42,5 +42,6 @@
   {"name":"pdf-viewer-refused","url":"/fx/pdf-viewer-shell.html","settings":{"waitMs":500},"expect":{"phase":"error"}},
   {"name":"redact-drawn-warn","url":"/fx/drawn-preview.html","settings":{"waitMs":500,"redact":true,"redactReview":false},"expect":{"engineIncludes":"Full render","warningIncludes":"could not check 1 drawn area"},"lite":false},
   {"name":"redact-review","url":"/fx/redact-secrets.html","settings":{"waitMs":1000,"redact":true,"redactWords":"priyanka","format":"pdf"},"expect":{"engineIncludes":"Full render","minReviewBoxes":10,"warningIncludes":["1 box you drew","You kept 1 suggestion visible"],"pdf":{"textIncludes":["jane.doe@example.com","quarterly review"],"textAbsent":["Account notes","sk-proj-abcDEF1234567890xyzQWE","4111 1111 1111 1111"]}},"lite":false,"review":{"toggleFirst":true,"draw":[15,25,280,60]}},
-  {"name":"redact-review-cancel","url":"/fx/redact-secrets.html","settings":{"waitMs":1000,"redact":true},"review":{"cancel":true},"expect":{"phase":"cancelled"},"lite":false}
+  {"name":"redact-review-cancel","url":"/fx/redact-secrets.html","settings":{"waitMs":1000,"redact":true},"review":{"cancel":true},"expect":{"phase":"cancelled"},"lite":false},
+  {"name":"redact-stitch-refused","url":"/fx/redact-secrets.html","settings":{"waitMs":500,"redact":true,"engine":"stitch"},"expect":{"phase":"error"},"lite":false}
 ]

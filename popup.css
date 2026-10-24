@@ -248,7 +248,10 @@ footer { display: flex; justify-content: space-between; font-size: 9.5px; font-w
 
 /* ---- Text inputs ---------------------------------------------------------- */
 .row.stack { display: grid; gap: 6px; align-items: stretch; }
-#redact-group > .row { border-bottom: 0; padding: 0; }
+.privacy { display: grid; gap: 8px; padding: 8px 10px; border: var(--bw) solid var(--ink); background: var(--card); }
+.privacy > .row { border-bottom: 0; padding: 0; }
+.sub { margin: 10px 0 0; padding-bottom: 2px; font-size: 10px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.sub:first-child { margin-top: 2px; }
 #redact-words[hidden] { display: none; }
 .text-in {
   width: 100%; padding: 6px 8px; border: var(--bw) solid var(--ink); border-radius: 0; background: var(--card);

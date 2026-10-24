@@ -33,6 +33,13 @@ Never pure #fff or #000. No gradients anywhere in the UI.
 - Stacked depth (the logo's offset pages) is the brand motif; reuse it sparingly.
 
 ## Components (popup.html)
+- Privacy card: Redact sits on the main screen as a bordered card under Target;
+  its word box appears only when Redact is on.
+- More options: three small uppercase subheads (Page, Saving, Advanced); every
+  row has a one-line description.
+- Redaction review (stitcher.html): sticky bar with title, counts, a legend
+  (solid = blacked out, dashed accent = kept visible, accent outline = drawn)
+  and Cancel / Save; boxes are see-through in review, solid in the file.
 - Header: stacked-pages logo (SVG, ink + accent), "Tallshot" with "shot"
   in accent, version chip in Doto, square theme toggle.
 - Primary CTA: accent fill, ink border and shadow, title + meta line

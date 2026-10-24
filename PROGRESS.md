@@ -4,15 +4,15 @@ Update this at the end of every phase. Newest entries at the top of each section
 
 ## Current status
 - Version: 2.3.0 (on GitHub: Shashank-ssls/Page_Archieve, private)
-- Current phase: Phase 4 (Share-safe Redact) in progress, started 2026-10-24 on the
-  owner's request. Done: detectors, word list, pixel burn, PDF text removal,
-  fail-closed fallbacks. Left: preview screen (toggle boxes, drag to add),
-  on-device name detection (feature-detected; cannot be tested here).
-  Phase 3 (Living PDF) is built and hardened; viewer check still pending.
+- Current phase: Phase 4 (Share-safe Redact) built as 2.4.0 (2026-10-24): detectors,
+  word list, review screen (toggle and draw boxes), pixel burn, PDF text removal,
+  fail-closed paths. Awaiting the owner's test list. Left: on-device name
+  detection (feature-detected; cannot be tested on this GPU). Phase 3 viewer
+  check still pending.
   Store launch (old Phase 2) moved to the final phase by the owner; its finished
   parts stay done. Lite real-site repeats deferred until Full is final.
-- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-24, Document switches to the panel on app shells): `npm run check` 139/139,
-  `npm run e2e` 40/40 (Full). Lite suite paused until Full is final.
+- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-24, Document switches to the panel on app shells): `npm run check` 144/144,
+  `npm run e2e` 45/45 (Full). Lite suite paused until Full is final.
 - Not yet verified: any real logged-in site, HiDPI screens.
 
 ## Session summary (2026-10-23): Claude incognito and "Show more"
@@ -46,6 +46,7 @@ DevTools device toolbar); long-thread recapture. Then Phase 4.
 ## Phase log
 | Date | Phase | Result | Notes |
 | --- | --- | --- | --- |
+| 2026-10-24 | Phase 4 part 2 (2.4.0) | Done | Review screen, popup regrouped (Redact on the main screen; Page / Saving / Advanced), cover writer removed, version 2.4.0. |
 | 2026-10-24 | Phase 4 part 1 | Done | Share-safe Redact: detectors (redact.js), word list, black boxes burned before encoding, words removed from the PDF text, links/bookmarks/cover/file name scrubbed, no fallback to text-blind engines. E2E redact-png, redact-pdf; a control run without Redact fails both checks. |
 | 2026-10-24 | Phase 3 hardening 5 | Done | Document on app shells (Claude, ChatGPT) captured one screen; it now captures the scroll panel with a warning. File-name UI made self-explanatory. |
 | 2026-10-23 | Phase 3 hardening 4 | Done | Claude incognito: the app height comes from a script variable that does not follow the viewport, so Full render could not grow the panel (fell back to stitch). Script-set ancestor heights now follow the viewport during render. End-spacer regression from hardening 3 fixed. |
