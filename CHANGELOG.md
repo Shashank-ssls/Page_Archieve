@@ -1,4 +1,8 @@
-# Unreleased - Phase 3 Living PDF
+# Unreleased - Phase 4 Share-safe Redact (in progress)
+
+- New: Share-safe Redact (More options, Full edition). Detects emails, phone numbers, card numbers (Luhn), IBANs (mod 97), API keys and tokens (known prefixes plus an entropy check), IPv4/IPv6 addresses, URLs with token parameters, and a user word list. Matching words are painted black in the image before encoding and removed from the PDF text layer; links under a box or carrying a secret, bookmark titles, the cover title/URL, the PDF title and the file name are scrubbed too. Word positions come from the page (PAC_COLLECT_TEXT wordEdges), so boxes cover exactly the words. A redacted capture never falls back to scroll-and-stitch or a visible-area shot (they cannot read text); it stops with "Nothing was saved". Pure module redact.js, fixture redact-secrets.html, E2E cases redact-png (no secret pixel left) and redact-pdf (no seeded string in the PDF bytes or text layer). Not yet built: the preview screen (toggle boxes, drag to add) and on-device name detection.
+
+# Phase 3 Living PDF (hardening)
 
 - Fix (owner, Claude and ChatGPT, Target Document, PDF): one screen was saved, with the message box floating mid-page. When the document does not scroll and a panel hides more than 200 px, Document now captures the panel (as Smart does) and says so in a warning. E2E cases doc-panel-hidden, doc-shell-hint (updated) and doc-switch-vh-shell (new).
 - Popup (owner: "how will other users understand this?"): the file-name tokens are now buttons that insert at the cursor, the help text says what braces do, the folder placeholder reads "e.g. Tallshot/{site}" so it is not mistaken for a value, and the preview uses the current tab's title and site.

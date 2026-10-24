@@ -67,12 +67,12 @@ viewer and Acrobat Reader with working links, bookmarks and selectable text.
 
 ## Phase 4 - Share-safe Redact (Pro) (1.5 weeks)
 
-- [ ] Detectors over the collected text runs: emails, phone numbers, card
+- [x] Detectors over the collected text runs: emails, phone numbers, card
       numbers (Luhn), IBANs, API keys and tokens (common prefixes plus entropy),
       IP addresses, URLs with tokens in query strings.
-- [ ] Optional user word list ("always redact these names").
+- [x] Optional user word list ("always redact these names").
 - [ ] Preview screen: boxes over the capture, click to toggle each, add a box by drag.
-- [ ] Redaction burned into pixels AND removed from the PDF text layer; test that
+- [x] Redaction burned into pixels AND removed from the PDF text layer; test that
       redacted words are absent from the PDF bytes.
 - [ ] Names via Chrome's on-device Prompt API only when available; the owner's
       GPU cannot run it, so feature-detect and hide gracefully.

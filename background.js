@@ -1,8 +1,9 @@
 'use strict';
 
-importScripts('geometry.js', 'url-policy.js', 'cdp.js');
+importScripts('geometry.js', 'url-policy.js', 'cdp.js', 'redact.js');
 
 const G = self.PageArchiveGeometry;
+const R = self.PageArchiveRedact;
 const URL_POLICY = self.PageArchiveUrlPolicy;
 const CDP = self.PageArchiveCdp;
 const MAX_CAPTURE_TILES = 800;
@@ -20,8 +21,11 @@ const DEFAULTS = {
   maxHeight: 200000,
   waitMs: 2500,
   captureTarget: 'auto',
-  pdfCover: false
+  pdfCover: false,
+  redact: false,
+  redactWords: ''
 };
+const REDACT_NEEDS_TEXT = 'Share-safe Redact needs the page text that only the Full render engine reads';
 const ENGINES = ['auto', 'stitch'];
 const FORMATS = ['png', 'jpeg', 'pdf'];
 let activeJob = null;
@@ -62,6 +66,12 @@ function cleanBaseName(title, url, template) {
   try { host = new URL(url).hostname.replace(/^www\./, ''); } catch (_) {}
   const safeTitle = G.filenameBase(title, G.filenameBase(host, 'webpage'));
   return G.filenameBase(G.applyNameTemplate(template || '{title}', { title: safeTitle, site: host }), safeTitle);
+}
+
+// The page title becomes the file name; with Redact on, secrets in it go too.
+function redactTitle(title, settings) {
+  if (!settings.redact) return title;
+  return R.redactString(title, R.parseWordList(settings.redactWords)).text.replace(/\[redacted\]/g, 'redacted');
 }
 
 async function getTab(tabId) {
@@ -189,6 +199,9 @@ function normalizeSettings(userSettings, tabId) {
   settings.hideFloating = settings.hideFloating !== false;
   settings.expandContent = settings.expandContent !== false;
   settings.pdfCover = settings.pdfCover === true;
+  // Lite has no text map, so Redact is never on there.
+  settings.redact = settings.redact === true && IS_FULL_EDITION;
+  settings.redactWords = String(settings.redactWords || '').slice(0, 4000);
   settings.nameTemplate = String(settings.nameTemplate || '{title}').slice(0, 120);
   settings.folder = G.safeFolder(settings.folder);
   settings.tabId = tabId;
@@ -507,13 +520,13 @@ async function runRender(job, report) {
   let textRuns = null;
   let pdfLinks = [];
   let pdfMarks = [];
-  if (settings.format === 'pdf') {
-    progress(tabId, 'prepare', 9, 'Reading page text and links for the PDF\u2026');
+  if (settings.format === 'pdf' || settings.redact) {
+    progress(tabId, 'prepare', 9, settings.redact ? 'Reading page text to find secrets\u2026' : 'Reading page text and links for the PDF\u2026');
     try {
-      const collected = await getContentMessage(tabId, { type: 'PAC_COLLECT_TEXT', maxWords: 150000 });
+      const collected = await getContentMessage(tabId, { type: 'PAC_COLLECT_TEXT', maxWords: 150000, wordEdges: settings.redact });
       const inside = (x, y, w, h) => y + h > 0 && y < plan.height && x + w > 0 && x < plan.width;
       textRuns = (collected.runs || [])
-        .map(r => [r[0] - plan.x, r[1] - plan.y, r[2], r[3], r[4], r[5]])
+        .map(r => r.length > 6 ? [r[0] - plan.x, r[1] - plan.y, r[2], r[3], r[4], r[5], r[6]] : [r[0] - plan.x, r[1] - plan.y, r[2], r[3], r[4], r[5]])
         .filter(r => inside(r[0], r[1], r[2], r[3]));
       // Same-page links keep their target offset too; the stitcher drops any
       // whose target falls outside the captured area.
@@ -525,6 +538,7 @@ async function runRender(job, report) {
         .filter(m => m[1] >= -2 && m[1] < plan.height)
         .map(m => [Math.max(0, m[0]), Math.max(0, m[1]), m[2], m[3]]);
     } catch (error) {
+      if (settings.redact) throw new Error(`Could not read the page text for Share-safe Redact (${errorText(error).slice(0, 120)}). Nothing was saved.`);
       report.warnings.push(`The PDF text layer was skipped (${errorText(error).slice(0, 120)}).`);
     }
   }
@@ -586,6 +600,8 @@ async function runRender(job, report) {
 // when attached (no rate limit), otherwise chrome.tabs.captureVisibleTab.
 // ---------------------------------------------------------------------------
 async function runStitch(job, report) {
+  // Backstop: stitching reads no text, so it can never redact.
+  if (job.settings.redact) throw new Error(`${REDACT_NEEDS_TEXT}. Nothing was saved.`);
   const { tabId, settings, tab } = job;
   const useCdp = !!(job.cdp && job.cdp.attached);
   const grab = async () => {
@@ -759,6 +775,7 @@ async function startCapture(tabId, mode, userSettings) {
     // Visible-area capture does not need to inject a content script. Keep it a
     // separate, explicit mode; a failed full-page capture must never silently
     // degrade into a viewport screenshot.
+    if (mode === 'visible' && settings.redact) throw new Error(`${REDACT_NEEDS_TEXT}; a visible-area screenshot does not read it. Nothing was saved. Turn off Share-safe Redact or use Capture full page.`);
     if (mode === 'visible') {
       const visibleWarnings = restrictedPage ? ['Chrome/Edge internal pages allow only a visible-area screenshot; page scrolling and full-page inspection are restricted.'] : [];
       const result = await takeVisibleCapture(tab, job, job.stitcherTabId, tab.title || 'Webpage', tab.url || '', visibleWarnings);
@@ -783,12 +800,16 @@ async function startCapture(tabId, mode, userSettings) {
       }
     }
 
+    // A redacted capture must never fall back to an engine that cannot see
+    // the text: it would save the secrets unredacted.
+    if (settings.redact && !job.cdp) throw new Error(`${REDACT_NEEDS_TEXT}, and it was unavailable. Nothing was saved. Close DevTools on this tab and retry, or turn off Share-safe Redact.`);
     let captured = null;
     if (job.cdp) {
       try {
         captured = await runRender(job, report);
       } catch (error) {
         if (job.cancel || /cancelled/i.test(errorText(error))) throw new Error('Capture cancelled.');
+        if (settings.redact) throw new Error(`Full render could not complete (${errorText(error).slice(0, 200)}). ${REDACT_NEEDS_TEXT}, so nothing was saved instead of falling back to scroll-and-stitch.`);
         // Fall back to the stitch engine (still a full-page capture, never a
         // viewport screenshot). Reset everything the render pass touched.
         console.warn('[Tallshot] render engine failed, falling back:', errorText(error));
@@ -818,7 +839,8 @@ async function startCapture(tabId, mode, userSettings) {
       type: 'PAC_COMPOSE', captureId: job.captureId, expectedTileCount: captured.tileCount,
       pageHeightOverride: captured.outputPageHeight, format: settings.format,
       folder: settings.folder, cover: settings.pdfCover, capturedAt: job.startedAt,
-      baseName: cleanBaseName(captured.title || latestTab.title, captured.url || latestTab.url, settings.nameTemplate)
+      redact: settings.redact, redactWords: settings.redactWords,
+      baseName: cleanBaseName(redactTitle(captured.title || latestTab.title, settings), captured.url || latestTab.url, settings.nameTemplate)
     }, 300000);
     success = true;
     const warnings = [...new Set([...report.warnings, ...(result.warnings || [])])];

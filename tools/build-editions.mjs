@@ -11,7 +11,7 @@ import { execFileSync } from 'node:child_process';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.resolve(process.argv[2] || path.join(root, 'dist'));
 const RUNTIME = ['manifest.json', 'background.js', 'cdp.js', 'content.js', 'geometry.js', 'protocol.js', 'url-policy.js',
-  'popup.html', 'popup.css', 'popup.js', 'stitcher.html', 'stitcher.js', 'pdf.js', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'icons', 'fonts'];
+  'popup.html', 'popup.css', 'popup.js', 'stitcher.html', 'stitcher.js', 'pdf.js', 'redact.js', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'icons', 'fonts'];
 
 function copyRuntime(dest) {
   fs.rmSync(dest, { recursive: true, force: true });

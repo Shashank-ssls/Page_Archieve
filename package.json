@@ -6,7 +6,7 @@
   "scripts": {
     "browsers": "node scripts/install-browsers.mjs",
     "test": "node --test tests/*.test.cjs",
-    "check": "node --check background.js && node --check content.js && node --check popup.js && node --check stitcher.js && node --check geometry.js && node --check protocol.js && node --check url-policy.js && node --check cdp.js && node --check pdf.js && node scripts/check-ascii.mjs && node --check tools/build-editions.mjs && node --check tools/popup-shot.mjs && node --check tools/package.mjs && node --check tests/e2e/run.mjs && node --check scripts/install-browsers.mjs && node --check scripts/pw-env.mjs && node --test tests/*.test.cjs",
+    "check": "node --check background.js && node --check content.js && node --check popup.js && node --check stitcher.js && node --check geometry.js && node --check protocol.js && node --check url-policy.js && node --check cdp.js && node --check pdf.js && node --check redact.js && node scripts/check-ascii.mjs && node --check tools/build-editions.mjs && node --check tools/popup-shot.mjs && node --check tools/package.mjs && node --check tests/e2e/run.mjs && node --check scripts/install-browsers.mjs && node --check scripts/pw-env.mjs && node --test tests/*.test.cjs",
     "e2e": "node tests/e2e/run.mjs",
     "e2e:lite": "node tests/e2e/run.mjs --edition lite",
     "build": "node tools/build-editions.mjs dist",

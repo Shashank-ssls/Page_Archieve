@@ -13,7 +13,7 @@ let lastNameField = 'name-template';
 
 let running = false;
 
-const defaults = { engine: 'auto', format: 'png', prepareImages: true, autoLoadMore: false, hideFloating: true, expandContent: true, nameTemplate: '{title}', folder: '', maxHeight: 200000, waitMs: 3500, captureTarget: 'auto', pdfCover: false };
+const defaults = { engine: 'auto', format: 'png', prepareImages: true, autoLoadMore: false, hideFloating: true, expandContent: true, nameTemplate: '{title}', folder: '', maxHeight: 200000, waitMs: 3500, captureTarget: 'auto', pdfCover: false, redact: false, redactWords: '' };
 let restrictedActiveTab = false;
 
 // Shared with the worker (url-policy.js): browser-internal pages and the
@@ -61,6 +61,8 @@ function readSettings() {
     hideFloating: $('hide-floating').checked,
     expandContent: $('expand-content').checked,
     pdfCover: $('pdf-cover').checked,
+    redact: IS_FULL_EDITION && $('redact').checked,
+    redactWords: $('redact-words').value.trim(),
     nameTemplate: $('name-template').value.trim() || '{title}',
     folder: $('folder').value.trim(),
     maxHeight: Number($('max-height').value),
@@ -93,7 +95,8 @@ function updateMeta() {
   const engine = !IS_FULL_EDITION || s.engine === 'stitch' ? 'Scroll & stitch' : 'Full render';
   const fmt = s.format === 'jpeg' ? 'JPEG' : s.format.toUpperCase();
   const target = { auto: 'Smart', document: 'Document', panel: 'Panel' }[s.captureTarget];
-  $('cta-meta').textContent = `${engine} \u00b7 ${fmt} \u00b7 ${target}`;
+  $('cta-meta').textContent = `${engine} \u00b7 ${fmt} \u00b7 ${target}${s.redact ? ' \u00b7 Redact' : ''}`;
+  $('redact-words').hidden = !s.redact;
   $('engine-note').textContent = s.engine === 'stitch'
     ? 'Scrolls and screenshots one screen at a time. Slower, and fixed bars can repeat, but Chrome shows no debugging bar.'
     : 'Draws the whole page in one pass. Chrome shows a \u201cdebugging this browser\u201d bar while it runs; falls back to stitching if needed.';
@@ -301,9 +304,10 @@ document.querySelectorAll('.token').forEach(btn => btn.addEventListener('click',
   updateMeta();
   void saveSettings();
 }));
-['prepare-images', 'auto-load', 'hide-floating', 'expand-content', 'pdf-cover', 'name-template', 'folder', 'engine', 'max-height', 'wait-ms'].forEach(id => {
+['prepare-images', 'auto-load', 'hide-floating', 'expand-content', 'pdf-cover', 'redact', 'redact-words', 'name-template', 'folder', 'engine', 'max-height', 'wait-ms'].forEach(id => {
   $(id).addEventListener('change', () => { void saveSettings(); });
 });
+$('redact').addEventListener('change', updateMeta);
 $('more').addEventListener('toggle', () => {
   chrome.storage.local.set({ pageArchiveMoreOpen: $('more').open }).catch(() => {});
 });
@@ -351,11 +355,15 @@ chrome.runtime.onMessage.addListener(message => {
   $('hide-floating').checked = settings.hideFloating !== false;
   $('expand-content').checked = settings.expandContent !== false;
   $('pdf-cover').checked = settings.pdfCover === true;
+  $('redact').checked = settings.redact === true;
+  $('redact-words').value = settings.redactWords || '';
   $('name-template').value = settings.nameTemplate || '{title}';
   $('folder').value = settings.folder || '';
   showBuildStamp();
   if (!IS_FULL_EDITION) {
     $('engine-row').hidden = true;
+    // Redact needs the Full render text map; Lite does not mention it.
+    $('redact-group').hidden = true;
     const ver = document.querySelector('.ver');
     ver.textContent = 'LITE';
     ver.classList.add('lite');

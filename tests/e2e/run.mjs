@@ -266,7 +266,7 @@ for (const c of cases) {
     if (expect.pdf) {
       // Reads the writer's uncompressed objects: link annotations, bookmarks,
       // cover page and URIs. Viewer behaviour still needs a manual check.
-      const { minUriLinks = 0, minGoToLinks = 0, bookmarks, minBookmarks = 0, cover, uris = [], forbidUris = [] } = expect.pdf;
+      const { minUriLinks = 0, minGoToLinks = 0, bookmarks, minBookmarks = 0, cover, uris = [], forbidUris = [], textIncludes = [], textAbsent = [] } = expect.pdf;
       const file = files.find(f => f.endsWith('.pdf'));
       if (!file) problems.push('no PDF downloaded');
       else {
@@ -282,6 +282,12 @@ for (const c of cases) {
         if (marks < minBookmarks) problems.push(`${marks} bookmarks (min ${minBookmarks})`);
         if (cover !== undefined && hasCover !== cover) problems.push(`cover page ${hasCover ? 'present' : 'missing'}`);
         for (const u of uris) if (!uriList.includes(u)) problems.push(`missing link ${u}`);
+        // Text layer and outline titles are UTF-16BE hex; decode both, and
+        // also search the raw bytes (URIs, cover page, document info).
+        const utf16 = hex => { let out = ''; for (let i = 0; i + 3 < hex.length; i += 4) out += String.fromCharCode(parseInt(hex.slice(i, i + 4), 16)); return out; };
+        const layer = [...text.matchAll(/<([0-9A-Fa-f]+)> Tj/g)].map(m => utf16(m[1])).join(' ') + ' ' + [...text.matchAll(/<feff([0-9A-Fa-f]*)>/gi)].map(m => utf16(m[1])).join(' ');
+        for (const t of textIncludes) if (!layer.includes(t)) problems.push(`PDF text lacks "${t}"`);
+        for (const t of textAbsent) if (layer.includes(t) || text.includes(t)) problems.push(`PDF still contains "${t}"`);
         for (const u of forbidUris) if (uriList.some(x => x.startsWith(u))) problems.push(`forbidden link ${u}`);
       }
     }

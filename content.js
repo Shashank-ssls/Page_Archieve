@@ -1169,9 +1169,10 @@
           if (line && Math.abs(r.top - line.y) < 1 && r.left >= line.x + line.w - 1 && r.left - (line.x + line.w) < fontPx * 1.5) {
             line.text += ' ' + m[0];
             line.w = r.right - line.x;
+            line.edges.push(r.left - line.x, r.right - line.x);
           } else {
             if (line) runs.push(line);
-            line = { x: r.left, y: r.top, w: r.width, h: r.height, fs: fontPx, text: m[0] };
+            line = { x: r.left, y: r.top, w: r.width, h: r.height, fs: fontPx, text: m[0], edges: [0, r.width] };
           }
         }
         if (line) runs.push(line);
@@ -1947,11 +1948,13 @@
         const r1 = v => Math.round(v * 10) / 10;
         // Compact encoding keeps the message small: runs [x, y, w, h, fontSize, text];
         // links [x, y, w, h, href] or [x, y, w, h, '', destX, destY]; marks [x, y, level, title].
+        // With wordEdges (Share-safe Redact) a run also carries each word's
+        // [start, end] x offsets, so a redaction box covers exactly its words.
         return {
           ok: true,
           links: links.map(l => l.map(v => typeof v === 'number' ? r1(v) : v)),
           marks: marks.map(m => [r1(m[0]), r1(m[1]), m[2], m[3]]),
-          runs: runs.map(r => [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text])
+          runs: runs.map(r => message.wordEdges ? [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text, r.edges.map(r1)] : [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text])
         };
       }
       if (message.type === 'PAC_INK_BANDS') {

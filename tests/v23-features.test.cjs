@@ -51,10 +51,10 @@ test('auto-expand never clicks real links, form submits or destructive labels', 
   assert.match(content, /d\.open = false/);
 });
 
-test('text runs are collected for PDF only and shipped to the stitcher before tiles', () => {
+test('text runs are collected for PDF (or Redact) only and shipped to the stitcher before tiles', () => {
   assert.equal(P.isPageCommand('PAC_COLLECT_TEXT'), true);
   assert.equal(P.isStitcherCommand('PAC_STORE_TEXT'), true);
-  assert.match(background, /if \(settings\.format === 'pdf'\) \{[\s\S]{0,200}PAC_COLLECT_TEXT/);
+  assert.match(background, /if \(settings\.format === 'pdf' \|\| settings\.redact\) \{[\s\S]{0,300}PAC_COLLECT_TEXT/);
 });
 
 test('Lite build drops the debugger permission and the worker stays quiet about it', () => {

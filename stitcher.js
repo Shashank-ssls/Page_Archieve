@@ -14,9 +14,11 @@
   const PDF = window.PageArchivePdf;
   const G = window.PageArchiveGeometry;
   const P = window.PageArchiveProtocol;
+  const RD = window.PageArchiveRedact;
   const downloadWaiters = new Map();
   const cancelledCaptures = new Set();
   const textRuns = new Map(); // captureId -> [[x, y, w, h, fs, text], ...] in capture CSS px
+  const redactBoxes = new Map(); // captureId -> [[x, y, w, h], ...] burned into every part (Share-safe Redact)
   const pdfExtras = new Map(); // captureId -> { links, marks } in capture CSS px (see PAC_COLLECT_TEXT)
 
   function status(message, percent) {
@@ -314,6 +316,14 @@
         }
       }
       if (drawn === 0) throw new Error(`PNG section ${index + 1} did not overlap any captured screenshot tiles.`);
+      // Share-safe Redact: overwrite the pixels before encoding, so the
+      // secret never reaches an output file. Edges round outward.
+      ctx.fillStyle = '#000000';
+      for (const b of redactBoxes.get(session.captureId) || []) {
+        if (b[1] + b[3] <= part.y || b[1] >= part.y + part.h || b[0] + b[2] <= part.x || b[0] >= part.x + part.w) continue;
+        const x0 = Math.floor((b[0] - part.x) * scale), y0 = Math.floor((b[1] - part.y) * scale);
+        ctx.fillRect(x0, y0, Math.ceil((b[0] + b[2] - part.x) * scale) - x0, Math.ceil((b[1] + b[3] - part.y) * scale) - y0);
+      }
       const mime = format === 'png' ? 'image/png' : 'image/jpeg';
       const blob = await new Promise((resolve, reject) => {
         canvas.toBlob(result => result ? resolve(result) : reject(new Error('Image encoding failed. The browser may have run out of memory.')), mime, mime === 'image/jpeg' ? JPEG_QUALITY : undefined);
@@ -381,6 +391,32 @@
     }
 
     const format = FORMATS.includes(message.format) ? message.format : 'png';
+    let redactCount = 0;
+    const redactWords = message.redact ? RD.parseWordList(message.redactWords) : [];
+    const scrub = s => {
+      if (!message.redact) return s;
+      const r = RD.redactString(s, redactWords);
+      redactCount += r.count;
+      return r.text;
+    };
+    let redactSummary = '';
+    if (message.redact) {
+      if (!RD) throw new Error('The redaction module failed to load. Nothing was exported.');
+      const res = RD.redactRuns(textRuns.get(message.captureId) || [], redactWords);
+      textRuns.set(message.captureId, res.runs);
+      redactBoxes.set(message.captureId, res.boxes);
+      redactCount = res.boxes.length;
+      redactSummary = RD.summary(res.counts);
+      // A link under a black box would still carry its address.
+      const extras = pdfExtras.get(message.captureId);
+      if (extras) {
+        const hit = l => res.boxes.some(b => l[0] < b[0] + b[2] && l[0] + l[2] > b[0] && l[1] < b[1] + b[3] && l[1] + l[3] > b[1]);
+        extras.links = (extras.links || []).filter(l => !hit(l) && (!l[4] || RD.findSecrets(l[4], redactWords).length === 0));
+        extras.marks = (extras.marks || []).map(m => [m[0], m[1], m[2], scrub(m[3])]);
+      }
+      session.title = scrub(session.title || '');
+      session.url = scrub(session.url || '');
+    }
     // PDFs get readable pages broken between text lines; images keep the largest parts.
     const parts = format === 'pdf'
       ? G.pdfPageParts(width, height, scale, (textRuns.get(message.captureId) || []).map(r => [r[1], r[3]]), MAX_DIMENSION_PX, MAX_PART_PIXELS)
@@ -444,7 +480,13 @@
       downloads = 1;
       results.splice(0, results.length, { filename: `${baseName}.pdf`, width: results[0] ? results[0].width : 0, height: results.reduce((a, r) => a + r.height, 0), bytes: pdfBlob.size });
     }
+    if (message.redact) {
+      warnings.unshift(redactCount
+        ? `Share-safe Redact covered ${redactSummary || `${redactCount} item(s)`} in the image${format === 'pdf' ? ' and removed them from the PDF text' : ''}. It finds only text the page exposes: check text inside images, video and embedded frames yourself before sharing.`
+        : 'Share-safe Redact found nothing to redact. It finds only text the page exposes: check text inside images, video and embedded frames yourself before sharing.');
+    }
     textRuns.delete(message.captureId);
+    redactBoxes.delete(message.captureId);
     pdfExtras.delete(message.captureId);
     await cleanup(message.captureId).catch(() => {});
     status(`Saved ${downloads} file${downloads === 1 ? '' : 's'}.`, 100);

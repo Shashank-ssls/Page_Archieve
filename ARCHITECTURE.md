@@ -114,6 +114,15 @@ background); without it, `captureVisibleTab` (2 per second, tab must stay active
   the SHA-256 of each page's embedded JPEG (`crypto.subtle`, local). Links whose
   target lies outside the capture are dropped. Stitch-engine PDFs carry none of
   this, as before.
+- Share-safe Redact (Full render only): `PAC_COLLECT_TEXT` with `wordEdges`
+  adds each word's x span to its run; `redact.js` finds secrets per run and
+  returns black boxes plus runs with those words removed. The stitcher swaps
+  in the cleaned runs, paints the boxes on every part canvas before encoding,
+  drops links under a box, and scrubs bookmark titles, cover title/URL and the
+  PDF title; the worker scrubs the file name. Secrets split across runs (a
+  wrapped line) or drawn in images are not detected. With Redact on, every
+  path that cannot read text (stitch fallback, Lite, visible area) throws
+  instead of saving.
 - File name: `G.applyNameTemplate` tokens {title} {site} {date} {time}
   {datetime}; optional Downloads subfolder through `G.safeFolder`; ASCII
   fallback if Chrome rejects the name.
