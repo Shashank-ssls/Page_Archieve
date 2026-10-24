@@ -22,7 +22,10 @@ const DEFAULTS = {
   waitMs: 2500,
   captureTarget: 'auto',
   redact: false,
-  redactWords: ''
+  redactWords: '',
+  // Show the review screen before saving a redacted capture. Only the E2E
+  // harness turns it off, to test the automatic boxes on their own.
+  redactReview: true
 };
 const REDACT_NEEDS_TEXT = 'Share-safe Redact needs the page text that only the Full render engine reads';
 const ENGINES = ['auto', 'stitch'];
@@ -202,6 +205,7 @@ function normalizeSettings(userSettings, tabId) {
   // Lite has no text map, so Redact is never on there.
   settings.redact = settings.redact === true && IS_FULL_EDITION;
   settings.redactWords = String(settings.redactWords || '').slice(0, 4000);
+  settings.redactReview = settings.redactReview !== false;
   settings.nameTemplate = String(settings.nameTemplate || '{title}').slice(0, 120);
   settings.folder = G.safeFolder(settings.folder);
   settings.tabId = tabId;
@@ -839,15 +843,28 @@ async function startCapture(tabId, mode, userSettings) {
     }
     if (job.cdp) await job.cdp.detach();
     await restoreContent(job);
-    progress(tabId, 'stitch', 80, 'Stitching sections and checking coverage\u2026');
     const latestTab = await getTab(tabId).catch(() => tab);
-    const result = await sendToStitcher(job.stitcherTabId, {
-      type: 'PAC_COMPOSE', captureId: job.captureId, expectedTileCount: captured.tileCount,
-      pageHeightOverride: captured.outputPageHeight, format: settings.format,
-      folder: settings.folder, capturedAt: job.startedAt,
-      redact: settings.redact, redactWords: settings.redactWords,
-      baseName: cleanBaseName(redactTitle(captured.title || latestTab.title, settings), captured.url || latestTab.url, settings.nameTemplate)
-    }, 300000);
+    // With Redact on, the stitcher tab shows the capture and its boxes and
+    // waits for the user; bring it forward and give them time.
+    const review = settings.redact && settings.redactReview;
+    if (review) {
+      progress(tabId, 'stitch', 82, 'Check the redactions in the Tallshot tab, then press Save there.');
+      await chrome.tabs.update(job.stitcherTabId, { active: true }).catch(() => {});
+    } else {
+      progress(tabId, 'stitch', 80, 'Stitching sections and checking coverage\u2026');
+    }
+    let result;
+    try {
+      result = await sendToStitcher(job.stitcherTabId, {
+        type: 'PAC_COMPOSE', captureId: job.captureId, expectedTileCount: captured.tileCount,
+        pageHeightOverride: captured.outputPageHeight, format: settings.format,
+        folder: settings.folder, capturedAt: job.startedAt,
+        redact: settings.redact, redactWords: settings.redactWords, review,
+        baseName: cleanBaseName(redactTitle(captured.title || latestTab.title, settings), captured.url || latestTab.url, settings.nameTemplate)
+      }, review ? 60 * 60 * 1000 : 300000);
+    } finally {
+      if (review) await chrome.tabs.update(tabId, { active: true }).catch(() => {});
+    }
     success = true;
     const warnings = [...new Set([...report.warnings, ...(result.warnings || [])])];
     const label = settings.format === 'pdf' ? 'PDF' : settings.format.toUpperCase();
@@ -901,6 +918,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       chrome.tabs.sendMessage(activeJob.tabId, { type: 'PAC_CANCEL_PREPARE', captureId: activeJob.captureId }).catch(() => {});
       sendResponse({ ok: true });
     } else sendResponse({ ok: false, error: 'No active capture for this tab.' });
+    return;
+  }
+  // The redaction review can take minutes; its tab pings so the worker is
+  // not stopped as idle while it waits for the answer.
+  if (message.type === 'PAC_REVIEW_ALIVE') {
+    sendResponse({ ok: true });
     return;
   }
   if (message.type === 'PAC_GET_STATUS') {

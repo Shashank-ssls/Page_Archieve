@@ -35,7 +35,7 @@ test('user word list matches case-insensitively on word edges', () => {
 test('redactRuns removes words from text and boxes exactly those words', () => {
   const run = [10, 20, 200, 16, 14, 'mail me at a@b.io please', [0, 30, 34, 50, 54, 64, 68, 110, 114, 160]];
   const res = R.redactRuns([run], []);
-  assert.deepStrictEqual(res.boxes, [[10 + 68 - 2, 18, 42 + 4, 20]]);
+  assert.deepStrictEqual(res.boxes, [[10 + 68 - 2, 18, 42 + 4, 20, 'email']]);
   assert.deepStrictEqual(res.runs.map(r => r[5]), ['mail me at', 'please']);
   assert.ok(!JSON.stringify(res.runs).includes('a@b.io'));
   assert.deepStrictEqual(res.counts, { email: 1 });
@@ -44,7 +44,7 @@ test('redactRuns removes words from text and boxes exactly those words', () => {
 test('a run without word edges is covered and dropped whole', () => {
   const res = R.redactRuns([[0, 0, 100, 10, 12, 'x a@b.io']], []);
   assert.strictEqual(res.runs.length, 0);
-  assert.deepStrictEqual(res.boxes, [[-2, -2, 104, 14]]);
+  assert.deepStrictEqual(res.boxes, [[-2, -2, 104, 14, 'email']]);
 });
 
 test('redactString and summary', () => {
@@ -66,12 +66,26 @@ test('a redacted capture never falls back to an engine without text', () => {
   assert.match(bg, /settings\.redact = settings\.redact === true && IS_FULL_EDITION/);
 });
 
-test('the stitcher burns boxes before encoding and scrubs links, bookmarks and cover', () => {
+test('the review screen waits for the user and the worker gives it time', () => {
+  const st = src('stitcher.js');
+  const bg = src('background.js');
+  assert.match(st, /if \(message\.review\) \{[\s\S]{0,200}reviewRedactions\(/);
+  assert.match(st, /Capture cancelled during the redaction review\. Nothing was saved\./);
+  assert.match(st, /PAC_REVIEW_ALIVE/);
+  assert.match(st, /extras\.marks = \(extras\.marks \|\| \[\]\)\.filter\(m => !covers\(m\)\)/);
+  assert.match(bg, /const review = settings\.redact && settings\.redactReview;/);
+  assert.match(bg, /review \? 60 \* 60 \* 1000 : 300000/);
+  assert.match(bg, /settings\.redactReview = settings\.redactReview !== false;/);
+  const html = src('stitcher.html');
+  for (const id of ['review', 'review-stage', 'review-save', 'review-cancel', 'review-stats']) assert.ok(html.includes(`id="${id}"`), id);
+});
+
+test('the stitcher burns boxes before encoding and scrubs links, bookmarks and title', () => {
   const st = src('stitcher.js');
   const burn = st.indexOf("ctx.fillStyle = '#000000'");
   const encode = st.indexOf('canvas.toBlob(');
   assert.ok(burn > 0 && burn < encode);
-  assert.match(st, /textRuns\.set\(message\.captureId, res\.runs\)/);
+  assert.match(st, /textRuns\.set\(message\.captureId, RD\.stripRunsUnder\(original, boxes\)\)/);
   assert.match(st, /extras\.links = \(extras\.links \|\| \[\]\)\.filter\(l => !hit\(l\)/);
   assert.match(st, /session\.title = scrub\(/);
   assert.ok(src('stitcher.html').includes('<script src="redact.js"></script>'));
@@ -113,4 +127,12 @@ test('a wrapped word is boxed on every line; shadows never reach the PDF text', 
 test('file names with digits are not mistaken for keys', () => {
   assert.deepStrictEqual(kinds('see application-for-payment-002-summary.csv and certificate-for-payment-002.pdf'), []);
   assert.deepStrictEqual(kinds('DEMO_API_KEY_7f2c9e14a8b6d3f0').map(k => k[1]), ['key']);
+});
+
+test('stripRunsUnder follows the final boxes: drawn boxes remove words, turned-off ones keep them', () => {
+  const run = [0, 0, 100, 10, 12, 'call Ana now', [0, 20, 25, 45, 50, 70]];
+  assert.deepStrictEqual(R.stripRunsUnder([run], [[24, -2, 23, 14]]).map(r => r[5]), ['call', 'now']);
+  assert.deepStrictEqual(R.stripRunsUnder([run], []).map(r => r[5]), ['call Ana now']);
+  assert.deepStrictEqual(R.stripRunsUnder([[0, 0, 50, 10, 12, 'x y']], [[10, 0, 5, 5]]), []);
+  assert.deepStrictEqual(R.stripRunsUnder([[0, 0, 50, 10, 12, 'x', [0, 50], 1]], []), []);
 });

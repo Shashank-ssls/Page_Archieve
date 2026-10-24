@@ -139,6 +139,29 @@ for (const c of cases) {
       await other.goto(`http://127.0.0.1:${PORT}/fx/body-scroller.html`);
       await other.bringToFront();
     }
+    if (c.review) {
+      // Drive the redaction review in the stitcher tab like a user would:
+      // turn off the first suggested box, draw one box, then Save or Cancel.
+      let rv = null;
+      for (let i = 0; i < 120 && !rv; i++) {
+        await page.waitForTimeout(250);
+        rv = ctx.pages().find(p => p.url().includes('stitcher.html'));
+      }
+      if (!rv) throw new Error('review tab did not open');
+      await rv.waitForSelector('#review:not([hidden]) .rv-box', { timeout: 30000 });
+      r.reviewBoxes = await rv.locator('.rv-box').count();
+      if (c.review.toggleFirst) await rv.locator('.rv-box.on').first().click();
+      if (c.review.draw) {
+        const box = await rv.locator('#review-stage').boundingBox();
+        const [x, y, w, h] = c.review.draw;
+        await rv.mouse.move(box.x + x, box.y + y);
+        await rv.mouse.down();
+        await rv.mouse.move(box.x + x + w, box.y + y + h, { steps: 4 });
+        await rv.mouse.up();
+      }
+      await rv.screenshot({ path: path.join(OUT, `${c.name}__review.png`) });
+      await rv.click(c.review.cancel ? '#review-cancel' : '#review-save');
+    }
     let last = null;
     for (let i = 0; i < 600; i++) {
       await page.waitForTimeout(500);
@@ -173,6 +196,7 @@ for (const c of cases) {
     if (r.phase !== (expect.phase || 'done')) problems.push(`phase ${r.phase}`);
     if (r.restored !== true) problems.push('page not restored');
     if ((expect.phase || 'done') === 'done' && !files.length) problems.push('no file downloaded');
+    if (expect.minReviewBoxes && !(r.reviewBoxes >= expect.minReviewBoxes)) problems.push(`${r.reviewBoxes} review boxes (min ${expect.minReviewBoxes})`);
     if (expect.engineIncludes && !String(r.engine || '').includes(expect.engineIncludes)) problems.push(`engine "${r.engine}"`);
     for (const text of [].concat(expect.warningIncludes || [])) if (!r.warnings.some(w => w.includes(text))) problems.push('no warning with "' + text + '"');
     for (const text of [].concat(expect.warningAbsent || [])) if (r.warnings.some(w => w.includes(text))) problems.push('warning contains "' + text + '"');

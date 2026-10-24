@@ -352,6 +352,181 @@
     }
   }
 
+  // Share-safe Redact review: show the capture with every suggested box in
+  // this tab and wait for the user. Resolves with the final boxes
+  // [x, y, w, h, kind] in capture CSS px; rejects when cancelled. The image is
+  // drawn in 1500 px segments, only near the visible area, so a very tall
+  // capture never needs one giant canvas.
+  function reviewRedactions(captureId, tiles, width, height, suggested, format) {
+    const $ = id => document.getElementById(id);
+    const stage = $('review-stage');
+    const items = suggested.map(b => ({ x: b[0], y: b[1], w: b[2], h: b[3], kind: b[4] || 'auto', on: true, manual: false }));
+    const SEG = 1500;
+    const segments = [];
+    const bitmaps = new Map(); // tile index -> ImageBitmap, a few kept for neighbouring segments
+    let scale = 1;
+    let observer = null;
+
+    const label = it => it.manual ? 'Drawn by you' : (RD && RD.summary({ [it.kind]: 1 }).replace(/^1 /, '')) || it.kind;
+    function stats() {
+      const off = items.filter(it => !it.manual && !it.on).length;
+      const drawn = items.filter(it => it.manual).length;
+      const shown = items.filter(it => !it.manual).length;
+      $('review-stats').textContent = `${shown} suggested box${shown === 1 ? '' : 'es'}${off ? `, ${off} kept visible` : ''}${drawn ? `, ${drawn} drawn by you` : ''}. Text inside pictures or previews was not checked.`;
+    }
+    function placeBox(it) {
+      const el = it.el;
+      el.className = `rv-box ${it.manual ? 'manual' : it.on ? 'on' : 'off'}`;
+      el.style.left = `${it.x * scale}px`;
+      el.style.top = `${it.y * scale}px`;
+      el.style.width = `${Math.max(2, it.w * scale)}px`;
+      el.style.height = `${Math.max(2, it.h * scale)}px`;
+      el.title = it.manual ? 'Drawn by you: click to remove' : `${label(it)}: click to ${it.on ? 'keep visible' : 'black out again'}`;
+      el.setAttribute('aria-label', el.title);
+      if (!it.manual) el.setAttribute('aria-pressed', String(it.on));
+    }
+    function addBox(it) {
+      it.el = document.createElement('button');
+      it.el.type = 'button';
+      it.el.addEventListener('pointerdown', e => e.stopPropagation());
+      it.el.addEventListener('click', () => {
+        if (it.manual) { it.el.remove(); items.splice(items.indexOf(it), 1); }
+        else { it.on = !it.on; placeBox(it); }
+        stats();
+      });
+      placeBox(it);
+      stage.append(it.el);
+    }
+    async function bitmapFor(tile) {
+      if (bitmaps.has(tile.index)) return bitmaps.get(tile.index);
+      const bmp = await createImageBitmap(tile.blob);
+      bitmaps.set(tile.index, bmp);
+      while (bitmaps.size > 4) { const [k, old] = bitmaps.entries().next().value; old.close(); bitmaps.delete(k); }
+      return bmp;
+    }
+    async function drawSegment(seg) {
+      if (seg.drawn) return;
+      seg.drawn = true;
+      const dpr = window.devicePixelRatio || 1;
+      const out = scale * dpr;
+      const c = seg.canvas;
+      c.width = Math.max(1, Math.round(width * out));
+      c.height = Math.max(1, Math.round(seg.h * out));
+      const ctx = c.getContext('2d', { alpha: false });
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, c.width, c.height);
+      const part = { x: 0, y: seg.y, w: width, h: seg.h };
+      for (const tile of [...tiles].sort((a, b) => b.index - a.index)) {
+        const overlap = G.intersectRect(part, { x: tile.tileX, y: tile.tileY, w: tile.tileW, h: tile.tileH });
+        if (!overlap) continue;
+        const bmp = await bitmapFor(tile);
+        if (!seg.drawn) return; // released while decoding
+        const m = G.tileDrawMapping(tile, overlap, part, out, bmp.width, bmp.height);
+        if (m) ctx.drawImage(bmp, m.sx, m.sy, m.sw, m.sh, m.dx, m.dy, m.dw, m.dh);
+      }
+    }
+    function layout() {
+      const avail = Math.max(320, document.documentElement.clientWidth - 48);
+      scale = Math.min(1, avail / width);
+      stage.style.width = `${width * scale}px`;
+      stage.style.height = `${height * scale}px`;
+      if (observer) observer.disconnect();
+      for (const seg of segments) seg.canvas.remove();
+      segments.length = 0;
+      observer = new IntersectionObserver(entries => {
+        for (const e of entries) {
+          const seg = segments[Number(e.target.dataset.seg)];
+          if (e.isIntersecting) drawSegment(seg).catch(() => {});
+          else if (seg.drawn) { seg.drawn = false; seg.canvas.width = 1; seg.canvas.height = 1; }
+        }
+      }, { rootMargin: '1200px 0px' });
+      for (let y = 0, i = 0; y < height; y += SEG, i++) {
+        const canvas = document.createElement('canvas');
+        const h = Math.min(SEG, height - y);
+        canvas.dataset.seg = String(i);
+        canvas.style.top = `${y * scale}px`;
+        canvas.style.width = `${width * scale}px`;
+        canvas.style.height = `${h * scale}px`;
+        stage.prepend(canvas);
+        segments.push({ y, h, canvas, drawn: false });
+        observer.observe(canvas);
+      }
+      for (const it of items) placeBox(it);
+    }
+
+    return new Promise((resolve, reject) => {
+      $('assembly').hidden = true;
+      $('review').hidden = false;
+      document.body.classList.add('reviewing');
+      document.title = 'Tallshot \u2014 check the redactions';
+      $('review-save').textContent = `Save ${format === 'pdf' ? 'PDF' : 'PNG'}`;
+      for (const it of items) addBox(it);
+      layout();
+      stats();
+      window.scrollTo(0, 0);
+
+      // Drag on the page to add a box.
+      let draft = null;
+      const point = e => {
+        const r = stage.getBoundingClientRect();
+        return { x: Math.max(0, Math.min(width, (e.clientX - r.left) / scale)), y: Math.max(0, Math.min(height, (e.clientY - r.top) / scale)) };
+      };
+      const onDown = e => {
+        if (e.button !== 0) return;
+        const p = point(e);
+        draft = { x0: p.x, y0: p.y, el: document.createElement('div') };
+        draft.el.className = 'rv-draft';
+        stage.append(draft.el);
+        stage.setPointerCapture(e.pointerId);
+      };
+      const rectOf = (d, p) => ({ x: Math.min(d.x0, p.x), y: Math.min(d.y0, p.y), w: Math.abs(p.x - d.x0), h: Math.abs(p.y - d.y0) });
+      const onMove = e => {
+        if (!draft) return;
+        const r = rectOf(draft, point(e));
+        Object.assign(draft.el.style, { left: `${r.x * scale}px`, top: `${r.y * scale}px`, width: `${r.w * scale}px`, height: `${r.h * scale}px` });
+      };
+      const onUp = e => {
+        if (!draft) return;
+        const r = rectOf(draft, point(e));
+        draft.el.remove();
+        draft = null;
+        // Ignore plain clicks; a box needs a few screen pixels each way.
+        if (r.w * scale < 4 || r.h * scale < 4) return;
+        const it = { ...r, kind: 'manual', on: true, manual: true };
+        items.push(it);
+        addBox(it);
+        stats();
+      };
+      stage.addEventListener('pointerdown', onDown);
+      stage.addEventListener('pointermove', onMove);
+      stage.addEventListener('pointerup', onUp);
+      window.addEventListener('resize', layout);
+
+      const poll = setInterval(() => { if (cancelledCaptures.has(captureId)) finish(null); }, 400);
+      const alive = setInterval(() => { chrome.runtime.sendMessage({ type: 'PAC_REVIEW_ALIVE', captureId }).catch(() => {}); }, 20000);
+      function finish(result) {
+        clearInterval(poll);
+        clearInterval(alive);
+        window.removeEventListener('resize', layout);
+        if (observer) observer.disconnect();
+        for (const bmp of bitmaps.values()) bmp.close();
+        bitmaps.clear();
+        stage.replaceChildren();
+        $('review').hidden = true;
+        $('assembly').hidden = false;
+        document.body.classList.remove('reviewing');
+        if (result) resolve(result);
+        else reject(new Error('Capture cancelled during the redaction review. Nothing was saved.'));
+      }
+      $('review-cancel').onclick = () => finish(null);
+      $('review-save').onclick = () => finish({
+        boxes: items.filter(it => it.on).map(it => [it.x, it.y, it.w, it.h, it.kind]),
+        keptVisible: items.filter(it => !it.manual && !it.on).length,
+        drawn: items.filter(it => it.manual).length
+      });
+    });
+  }
+
   async function compose(message) {
     if (!pageCaptureId || message.captureId !== pageCaptureId) throw new Error('Capture ID does not match this local assembly page.');
     const session = await getSession(message.captureId);
@@ -400,19 +575,34 @@
       return r.text;
     };
     let redactSummary = '';
+    let reviewed = null;
     if (message.redact) {
       if (!RD) throw new Error('The redaction module failed to load. Nothing was exported.');
-      const res = RD.redactRuns(textRuns.get(message.captureId) || [], redactWords);
-      textRuns.set(message.captureId, res.runs);
-      redactBoxes.set(message.captureId, res.boxes);
-      redactCount = res.boxes.length;
-      redactSummary = RD.summary(res.counts);
+      const original = textRuns.get(message.captureId) || [];
+      const res = RD.redactRuns(original, redactWords);
+      let boxes = res.boxes;
+      if (message.review) {
+        status('Waiting for you to check the redactions\u2026', 70);
+        reviewed = await reviewRedactions(message.captureId, tiles, width, height, res.boxes, format);
+        boxes = reviewed.boxes;
+        status('Burning in the redactions\u2026', 72);
+      }
+      // The final boxes decide what leaves the PDF text, so a drawn box
+      // removes words too and a box turned off keeps them.
+      textRuns.set(message.captureId, RD.stripRunsUnder(original, boxes));
+      redactBoxes.set(message.captureId, boxes);
+      redactCount = boxes.length;
+      const counts = {};
+      for (const b of boxes) if (b[4] && b[4] !== 'manual') counts[b[4]] = (counts[b[4]] || 0) + 1;
+      redactSummary = RD.summary(counts);
       // A link under a black box would still carry its address.
       const extras = pdfExtras.get(message.captureId);
       if (extras) {
-        const hit = l => res.boxes.some(b => l[0] < b[0] + b[2] && l[0] + l[2] > b[0] && l[1] < b[1] + b[3] && l[1] + l[3] > b[1]);
+        const hit = l => boxes.some(b => l[0] < b[0] + b[2] && l[0] + l[2] > b[0] && l[1] < b[1] + b[3] && l[1] + l[3] > b[1]);
         extras.links = (extras.links || []).filter(l => !hit(l) && (!l[4] || RD.findSecrets(l[4], redactWords).length === 0));
-        extras.marks = (extras.marks || []).map(m => [m[0], m[1], m[2], scrub(m[3])]);
+        // A bookmark whose heading sits under a box would repeat its text.
+        const covers = m => boxes.some(b => m[0] + 2 >= b[0] && m[0] + 2 <= b[0] + b[2] && m[1] + 2 >= b[1] && m[1] + 2 <= b[1] + b[3]);
+        extras.marks = (extras.marks || []).filter(m => !covers(m)).map(m => [m[0], m[1], m[2], scrub(m[3])]);
       }
       session.title = scrub(session.title || '');
       session.url = scrub(session.url || '');
@@ -428,7 +618,7 @@
     const results = [];
     const pdfPages = [];
     const warnings = [...(session.warnings || [])];
-    if (parts.length > 1 && format !== 'pdf') warnings.push(`The page was exported as ${parts.length} numbered ${format === 'png' ? 'PNG' : 'JPEG'} parts to stay within browser image-size limits.`);
+    if (parts.length > 1 && format !== 'pdf') warnings.push(`The page was exported as ${parts.length} numbered PNG parts to stay within browser image-size limits.`);
     for (let i = 0; i < parts.length; i++) {
       if (cancelledCaptures.has(message.captureId)) throw new Error('Capture cancelled between PNG parts. Any part already downloaded will remain in Downloads.');
       status(`Assembling part ${i + 1} of ${parts.length}\u2026`, 70 + (i / parts.length) * 10);
@@ -467,9 +657,11 @@
       results.splice(0, results.length, { filename: `${baseName}.pdf`, width: results[0] ? results[0].width : 0, height: results.reduce((a, r) => a + r.height, 0), bytes: pdfBlob.size });
     }
     if (message.redact) {
+      const drawn = reviewed && reviewed.drawn ? `${redactSummary ? ' plus ' : ''}${reviewed.drawn} box${reviewed.drawn === 1 ? '' : 'es'} you drew` : '';
+      const kept = reviewed && reviewed.keptVisible ? ` You kept ${reviewed.keptVisible} suggestion${reviewed.keptVisible === 1 ? '' : 's'} visible.` : '';
       warnings.unshift(redactCount
-        ? `Share-safe Redact covered ${redactSummary || `${redactCount} item(s)`} in the image${format === 'pdf' ? ' and removed them from the PDF text' : ''}. It finds only text the page exposes: check text inside images, video and embedded frames yourself before sharing.`
-        : 'Share-safe Redact found nothing to redact. It finds only text the page exposes: check text inside images, video and embedded frames yourself before sharing.');
+        ? `Share-safe Redact blacked out ${redactSummary}${drawn}${format === 'pdf' ? ' and removed that text from the PDF' : ''}.${kept}${reviewed ? '' : ' It finds only text the page exposes: check pictures, video and embedded previews yourself before sharing.'}`
+        : `Share-safe Redact blacked out nothing.${kept} It finds only text the page exposes: check pictures, video and embedded previews yourself before sharing.`);
     }
     textRuns.delete(message.captureId);
     redactBoxes.delete(message.captureId);
@@ -530,6 +722,7 @@
       if (message.type === 'PAC_CLEANUP') {
         cancelledCaptures.delete(message.captureId);
         textRuns.delete(message.captureId);
+        redactBoxes.delete(message.captureId);
         pdfExtras.delete(message.captureId);
         await cleanup(message.captureId).catch(() => {});
         return { ok: true };

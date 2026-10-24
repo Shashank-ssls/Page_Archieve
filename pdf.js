@@ -1,5 +1,5 @@
 /* Minimal dependency-free PDF writer: one JPEG image per page (DCTDecode),
-   optional invisible text layer, link annotations, outline and cover page. */
+   optional invisible text layer, link annotations and an outline. */
 (function (root) {
   'use strict';
 
@@ -90,7 +90,7 @@
     return `<${out}>`;
   }
 
-  // Literal string for ASCII-only content (URIs, cover text in standard fonts).
+  // Literal string for ASCII-only content (URIs, document info).
   const asciiLit = (s, max = 2000) => '(' + String(s || '').replace(/[^\x20-\x7E]/g, '?').slice(0, max).replace(/([\\()])/g, '\\$1') + ')';
 
   // Only absolute web and mail links become URI actions; anything else
@@ -101,60 +101,6 @@
     return u;
   }
 
-  function wrapAscii(text, width) {
-    const words = String(text || '').replace(/[^\x20-\x7E]/g, '?').split(/\s+/).filter(Boolean);
-    const lines = [];
-    let line = '';
-    for (let w of words) {
-      while (w.length > width) {
-        if (line) { lines.push(line); line = ''; }
-        lines.push(w.slice(0, width));
-        w = w.slice(width);
-      }
-      if (!w) continue;
-      if (line && line.length + 1 + w.length > width) { lines.push(line); line = w; } else line = line ? `${line} ${w}` : w;
-    }
-    if (line) lines.push(line);
-    return lines;
-  }
-
-  // Cover page (US Letter) with visible text in the standard Helvetica/Courier
-  // fonts. Those fonts are WinAnsi only, so non-ASCII characters show as "?";
-  // the outline and the text layer keep full Unicode.
-  // Returns one content stream per cover page: the hash list continues on
-  // further pages rather than being cut short.
-  function coverOps(cover, pageCount, H) {
-    const pages = [];
-    let y = H - 72;
-    let ops = '0.1 0.1 0.1 rg\n';
-    const line = (font, size, text, gap) => {
-      if (y < 72) {
-        pages.push(ops);
-        ops = '0.1 0.1 0.1 rg\n';
-        y = H - 72;
-      }
-      ops += `BT /${font} ${size} Tf 72 ${num(y)} Td ${asciiLit(text)} Tj ET\n`;
-      y -= gap || size * 1.5;
-    };
-    line('FH', 9, 'TALLSHOT CAPTURE', 24);
-    for (const t of wrapAscii(cover.title || 'Untitled page', 44).slice(0, 4)) line('FB', 18, t, 24);
-    y -= 10;
-    line('FH', 9, 'URL');
-    for (const t of wrapAscii(cover.url || '-', 78).slice(0, 8)) line('FC', 9, t, 12);
-    y -= 10;
-    line('FH', 9, 'CAPTURED');
-    line('FC', 9, cover.captured || '-', 12);
-    y -= 10;
-    line('FH', 9, `CAPTURED PAGES (after the cover): ${pageCount}`, 24);
-    const hashes = (Array.isArray(cover.hashes) ? cover.hashes : []).slice(0, 5000);
-    if (hashes.length) {
-      line('FH', 9, 'SHA-256 OF EACH PAGE IMAGE (the JPEG bytes embedded on that page)');
-      hashes.forEach((h, i) => line('FC', 8, `${String(i + 1).padStart(4, ' ')}  ${String(h).replace(/[^0-9a-f]/gi, '').slice(0, 64)}`, 11));
-    }
-    pages.push(ops);
-    return pages;
-  }
-
   /**
    * pages: [{ jpeg: Uint8Array, cssWidth?, cssHeight?, text?, links? }]
    * Optional page.text: [{ x, y, w, h, text }] in the page's CSS px adds an
@@ -163,8 +109,6 @@
    * (dest.page indexes `pages`, dest.y is CSS px on that page) adds clickable areas.
    * meta.outline: [{ title, page, y, level }] in reading order adds bookmarks;
    * a higher level nests under the nearest earlier lower one.
-   * meta.cover: { title, url, captured, hashes } adds a first page describing
-   * the capture.
    * cssWidth/cssHeight define the page size (1 CSS px = 0.75 pt); defaults to
    * the image pixel size. Pages that would exceed PDF limits are scaled down.
    */
@@ -196,12 +140,6 @@
 
     // Object ids: 1 catalog, 2 pages, 3 info, then allocated in writing order.
     let nextId = 4;
-    const cover = meta.cover && typeof meta.cover === 'object' ? meta.cover : null;
-    const coverStreams = cover ? coverOps(cover, pages.length, 792) : [];
-    const coverIds = cover ? {
-      pages: coverStreams.map(() => { const id = nextId; nextId += 2; return id; }), // page, content
-      fonts: [nextId++, nextId++, nextId++]
-    } : null;
     const pageIds = pages.map(() => { const id = nextId; nextId += 3; return id; }); // page, content, image
     const hasText = pages.some(p => Array.isArray(p.text) && p.text.length);
     const fontId = hasText ? nextId : 0;
@@ -212,23 +150,11 @@
     const outlineRoot = outline.length ? nextId++ : 0;
     const outlineIds = outline.map(() => nextId++);
     const total = nextId;
-    const kids = [...(coverIds ? coverIds.pages : []), ...pageIds];
+    const kids = pageIds;
 
     startObj(1); push(`<< /Type /Catalog /Pages 2 0 R${outlineRoot ? ` /Outlines ${outlineRoot} 0 R /PageMode /UseOutlines` : ''} >>\nendobj\n`);
     startObj(2); push(`<< /Type /Pages /Count ${kids.length} /Kids [${kids.map(id => `${id} 0 R`).join(' ')}] >>\nendobj\n`);
     startObj(3); push(`<< /Title ${asciiLit(meta.title, 200)} /Producer (Tallshot) /Subject ${asciiLit(meta.subject, 200)} >>\nendobj\n`);
-
-    if (coverIds) {
-      const [fh, fb, fc] = coverIds.fonts;
-      coverIds.pages.forEach((id, i) => {
-        startObj(id);
-        push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /FH ${fh} 0 R /FB ${fb} 0 R /FC ${fc} 0 R >> >> /Contents ${id + 1} 0 R >>\nendobj\n`);
-        writeStream(id + 1, coverStreams[i]);
-      });
-      [[fh, 'Helvetica'], [fb, 'Helvetica-Bold'], [fc, 'Courier']].forEach(([id, name]) => {
-        startObj(id); push(`<< /Type /Font /Subtype /Type1 /BaseFont /${name} /Encoding /WinAnsiEncoding >>\nendobj\n`);
-      });
-    }
 
     pages.forEach((page, i) => {
       const { jpeg, info, w, h, k } = geo[i];

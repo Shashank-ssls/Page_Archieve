@@ -84,24 +84,6 @@ test('outline nests h1 > h2 > h3 with correct counts and Unicode titles', () => 
   assert.equal(PDF.pdfTextHex('\u{1F600}'), '<feffd83dde00>');
 });
 
-test('cover page comes first, lists SHA-256 hashes and keeps the xref valid', () => {
-  const hash = 'a'.repeat(64);
-  const { objs } = objects(PDF.buildPdf([
-    { jpeg: fakeJpeg(400, 1000), text: [{ x: 1, y: 1, w: 20, h: 10, text: 'hi' }] },
-    { jpeg: fakeJpeg(400, 1000) }
-  ], { cover: { title: 'My (page)', url: 'https://example.com/x', captured: '2026-10-22 10:00:00 UTC+05:30', hashes: [hash, hash] }, outline: [{ title: 'A', page: 1, y: 0, level: 1 }] }));
-  assert.match(objs[2], /\/Count 3/);
-  const [coverId, firstImagePage] = kidsOf(objs);
-  assert.match(objs[coverId], /\/MediaBox \[0 0 612 792\]/);
-  const content = objs[Number(objs[coverId].match(/\/Contents (\d+)/)[1])];
-  assert.match(content, /\(My \\\(page\\\)\) Tj/);
-  assert.match(content, /\(https:\/\/example\.com\/x\) Tj/);
-  assert.ok(content.includes(`(   1  ${hash}) Tj`));
-  assert.ok(content.includes('(CAPTURED PAGES \\(after the cover\\): 2) Tj'));
-  assert.match(objs[firstImagePage], /\/XObject << \/Im0/);
-  assert.ok(Object.values(objs).some(b => /\/BaseFont \/Helvetica-Bold/.test(b)));
-});
-
 test('a plain PDF has no outline, annotations or cover', () => {
   const { objs } = objects(PDF.buildPdf([{ jpeg: fakeJpeg(10, 10) }]));
   assert.doesNotMatch(objs[1], /Outlines/);
@@ -125,7 +107,7 @@ test('links and outline marks travel content -> worker -> stitcher', () => {
   assert.match(content, /\/\^H\[1-3\]\$\/\.test\(tag\)/);
   assert.match(content, /links: links\.map[\s\S]{0,200}marks: marks\.map/);
   assert.match(background, /PAC_STORE_TEXT[\s\S]{0,200}links: pdfLinks, marks: pdfMarks/);
-  // The cover page option was removed (owner, 2026-10-24); pdf.js keeps it.
+  // The cover page option was removed (owner, 2026-10-24).
   assert.ok(!/pdfCover/.test(background));
   assert.ok(!read('popup.html').includes('pdf-cover'));
   assert.match(stitcher, /PDF\.buildPdf\(pdfPages, \{[^}]*outline \}\)/);
@@ -174,18 +156,6 @@ test('render screenshots are paint-checked and document growth stops at a chasin
   assert.match(background, /attempt >= 3\) throw new Error/);
   assert.match(background, /tail - prev\.tail >= \(viewportH - prev\.viewportH\) \* 0\.5/);
   assert.match(read('stitcher.js'), /format === 'pdf'\s*\? G\.pdfPageParts/);
-});
-
-test('a long hash list continues on further cover pages instead of being cut', () => {
-  const hashes = Array.from({ length: 120 }, (_, i) => i.toString(16).padStart(64, '0'));
-  const pages = Array.from({ length: 120 }, () => ({ jpeg: fakeJpeg(10, 10) }));
-  const { objs } = objects(PDF.buildPdf(pages, { cover: { title: 'T', url: 'https://e.x', captured: 'now', hashes } }));
-  const kids = kidsOf(objs);
-  const coverPages = kids.filter(id => objs[id].includes('/MediaBox [0 0 612 792]'));
-  assert.ok(coverPages.length >= 2, 'cover spans more than one page');
-  assert.equal(kids.length, 120 + coverPages.length);
-  const text = coverPages.map(id => objs[Number(objs[id].match(/\/Contents (\d+)/)[1])]).join('');
-  for (let i = 0; i < 120; i++) assert.ok(text.includes(`${String(i + 1).padStart(4, ' ')}  ${hashes[i]}) Tj`), `hash ${i + 1} listed`);
 });
 
 test('endSpacerCut trims empty space after the last panel content', () => {

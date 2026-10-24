@@ -121,21 +121,23 @@
       const hits = findSecrets(text, words);
       // A shadow run is a later line of a wrapped word: boxed when its word
       // is a secret, never written to the PDF text (the first piece is).
-      if (shadow) { if (hits.length) boxes.push([x - pad, y - pad, w + pad * 2, h + pad * 2]); continue; }
+      if (shadow) { if (hits.length) boxes.push([x - pad, y - pad, w + pad * 2, h + pad * 2, hits[0].kind]); continue; }
       if (!hits.length) { out.push([x, y, w, h, fs, text]); continue; }
       const list = text.split(' ');
       const ok = Array.isArray(edges) && edges.length === list.length * 2;
       for (const hit of hits) counts[hit.kind] = (counts[hit.kind] || 0) + 1;
       if (!ok) {
         // Without word positions, the whole run is covered and dropped.
-        boxes.push([x - pad, y - pad, w + pad * 2, h + pad * 2]);
+        boxes.push([x - pad, y - pad, w + pad * 2, h + pad * 2, hits[0].kind]);
         continue;
       }
       const hidden = new Array(list.length).fill(false);
+      const kindOf = new Array(list.length).fill('');
       let pos = 0;
       list.forEach((word, i) => {
         const start = pos, end = pos + word.length;
-        if (hits.some(hit => hit.start < end && hit.end > start)) hidden[i] = true;
+        const hit = hits.find(h => h.start < end && h.end > start);
+        if (hit) { hidden[i] = true; kindOf[i] = hit.kind; }
         pos = end + 1;
       });
       let i = 0;
@@ -143,12 +145,38 @@
         let j = i;
         while (j + 1 < list.length && hidden[j + 1] === hidden[i]) j++;
         const sx = edges[i * 2], ex = edges[j * 2 + 1];
-        if (hidden[i]) boxes.push([x + sx - pad, y - pad, ex - sx + pad * 2, h + pad * 2]);
+        if (hidden[i]) boxes.push([x + sx - pad, y - pad, ex - sx + pad * 2, h + pad * 2, kindOf[i]]);
         else out.push([x + sx, y, ex - sx, h, fs, list.slice(i, j + 1).join(' ')]);
         i = j + 1;
       }
     }
     return { boxes, runs: out, counts };
+  }
+
+  // After review the final boxes decide what leaves the PDF text: every word
+  // a box touches is removed (a box the user drew too), every word whose
+  // suggested box the user turned off stays. Shadow runs never reach the text.
+  function stripRunsUnder(runs, boxes) {
+    const hit = (x, y, w, h) => (boxes || []).some(b => x < b[0] + b[2] && x + w > b[0] && y < b[1] + b[3] && y + h > b[1]);
+    const out = [];
+    for (const run of runs || []) {
+      const [x, y, w, h, fs, text, edges, shadow] = run;
+      if (shadow) continue;
+      const list = String(text).split(' ');
+      if (!(Array.isArray(edges) && edges.length === list.length * 2)) {
+        if (!hit(x, y, w, h)) out.push([x, y, w, h, fs, text]);
+        continue;
+      }
+      let i = 0;
+      while (i < list.length) {
+        const keep = !hit(x + edges[i * 2], y, edges[i * 2 + 1] - edges[i * 2], h);
+        let j = i;
+        while (j + 1 < list.length && !hit(x + edges[(j + 1) * 2], y, edges[(j + 1) * 2 + 1] - edges[(j + 1) * 2], h) === keep) j++;
+        if (keep) out.push([x + edges[i * 2], y, edges[j * 2 + 1] - edges[i * 2], h, fs, list.slice(i, j + 1).join(' ')]);
+        i = j + 1;
+      }
+    }
+    return out;
   }
 
   function redactString(text, words) {
@@ -164,7 +192,7 @@
     return Object.keys(counts).map(k => `${counts[k]} ${counts[k] === 1 ? (LABELS[k] || k) : (plural[k] || `${LABELS[k] || k}s`)}`).join(', ');
   }
 
-  const api = { findSecrets, redactRuns, redactString, parseWordList, summary, luhn, ibanValid, entropy };
+  const api = { findSecrets, redactRuns, stripRunsUnder, redactString, parseWordList, summary, luhn, ibanValid, entropy };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.PageArchiveRedact = api;
 })(globalThis);
