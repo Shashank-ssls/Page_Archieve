@@ -13,7 +13,7 @@ the reasons behind each choice, so that fixes do not undo hard-won behaviour.
 | `content.js` | Injected on demand. Target selection (site presets, then heuristics), page preparation, expand, lazy-load pass, render helpers, text-run collection, restore. |
 | `geometry.js` | Pure math shared with tests: tile plans, coverage validation, render chunks, panel growth, name templates, folder sanitising. |
 | `protocol.js` | Allow-lists of page commands and stitcher commands. Add every new message type here. |
-| `stitcher.html/js` | Hidden extension tab. Stores tiles in IndexedDB, validates coverage, composes parts, encodes PNG/JPEG/PDF, downloads. |
+| `stitcher.html/js` | Hidden extension tab. Stores tiles in IndexedDB, validates coverage, composes parts, encodes PNG/PDF, downloads. |
 | `pdf.js` | Dependency-free PDF writer: one JPEG per page plus an optional invisible Unicode text layer. |
 | `popup.*` | UI. See `DESIGN.md`. |
 | `tools/build-editions.mjs` | Builds `dist/full` and `dist/lite` from the one source tree. |
@@ -109,18 +109,21 @@ background); without it, `captureVisibleTab` (2 per second, tab must stay active
   `[x, y, w, h, '', destX, destY]` for same-page `#fragment` links, and outline
   marks `[x, y, level, title]`: h1-h3, or one per user prompt when a chat preset
   defines `turns`. The stitcher maps them onto parts with `G.partAt`; `pdf.js`
-  writes Link annotations (URI or GoTo), a nested outline (UTF-16 titles) and,
-  with the PDF cover page option, a first page with title, URL, capture time and
-  the SHA-256 of each page's embedded JPEG (`crypto.subtle`, local). Links whose
+  writes Link annotations (URI or GoTo) and a nested outline (UTF-16 titles).
+  (The cover page option was removed 2026-10-24; `pdf.js` still supports
+  `meta.cover` for a later Proof Stamp, but nothing calls it.) Links whose
   target lies outside the capture are dropped. Stitch-engine PDFs carry none of
   this, as before.
 - Share-safe Redact (Full render only): `PAC_COLLECT_TEXT` with `wordEdges`
   adds each word's x span to its run; `redact.js` finds secrets per run and
   returns black boxes plus runs with those words removed. The stitcher swaps
   in the cleaned runs, paints the boxes on every part canvas before encoding,
-  drops links under a box, and scrubs bookmark titles, cover title/URL and the
-  PDF title; the worker scrubs the file name. Secrets split across runs (a
-  wrapped line) or drawn in images are not detected. With Redact on, every
+  drops links under a box, and scrubs bookmark titles and the PDF title; the
+  worker scrubs the file name. Form field values are collected as one run per
+  field (boxed whole). A word broken across lines adds "shadow" runs for its
+  later lines: boxed when the word is a secret, never written to the PDF text.
+  Secrets split between separate words across lines, or drawn into canvases
+  and images, are not detected; drawn areas are counted in a warning. With Redact on, every
   path that cannot read text (stitch fallback, Lite, visible area) throws
   instead of saving.
 - File name: `G.applyNameTemplate` tokens {title} {site} {date} {time}
