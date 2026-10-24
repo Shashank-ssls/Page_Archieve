@@ -253,7 +253,9 @@ footer { display: flex; justify-content: space-between; font-size: 9.5px; font-w
   font: 500 12px/1.3 "Outfit", system-ui, sans-serif; color: var(--ink); margin-bottom: 4px;
 }
 .text-in:focus { outline: none; box-shadow: 2px 2px 0 var(--accent); }
-.row small code { font: 600 10px/1 "Outfit", sans-serif; padding: 1px 3px; border: 1px solid var(--faint); color: var(--ink); }
+.row small .token { cursor: pointer; background: none; }
+.row small .token:hover, .row small .token:focus-visible { border-color: var(--ink); }
+.row small code, .row small .token { font: 600 10px/1 "Outfit", sans-serif; padding: 1px 3px; border: 1px solid var(--faint); color: var(--ink); }
 .name-preview { font-size: 10.5px; color: var(--muted); overflow-wrap: anywhere; }
 .name-preview b { color: var(--ink); font-weight: 600; }
 .ver.lite { border-color: var(--accent); color: var(--accent); }

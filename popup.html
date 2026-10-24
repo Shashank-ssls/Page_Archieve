@@ -91,10 +91,10 @@
           <input id="auto-load" class="switch" type="checkbox">
         </label>
         <div class="row stack">
-          <label class="row-text" for="name-template"><strong>File name</strong><small>Tokens: <code>{title}</code> <code>{site}</code> <code>{date}</code> <code>{time}</code></small></label>
+          <label class="row-text" for="name-template"><strong>File name</strong><small>Words in braces are filled in when saving. Click one to add it: <button type="button" class="token" data-token="{title}" title="The page title">{title}</button> <button type="button" class="token" data-token="{site}" title="The site, like claude.ai">{site}</button> <button type="button" class="token" data-token="{date}" title="Today, like 2026-10-24">{date}</button> <button type="button" class="token" data-token="{time}" title="The time, like 14-05-09">{time}</button></small></label>
           <input id="name-template" class="text-in" type="text" spellcheck="false" maxlength="120" value="{title}" placeholder="{title}">
-          <label class="row-text" for="folder"><strong>Save to folder</strong><small>Inside your Downloads folder. Leave empty for Downloads itself.</small></label>
-          <input id="folder" class="text-in" type="text" spellcheck="false" maxlength="120" placeholder="Tallshot/{site}">
+          <label class="row-text" for="folder"><strong>Save to folder</strong><small>A folder inside Downloads; braces work here too. Leave empty to save straight to Downloads.</small></label>
+          <input id="folder" class="text-in" type="text" spellcheck="false" maxlength="120" placeholder="e.g. Tallshot/{site}">
           <div class="name-preview" id="name-preview"></div>
         </div>
         <label class="row" for="max-height">

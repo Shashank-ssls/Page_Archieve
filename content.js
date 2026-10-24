@@ -1800,7 +1800,15 @@
       if (message.type === 'PAC_PREPARE') {
         if (state) restoreAll();
         const settings = message.settings || {};
-        const target = ['auto', 'document', 'panel'].includes(settings.captureTarget) ? settings.captureTarget : 'auto';
+        let target = ['auto', 'document', 'panel'].includes(settings.captureTarget) ? settings.captureTarget : 'auto';
+        // Document on an app shell (Claude, ChatGPT, 2026-10): the document
+        // does not scroll and a panel holds the content, so Document would
+        // save one screen. Capture the panel instead, and say so.
+        let documentSwitched = false;
+        if (target === 'document' && rootMetrics().pageH <= window.innerHeight + 1) {
+          const panel = getInnerScroller(true);
+          if (panel && panel.scrollHeight - panel.clientHeight > 200) { target = 'auto'; documentSwitched = true; }
+        }
         const preset = target === 'document' ? null : detectPreset();
         const inner = target === 'document' ? null : ((preset && preset.scroller) || getInnerScroller(target === 'panel'));
         if (target === 'auto' && !inner && lastPanelSelectionIssue && rootMetrics().pageH <= window.innerHeight + 220) {
@@ -1872,6 +1880,7 @@
         if (inner) await stabilizeInnerScroller();
         const metrics = currentMetrics();
         if (expandWarning) warnings = [expandWarning, ...warnings];
+        if (documentSwitched) warnings = ['This page does not scroll as a document, so Document would save only one screen. Captured the main scroll panel instead (as Smart does).', ...warnings];
         // Document target on an app shell: report how much a scroll panel
         // hides, so the worker can say the capture is only the shell. Text
         // clipped inside the panel does not count as ink, so the ink extent

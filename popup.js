@@ -7,6 +7,10 @@ const cancelButton = $('cancel');
 const folderButton = $('open-folder');
 const CELLS = 25;
 let currentTabId = null;
+// The preview shows the real tab's title and site when the popup knows them.
+let previewTab = { title: 'Page title', site: 'example.com' };
+let lastNameField = 'name-template';
+
 let running = false;
 
 const defaults = { engine: 'auto', format: 'png', prepareImages: true, autoLoadMore: false, hideFloating: true, expandContent: true, nameTemplate: '{title}', folder: '', maxHeight: 200000, waitMs: 3500, captureTarget: 'auto', pdfCover: false };
@@ -73,7 +77,7 @@ function previewName() {
   const pad = n => String(n).padStart(2, '0');
   const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   const time = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
-  const fill = t => t.replace(/\{title\}/gi, 'Page title').replace(/\{site\}/gi, 'example.com').replace(/\{date\}/gi, date).replace(/\{time\}/gi, time).replace(/\{datetime\}/gi, `${date}_${time}`);
+  const fill = t => t.replace(/\{title\}/gi, () => previewTab.title).replace(/\{site\}/gi, () => previewTab.site).replace(/\{date\}/gi, date).replace(/\{time\}/gi, time).replace(/\{datetime\}/gi, `${date}_${time}`);
   const ext = s.format === 'jpeg' ? 'jpg' : s.format;
   const folder = fill(s.folder).split(/[\\/]+/).map(x => x.trim()).filter(x => x && x !== '..' && x !== '.').join('/');
   const el = $('name-preview');
@@ -283,7 +287,20 @@ folderButton.addEventListener('click', () => {
 document.querySelectorAll('input[name="format"], input[name="target"]').forEach(el => {
   el.addEventListener('change', () => { void saveSettings(); });
 });
-['name-template', 'folder'].forEach(id => $(id).addEventListener('input', () => { updateMeta(); }));
+['name-template', 'folder'].forEach(id => {
+  $(id).addEventListener('input', () => { updateMeta(); });
+  $(id).addEventListener('focus', () => { lastNameField = id; });
+});
+// Token chips insert at the cursor of the last focused name field.
+document.querySelectorAll('.token').forEach(btn => btn.addEventListener('click', () => {
+  const input = $(lastNameField);
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? input.value.length;
+  input.setRangeText(btn.dataset.token, start, end, 'end');
+  input.focus();
+  updateMeta();
+  void saveSettings();
+}));
 ['prepare-images', 'auto-load', 'hide-floating', 'expand-content', 'pdf-cover', 'name-template', 'folder', 'engine', 'max-height', 'wait-ms'].forEach(id => {
   $(id).addEventListener('change', () => { void saveSettings(); });
 });
@@ -352,6 +369,11 @@ chrome.runtime.onMessage.addListener(message => {
   const tab = await activeTab().catch(() => null);
   currentTabId = tab && tab.id;
   updateTargetHint(tab && tab.url);
+  try {
+    if (tab && tab.title) previewTab.title = tab.title.replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 80) || previewTab.title;
+    if (tab && tab.url) previewTab.site = new URL(tab.url).hostname.replace(/^www\./, '') || previewTab.site;
+  } catch (_) {}
+  previewName();
   if (typeof currentTabId === 'number') {
     const status = await chrome.runtime.sendMessage({ type: 'PAC_GET_STATUS', tabId: currentTabId }).catch(() => null);
     if (status && status.active) {
