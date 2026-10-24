@@ -60,7 +60,7 @@ function readSettings() {
     autoLoadMore: $('auto-load').checked,
     hideFloating: $('hide-floating').checked,
     expandContent: $('expand-content').checked,
-    redact: IS_FULL_EDITION && $('redact').checked,
+    redact: IS_FULL_EDITION && radioValue('redact') === 'on',
     redactWords: $('redact-words').value.trim(),
     nameTemplate: $('name-template').value.trim() || '{title}',
     folder: $('folder').value.trim(),
@@ -95,7 +95,7 @@ function updateMeta() {
   const fmt = s.format.toUpperCase();
   const target = { auto: 'Smart', document: 'Document', panel: 'Panel' }[s.captureTarget];
   $('cta-meta').textContent = `${engine} \u00b7 ${fmt} \u00b7 ${target}${s.redact ? ' \u00b7 Redact' : ''}`;
-  $('redact-words').hidden = !s.redact;
+  $('redact-extra').hidden = !s.redact;
   $('engine-note').textContent = s.engine === 'stitch'
     ? 'One screen at a time. Slower, no PDF text, but no debugging bar.'
     : 'Sharper, keeps text in PDFs. Chrome shows a debugging bar while it runs.';
@@ -286,7 +286,7 @@ cancelButton.addEventListener('click', async () => {
 folderButton.addEventListener('click', () => {
   try { chrome.downloads.showDefaultFolder(); } catch (_) {}
 });
-document.querySelectorAll('input[name="format"], input[name="target"]').forEach(el => {
+document.querySelectorAll('input[name="format"], input[name="target"], input[name="redact"]').forEach(el => {
   el.addEventListener('change', () => { void saveSettings(); });
 });
 ['name-template', 'folder'].forEach(id => {
@@ -303,10 +303,9 @@ document.querySelectorAll('.token').forEach(btn => btn.addEventListener('click',
   updateMeta();
   void saveSettings();
 }));
-['prepare-images', 'auto-load', 'hide-floating', 'expand-content', 'redact', 'redact-words', 'name-template', 'folder', 'engine', 'max-height', 'wait-ms'].forEach(id => {
+['prepare-images', 'auto-load', 'hide-floating', 'expand-content', 'redact-words', 'name-template', 'folder', 'engine', 'max-height', 'wait-ms'].forEach(id => {
   $(id).addEventListener('change', () => { void saveSettings(); });
 });
-$('redact').addEventListener('change', updateMeta);
 $('more').addEventListener('toggle', () => {
   chrome.storage.local.set({ pageArchiveMoreOpen: $('more').open }).catch(() => {});
 });
@@ -353,7 +352,7 @@ chrome.runtime.onMessage.addListener(message => {
   $('auto-load').checked = settings.autoLoadMore === true;
   $('hide-floating').checked = settings.hideFloating !== false;
   $('expand-content').checked = settings.expandContent !== false;
-  $('redact').checked = settings.redact === true;
+  setRadio('redact', settings.redact === true ? 'on' : 'off');
   $('redact-words').value = settings.redactWords || '';
   $('name-template').value = settings.nameTemplate || '{title}';
   $('folder').value = settings.folder || '';
@@ -362,6 +361,7 @@ chrome.runtime.onMessage.addListener(message => {
     $('engine-row').hidden = true;
     // Redact needs the Full render text map; Lite does not mention it.
     $('redact-group').hidden = true;
+    $('redact-extra').hidden = true;
     const ver = document.querySelector('.ver');
     ver.textContent = 'LITE';
     ver.classList.add('lite');

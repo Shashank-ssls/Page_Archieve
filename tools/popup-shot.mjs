@@ -37,6 +37,9 @@ for (const scheme of ['light', 'dark']) {
   await page.screenshot({ path: path.join(OUT, `${edition}-${scheme}-1-idle.png`), fullPage: true });
   await page.evaluate(() => {
     document.getElementById('more').open = true;
+    // Show Redact on, so its hint and word box are reviewed too (Full only).
+    const on = document.querySelector('input[name="redact"][value="on"]');
+    if (on && !document.getElementById('redact-group').hidden) { on.checked = true; on.dispatchEvent(new Event('change', { bubbles: true })); }
     // eslint-disable-next-line no-undef
     running = true;
     // eslint-disable-next-line no-undef

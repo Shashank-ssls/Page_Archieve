@@ -61,7 +61,9 @@ test('a redacted capture never falls back to an engine without text', () => {
   assert.match(bg, /if \(settings\.redact && !job\.cdp\) throw/);
   assert.match(bg, /if \(settings\.redact\) throw new Error\(`Full render could not complete/);
   assert.match(bg, /if \(job\.settings\.redact\) throw new Error/);
-  assert.match(bg, /if \(mode === 'visible' && settings\.redact\) throw new Error\(`\$\{REDACT_NEEDS_TEXT\}; a visible-area screenshot/);
+  // Visible area redacts too (owner, 2026-10-24); only browser pages refuse.
+  assert.match(bg, /if \(mode === 'visible' && settings\.redact && restrictedPage\) throw/);
+  assert.match(bg, /PAC_COLLECT_TEXT', visible: true, wordEdges: true/);
   assert.match(bg, /if \(settings\.redact\) throw new Error\(`Could not read the page text for Share-safe Redact/);
   assert.match(bg, /settings\.redact = settings\.redact === true && IS_FULL_EDITION/);
 });
@@ -135,4 +137,13 @@ test('stripRunsUnder follows the final boxes: drawn boxes remove words, turned-o
   assert.deepStrictEqual(R.stripRunsUnder([run], []).map(r => r[5]), ['call Ana now']);
   assert.deepStrictEqual(R.stripRunsUnder([[0, 0, 50, 10, 12, 'x y']], [[10, 0, 5, 5]]), []);
   assert.deepStrictEqual(R.stripRunsUnder([[0, 0, 50, 10, 12, 'x', [0, 50], 1]], []), []);
+});
+
+test('a value split over several pieces on one line is still found', () => {
+  const runs = [[0, 0, 40, 16, 14, '4242', [0, 40]], [48, 0, 40, 16, 14, '4242', [0, 40]], [96, 0, 40, 16, 14, '4242', [0, 40]], [144, 0, 40, 16, 14, '4242', [0, 40]], [200, 0, 60, 16, 14, 'Visa', [0, 60]]];
+  const res = R.redactRuns(runs, []);
+  assert.strictEqual(res.boxes.length, 4);
+  assert.deepStrictEqual(res.runs.map(r => r[5]), ['Visa']);
+  assert.deepStrictEqual(res.counts, { card: 1 });
+  assert.deepStrictEqual(kinds('STORYWEAVE_LLM_MODEL=qwen2.5:7b'), []);
 });

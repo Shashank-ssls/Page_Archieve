@@ -173,8 +173,29 @@ function checkCancel(job) {
 }
 
 async function takeVisibleCapture(tab, job, stitcherTabId, title, url, warnings = []) {
+  const { settings } = job;
+  // Redact on a visible-area shot: read the page text first (the page does
+  // not change between reading and the screenshot), in screenshot pixels.
+  let runs = null;
+  let drawn = 0;
+  if (settings.redact) {
+    progress(tab.id, 'prepare', 20, 'Reading page text to find secrets\u2026');
+    await injectContent(tab.id);
+    let collected;
+    try {
+      collected = await getContentMessage(tab.id, { type: 'PAC_COLLECT_TEXT', visible: true, wordEdges: true, maxWords: 150000 });
+    } catch (error) {
+      throw new Error(`Could not read the page text for Share-safe Redact (${errorText(error).slice(0, 120)}). Nothing was saved.`);
+    }
+    // captureVisibleTab returns device pixels; the stitcher keeps visible
+    // shots at scale 1, so the boxes are scaled to match.
+    const k = Number(collected.dpr) > 0 ? Number(collected.dpr) : 1;
+    runs = (collected.runs || []).map(r => [r[0] * k, r[1] * k, r[2] * k, r[3] * k, r[4] * k, r[5], Array.isArray(r[6]) ? r[6].map(v => v * k) : r[6], r[7]]);
+    drawn = collected.drawn || 0;
+  }
   await assertOriginalTabStillActive(tab.id, tab.windowId);
   const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+  if (drawn > 0) warnings.push(`Share-safe Redact could not check ${drawn} drawn area(s) (canvas, embedded document or frame), such as a PDF or document preview. Text painted there is not redacted: draw a box over it in the review, or check it yourself before sharing.`);
   await sendToStitcher(stitcherTabId, {
     type: 'PAC_BEGIN', captureId: job.captureId,
     session: { title, url, mode: 'visible', pageW: 1, pageH: 1, captureW: 1, captureH: 1, truncated: false, warnings, fallbackVisible: true }
@@ -183,12 +204,23 @@ async function takeVisibleCapture(tab, job, stitcherTabId, title, url, warnings 
     type: 'PAC_STORE_TILE', captureId: job.captureId, dataUrl,
     tile: { index: 0, tileX: 0, tileY: 0, tileW: 1, tileH: 1, cropX: 0, cropY: 0, viewportW: 0, fallbackVisible: true }
   });
-  progress(tab.id, 'stitch', 82, 'Encoding the visible area\u2026');
-  return sendToStitcher(stitcherTabId, {
-    type: 'PAC_COMPOSE', captureId: job.captureId, expectedTileCount: 1,
-    baseName: cleanBaseName(title, url, job.settings.nameTemplate), folder: job.settings.folder, format: job.settings.format,
-    capturedAt: job.startedAt
-  });
+  if (runs) await sendToStitcher(stitcherTabId, { type: 'PAC_STORE_TEXT', captureId: job.captureId, runs, links: [], marks: [] }, 60000);
+  const review = settings.redact && settings.redactReview;
+  if (review) {
+    progress(tab.id, 'stitch', 82, 'Check the redactions in the Tallshot tab, then press Save there.');
+    await chrome.tabs.update(stitcherTabId, { active: true }).catch(() => {});
+  } else {
+    progress(tab.id, 'stitch', 82, 'Encoding the visible area\u2026');
+  }
+  try {
+    return await sendToStitcher(stitcherTabId, {
+      type: 'PAC_COMPOSE', captureId: job.captureId, expectedTileCount: 1,
+      baseName: cleanBaseName(redactTitle(title, settings), url, settings.nameTemplate), folder: settings.folder, format: settings.format,
+      capturedAt: job.startedAt, redact: settings.redact, redactWords: settings.redactWords, review
+    }, review ? 60 * 60 * 1000 : 15000);
+  } finally {
+    if (review) await chrome.tabs.update(tab.id, { active: true }).catch(() => {});
+  }
 }
 
 function normalizeSettings(userSettings, tabId) {
@@ -782,12 +814,12 @@ async function startCapture(tabId, mode, userSettings) {
     // Visible-area capture does not need to inject a content script. Keep it a
     // separate, explicit mode; a failed full-page capture must never silently
     // degrade into a viewport screenshot.
-    if (mode === 'visible' && settings.redact) throw new Error(`${REDACT_NEEDS_TEXT}; a visible-area screenshot does not read it. Nothing was saved. Turn off Share-safe Redact or use Capture full page.`);
+    if (mode === 'visible' && settings.redact && restrictedPage) throw new Error('Share-safe Redact cannot read the text of browser pages, so nothing was saved. Turn off Redact to take a plain visible-area screenshot.');
     if (mode === 'visible') {
       const visibleWarnings = restrictedPage ? ['Chrome/Edge internal pages allow only a visible-area screenshot; page scrolling and full-page inspection are restricted.'] : [];
       const result = await takeVisibleCapture(tab, job, job.stitcherTabId, tab.title || 'Webpage', tab.url || '', visibleWarnings);
       success = true;
-      progress(tabId, 'done', 100, 'Visible area saved.', { warnings: visibleWarnings, downloads: result.downloads || 1, files: result.parts || [], format: settings.format });
+      progress(tabId, 'done', 100, 'Visible area saved.', { warnings: [...new Set([...visibleWarnings, ...(result.warnings || [])])], downloads: result.downloads || 1, files: result.parts || [], format: settings.format });
       return;
     }
 

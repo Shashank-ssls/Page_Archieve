@@ -1992,7 +1992,9 @@
         return { ok: true, pinned, measure: renderMeasure() };
       }
       if (message.type === 'PAC_COLLECT_TEXT') {
-        if (!state) throw new Error('The page capture session is not active.');
+        // Visible-area Redact reads the page as it is, without a capture
+        // session; coordinates are then viewport CSS px.
+        if (!state && !message.visible) throw new Error('The page capture session is not active.');
         const { runs, links, marks, drawn } = collectTextRuns(message.maxWords || 120000);
         const r1 = v => Math.round(v * 10) / 10;
         // Compact encoding keeps the message small: runs [x, y, w, h, fontSize, text];
@@ -2002,6 +2004,7 @@
         return {
           ok: true,
           drawn,
+          dpr: window.devicePixelRatio || 1,
           links: links.map(l => l.map(v => typeof v === 'number' ? r1(v) : v)),
           marks: marks.map(m => [r1(m[0]), r1(m[1]), m[2], m[3]]),
           runs: runs.filter(r => message.wordEdges || !r.shadow).map(r => message.wordEdges && r.edges ? [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text, r.edges.map(r1), r.shadow ? 1 : 0] : [r1(r.x), r1(r.y), r1(r.w), r1(r.h), r1(r.fs), r.text])

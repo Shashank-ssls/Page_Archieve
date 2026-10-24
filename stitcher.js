@@ -360,7 +360,9 @@
   function reviewRedactions(captureId, tiles, width, height, suggested, format) {
     const $ = id => document.getElementById(id);
     const stage = $('review-stage');
-    const items = suggested.map(b => ({ x: b[0], y: b[1], w: b[2], h: b[3], kind: b[4] || 'auto', on: true, manual: false }));
+    // Reading order, so Tab moves through the boxes top to bottom.
+    const items = suggested.map(b => ({ x: b[0], y: b[1], w: b[2], h: b[3], kind: b[4] || 'auto', on: true, manual: false }))
+      .sort((a, b) => a.y - b.y || a.x - b.x);
     const SEG = 1500;
     const segments = [];
     const bitmaps = new Map(); // tile index -> ImageBitmap, a few kept for neighbouring segments

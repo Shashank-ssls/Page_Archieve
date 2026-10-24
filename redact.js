@@ -56,7 +56,8 @@
     each(KEY_PREFIXES, m => add(m.index, m.index + m[0].length, 'key'));
     each(/-----BEGIN [A-Z ]*PRIVATE KEY-----/g, m => add(m.index, m.index + m[0].length, 'key'));
     // Long random-looking tokens without a known prefix.
-    each(/[A-Za-z0-9_\-+/=]{24,}/g, m => {
+    // "=" only as trailing padding: NAME=value settings are two words.
+    each(/[A-Za-z0-9_\-+/]{24,}={0,2}/g, m => {
       const t = m[0];
       const hex = /^[0-9a-fA-F]+$/.test(t);
       // Hex needs 32+ chars; other tokens need upper, lower and digits, so
@@ -112,24 +113,64 @@
   // runs: [x, y, w, h, fontSize, text, edges?] where edges holds each word's
   // [start, end] x offset (words are separated by single spaces). Returns the
   // pixel boxes to burn, the runs with redacted words removed, and counts.
+  // Runs that sit side by side on one line, in reading order. A page can
+  // split one value over several elements (Stripe shows each group of four
+  // card digits in its own span, 2026-10), so detection reads a whole line.
+  function lineGroups(runs) {
+    const groups = [];
+    let cur = null;
+    for (const run of runs) {
+      const [x, y, w, h, fs] = run;
+      const last = cur && cur.runs[cur.runs.length - 1];
+      const right = last ? last[0] + last[2] : 0;
+      if (last && Math.abs(y - last[1]) <= Math.max(2, h * 0.3) && x >= right - 2 && x - right < (fs || 16) * 2) {
+        // Touching pieces join without a space ("jane" + "@x.com").
+        cur.text += x - right < (fs || 16) * 0.2 ? '' : ' ';
+      } else {
+        cur = { runs: [], starts: [], text: '' };
+        groups.push(cur);
+      }
+      cur.starts.push(cur.text.length);
+      cur.text += run[5];
+      cur.runs.push(run);
+    }
+    return groups;
+  }
+
   function redactRuns(runs, words, pad = 2) {
     const boxes = [];
     const out = [];
     const counts = {};
+    const plain = [];
     for (const run of runs || []) {
-      const [x, y, w, h, fs, text, edges, shadow] = run;
-      const hits = findSecrets(text, words);
       // A shadow run is a later line of a wrapped word: boxed when its word
       // is a secret, never written to the PDF text (the first piece is).
-      if (shadow) { if (hits.length) boxes.push([x - pad, y - pad, w + pad * 2, h + pad * 2, hits[0].kind]); continue; }
-      if (!hits.length) { out.push([x, y, w, h, fs, text]); continue; }
+      if (run[7]) {
+        const hits = findSecrets(run[5], words);
+        if (hits.length) boxes.push([run[0] - pad, run[1] - pad, run[2] + pad * 2, run[3] + pad * 2, hits[0].kind]);
+      } else plain.push(run);
+    }
+    for (const group of lineGroups(plain)) {
+      const groupHits = findSecrets(group.text, words);
+      for (const hit of groupHits) counts[hit.kind] = (counts[hit.kind] || 0) + 1;
+      group.runs.forEach((run, k) => {
+        const s = group.starts[k], e = s + run[5].length;
+        const hits = groupHits.filter(h => h.start < e && h.end > s)
+          .map(h => ({ start: Math.max(0, h.start - s), end: Math.min(run[5].length, h.end - s), kind: h.kind }));
+        redactOne(run, hits);
+      });
+    }
+    return { boxes, runs: out, counts };
+
+    function redactOne(run, hits) {
+      const [x, y, w, h, fs, text, edges] = run;
+      if (!hits.length) { out.push([x, y, w, h, fs, text]); return; }
       const list = text.split(' ');
       const ok = Array.isArray(edges) && edges.length === list.length * 2;
-      for (const hit of hits) counts[hit.kind] = (counts[hit.kind] || 0) + 1;
       if (!ok) {
         // Without word positions, the whole run is covered and dropped.
         boxes.push([x - pad, y - pad, w + pad * 2, h + pad * 2, hits[0].kind]);
-        continue;
+        return;
       }
       const hidden = new Array(list.length).fill(false);
       const kindOf = new Array(list.length).fill('');
@@ -150,7 +191,6 @@
         i = j + 1;
       }
     }
-    return { boxes, runs: out, counts };
   }
 
   // After review the final boxes decide what leaves the PDF text: every word

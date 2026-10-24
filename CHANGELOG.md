@@ -1,3 +1,10 @@
+# Unreleased (after 2.4.0)
+
+- Redact now works with Visible area only (owner request): the page text is read before the screenshot, scaled to screenshot pixels, and goes through the same review screen. Browser pages still refuse. E2E redact-visible.
+- Fix (owner, Stripe test-card page): card numbers in tables were missed because each group of digits is its own element. Detection now reads each visual line across elements. NAME=value settings are no longer flagged as keys (GitHub README).
+- Review boxes are listed in reading order (Tab goes top to bottom).
+- Popup: Redact is a third segmented row (Off / Hide private info) like Format and Target; its hint and word box appear underneath when on.
+
 # 2.4.0 - Phase 4 Share-safe Redact
 
 - New: redaction review screen. With Redact on, the capture opens in a Tallshot tab with every suggested box before anything is saved: click a box to keep that text visible, drag to cover anything else (names, photos, text in pictures), then Save or Cancel. The final boxes decide the burned pixels and which words leave the PDF text, links and bookmarks. E2E cases redact-review (toggle one box, draw one, check the PDF) and redact-review-cancel (nothing saved).

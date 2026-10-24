@@ -59,13 +59,17 @@
       </div>
     </section>
 
-    <section class="privacy" id="redact-group" aria-label="Privacy">
-      <label class="row" for="redact">
-        <span class="row-text"><strong>Redact private info</strong><small>Blacks out emails, phone and card numbers, keys and IP addresses. You check every box before saving.</small></span>
-        <input id="redact" class="switch" type="checkbox">
-      </label>
-      <input id="redact-words" class="text-in" type="text" spellcheck="false" maxlength="4000" placeholder="Also hide these words (names, IDs), comma-separated" aria-label="Words to always redact">
+    <section class="group" id="redact-group" aria-label="Redact">
+      <div class="group-label">Redact</div>
+      <div class="seg" role="radiogroup" aria-label="Redact private info">
+        <label title="Save the page as it is"><input type="radio" name="redact" value="off" checked><span>Off</span></label>
+        <label title="Black out emails, phone and card numbers, keys and IP addresses; you check every box before saving"><input type="radio" name="redact" value="on"><span>Hide private info</span></label>
+      </div>
     </section>
+    <div id="redact-extra" class="redact-extra" hidden>
+      <p>Emails, phone and card numbers, keys and IP addresses get black boxes. You check every box before saving.</p>
+      <input id="redact-words" class="text-in" type="text" spellcheck="false" maxlength="4000" placeholder="Also hide: names, IDs, comma-separated" aria-label="Words to always redact">
+    </div>
 
     <details class="more" id="more">
       <summary><span>More options</span><span class="chev" aria-hidden="true"></span></summary>
