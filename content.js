@@ -210,7 +210,16 @@
   // 2026-10: Full render grows the window). When the selected panel leaves
   // the page, adopt the one element that took its place: same tag and class
   // list, laid out, set to scroll. Anything less certain still fails.
+  function assertSamePage() {
+    // A page that changes address mid-capture is a different page: stop
+    // rather than save it under the original's name.
+    if (state.startUrl && location.href !== state.startUrl) {
+      throw new Error('The page went to a different address during capture (a button on the site may have changed the page). Nothing was saved. Go back to the original page and retry; turn off \u201cExpand collapsed text\u201d if it happens again.');
+    }
+  }
+
   function liveScroller() {
+    assertSamePage();
     const old = state.scroller;
     if (old && old.isConnected) return old;
     const sig = state.scrollerSig;
@@ -226,6 +235,7 @@
 
   function currentMetrics() {
     if (!state) throw new Error('No capture session has been prepared.');
+    assertSamePage();
     if (state.scrollerType === 'inner') {
       const el = liveScroller();
       const r = el.getBoundingClientRect();
@@ -1025,6 +1035,13 @@
       return false;
     }
     if (el.disabled || el.getAttribute('aria-disabled') === 'true') return false;
+    // Only expand inside what is being captured. Sidebars and menus hold
+    // "Show more" buttons that open other pages (Claude's recent chats,
+    // 2026-10): clicking one navigated away mid-capture.
+    try {
+      if (el.closest('nav, aside, header, footer, [role="navigation"], [role="banner"], [role="menu"], [role="menubar"], [role="dialog"], [role="complementary"]')) return false;
+      if (state && state.scrollerType === 'inner' && state.scroller && state.scroller.isConnected && !state.scroller.contains(el)) return false;
+    } catch (_) { return false; }
     const label = `${el.textContent || ''} ${el.getAttribute('aria-label') || ''} ${el.getAttribute('title') || ''}`.replace(/\s+/g, ' ').trim();
     if (!label || label.length > 40 || NEVER_CLICK.test(label)) return false;
     const text = (el.textContent || el.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim();
@@ -1890,6 +1907,7 @@
           presetTurns: preset ? preset.turns : null,
           scroller: inner,
           scrollerSig: inner ? { tag: inner.tagName, cls: inner.className } : null,
+          startUrl: location.href,
           scrollerType: inner ? 'inner' : 'root',
           originalX: inner ? inner.scrollLeft : window.scrollX,
           originalY: inner ? inner.scrollTop : window.scrollY,

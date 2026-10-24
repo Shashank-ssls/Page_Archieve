@@ -166,3 +166,12 @@ test('the review hides a clicked word everywhere and the panel follows a rebuilt
   assert.match(c, /if \(twins\.length !== 1\) throw/);
   assert.match(c, /scrollerSig: inner \? \{ tag: inner\.tagName, cls: inner\.className \} : null/);
 });
+
+test('expand clicks stay inside the capture and an address change stops it', () => {
+  const c = src('content.js');
+  assert.match(c, /el\.closest\('nav, aside, header, footer, \[role="navigation"\]/);
+  assert.match(c, /state\.scrollerType === 'inner' && state\.scroller && state\.scroller\.isConnected && !state\.scroller\.contains\(el\)\) return false/);
+  assert.match(c, /function assertSamePage\(\)[\s\S]{0,500}Nothing was saved/);
+  assert.match(c, /function liveScroller\(\) \{\n    assertSamePage\(\);/);
+  assert.match(c, /startUrl: location\.href/);
+});

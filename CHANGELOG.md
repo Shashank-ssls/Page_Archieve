@@ -1,5 +1,7 @@
 # Unreleased (after 2.4.0)
 
+- Fix (owner, Claude redesign): the capture saved the Recents list instead of the chat. The expand pass clicked "Show more" under recent chats in the sidebar, a plain button that opens another page. Expand clicks now skip nav, aside, header, footer, menus and dialogs, and with a panel target stay inside the panel. If the page address changes mid-capture, the capture stops and nothing is saved (no stitch fallback). Fixture nav-showmore.html, E2E nav-showmore-skip and nav-showmore-stop.
+
 - Fix (owner, Claude redesign 2026-10): capture failed with "the selected inner scroll area was replaced". Claude rebuilds its chat scroller when the window grows. Tallshot now adopts the one element that takes its place (same tag and classes, laid out, set to scroll) and warns that it did; anything less certain still fails. Fixture rebuilt-panel.html, E2E rebuilt-panel.
 - Review: click a word to hide it everywhere on the page (names, IDs, anything no pattern knows). Words under the final boxes are also scrubbed from bookmark titles and the PDF title. E2E redact-review-word.
 - Popup: the 2.4.0 Redact card is back (owner preferred it over the segmented row).
