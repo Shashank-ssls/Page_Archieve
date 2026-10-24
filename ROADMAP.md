@@ -65,7 +65,7 @@ viewer and Acrobat Reader with working links, bookmarks and selectable text.
 
 ---
 
-## Phase 4 - Share-safe Redact (Pro) (1.5 weeks)
+## Phase 4 - Share-safe Redact (Pro) (1.5 weeks) - DONE 2026-10-24
 
 - [x] Detectors over the collected text runs: emails, phone numbers, card
       numbers (Luhn), IBANs, API keys and tokens (common prefixes plus entropy),
@@ -74,7 +74,7 @@ viewer and Acrobat Reader with working links, bookmarks and selectable text.
 - [x] Preview screen: boxes over the capture, click to toggle each, add a box by drag.
 - [x] Redaction burned into pixels AND removed from the PDF text layer; test that
       redacted words are absent from the PDF bytes.
-- [ ] Names via Chrome's on-device Prompt API only when available; the owner's
+- [ ] (Skipped 2026-10-24, untestable on this GPU) Names via Chrome's on-device Prompt API only when available; the owner's
       GPU cannot run it, so feature-detect and hide gracefully.
 
 Acceptance: a fixture with seeded secrets produces outputs where none of the

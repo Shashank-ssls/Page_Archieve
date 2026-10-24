@@ -3,49 +3,87 @@
 Update this at the end of every phase. Newest entries at the top of each section.
 
 ## Current status
-- Version: 2.3.0 (on GitHub: Shashank-ssls/Page_Archieve, private)
-- Current phase: Phase 4 (Share-safe Redact) built as 2.4.0 (2026-10-24): detectors,
-  word list, review screen (toggle and draw boxes), pixel burn, PDF text removal,
-  fail-closed paths. Awaiting the owner's test list. Left: on-device name
-  detection (feature-detected; cannot be tested on this GPU). Phase 3 viewer
-  check still pending.
-  Store launch (old Phase 2) moved to the final phase by the owner; its finished
-  parts stay done. Lite real-site repeats deferred until Full is final.
-- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-24, Document switches to the panel on app shells): `npm run check` 148/148,
-  `npm run e2e` 50/50 (Full). Lite suite paused until Full is final.
-- Not yet verified: any real logged-in site, HiDPI screens.
+- Version: 2.4.0 (on GitHub: Shashank-ssls/Page_Archieve, private).
+- Phase 4 (Share-safe Redact): DONE on 2026-10-24, except on-device name
+  detection (skipped, see below). Phase 3 (Living PDF): built and hardened.
+- NEXT: Phase 5, Licensing and Pro gating (see "Next phase" below). Start it in
+  a new session.
+- Store launch (old Phase 2) is the final phase (owner decision). Lite
+  real-site repeats and the Lite E2E suite wait until Full is final.
+- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-24): `npm run check`
+  148/148, `npm run e2e` 50/50 (Full). Lite suite not run (paused by owner).
+- Not yet verified: HiDPI screens; real sites other than Claude, ChatGPT,
+  Stripe docs, GitHub, Amizone, FreeRedact and Testaroo.
 
-## Session summary (2026-10-23): Claude incognito and "Show more"
-Planned start of Phase 4 (Share-safe Redact) was paused: the owner's captures
-of Claude incognito chats and a long Claude thread showed capture bugs, and
-incognito chats are a key use case (they are not saved by the chat app).
-Diagnosis used read-only console snippets the owner ran on the live pages.
+## Next phase: Phase 5 - Licensing and Pro gating (ROADMAP.md)
+Goal: turn on paid Pro without breaking the local-only promise.
+1. Owner first: open a payment provider account (Dodo Payments preferred:
+   merchant of record, INR payouts, license-key API). Confirm fees and payout.
+   Without the provider's license API, build against a stub and mark the real
+   endpoint [VERIFY ON FIRST RUN].
+2. License entry in the popup: paste key, verify online once, cache the
+   result in chrome.storage.local, re-check every 30 days with a 14-day
+   offline grace. Offline use keeps working.
+3. Gating per PRODUCT.md. Pro: Living PDF (links, bookmarks), Share-safe
+   Redact, Scroll Reel without watermark (Phase 6), later Library, Breakpoint
+   Board, Proof Stamp. Free keeps full-page capture, presets, auto-expand,
+   PNG, PDF with text layer, naming and folders. A locked feature shows a
+   clear upgrade card, never a broken or silently disabled button.
+4. The license check is the ONLY new network call: it needs the owner's
+   approval, a host permission decision (permissions are frozen: ask first),
+   and a PRIVACY.md line. No page content is ever sent.
+5. Refund policy and terms pages (drafts for the owner).
+Acceptance: a test key unlocks Pro, a revoked key locks it after the grace
+period, offline use keeps working. Decide with the owner before coding:
+- Keep PDF links and bookmarks free, or gate them as Pro?
+- Does Lite get Pro at all (Redact needs Full render's text map)?
+- Where the license UI sits in the popup.
 
-Fixed (commits 42d7853, 5b29aca, 63bb78d):
-- "Show more" in long user messages stayed collapsed. Claude keeps about 5
-  turns in the DOM, so the expand pass at preparation missed most buttons.
-  The render settle step now clicks newly mounted expand buttons again (cap
-  80 per capture); panel growth allows 20 rounds. Fixture virtual-showmore.
-- End-spacer rule: first changed to keep long runs of empty boxes (virtual
-  list rows), which regressed Claude (its list ends in 3 empty boxes; the
-  spacer grew to Max height, 199,279 px trimmed). Now a run is hidden when any
-  box has min-height or flex-grow, as Claude's spacer does.
-- Incognito Smart PDF fell back to scroll-and-stitch ("panel could not be
-  fully exposed, overflow 2159px"): the shell height is
-  calc(var(--app-visual-viewport-height, 100dvh) - ...), set once by a script.
-  Script-set ancestor heights now follow the viewport during render, capped at
-  the viewport. Fixture script-vh-shell. Not yet confirmed on the real page.
-- Document target on an app shell now warns how much a scroll panel hides
-  (clipped text never counted as ink). E2E case doc-panel-hidden.
+## Skipped or deferred (with reasons)
+- Phase 4: names via Chrome's on-device Prompt API. Skipped: the owner's GTX
+  1650 (4 GB) cannot run it, so it cannot be tested here. Click-a-word in the
+  review covers names by hand. Revisit on capable hardware.
+- Lite edition: real-site repeats and `npm run e2e:lite` paused until Full is
+  final (owner, 2026-10-23). Lite then gets one full pass.
+- Phase 3 viewer check: open a captured PDF in Chrome and Acrobat Reader
+  (links open, bookmarks jump, text selects). Not done yet.
+- ChatGPT document preview: Redact cannot read text drawn in canvases (it now
+  warns); that capture also started at page 2. Not investigated.
+- Popup shows the requested file name when Chrome saved "... (3).png" on a
+  name clash. Cosmetic; use the final name from chrome.downloads.
+- Review screen left open many minutes: the worker keep-alive ping is not
+  verified in a real browser [VERIFY ON FIRST RUN].
+- Store launch items: trademark search for "Tallshot" (IP India, USPTO),
+  PRIVACY.md and docs/store drafts review, landing site. Final phase.
+- Removed on purpose (owner): JPEG output, PDF cover page option.
 
-Tried and reverted: pinning the panel with flex: none (broke virtual-showmore).
-Process: CLAUDE.md now says run only the Full E2E suite until Full is final.
-Open: incognito Smart recapture; blurry incognito Document PDF (19 KB, maybe
-DevTools device toolbar); long-thread recapture. Then Phase 4.
+## Session summary (2026-10-24): Phase 4 Share-safe Redact and Claude redesign
+Built:
+- Redact: redact.js detectors (email, phone, card with Luhn, IBAN mod 97,
+  keys by prefix and entropy with mixed case, IPv4/IPv6, token URLs, word
+  list). Detection reads whole visual lines across elements (Stripe tables),
+  form field values, and wrapped words (shadow runs). Boxes are burned before
+  encoding; the final boxes strip words from the PDF text, links, bookmarks,
+  title and file name. Text-blind paths (stitch, Lite, Chrome PDF viewer)
+  refuse instead of saving secrets.
+- Review screen in the assembly tab: click a box to keep it, click a word to
+  hide it everywhere, drag to cover anything, then Save or Cancel.
+- Redact works with Visible area only.
+- Popup: Redact card on the main screen; More options split into Page,
+  Saving (one line plus Change) and Advanced.
+- Capture fixes: Document on app shells captures the panel; a rebuilt
+  scroller is followed; expand clicks never touch nav, aside or menus
+  (Claude's sidebar "Show more" navigated to Recents); an address change
+  stops the capture; Chrome PDF viewer refused; drawn areas warned.
+- Removed: JPEG output, PDF cover page and its writer.
+Owner-confirmed: Claude incognito and ChatGPT Smart PNG/PDF; redesigned
+Claude Smart PNG (7 parts) and PDF (37 pages, 42 bookmarks); Stripe card
+tables fully redacted.
 
 ## Phase log
 | Date | Phase | Result | Notes |
 | --- | --- | --- | --- |
+| 2026-10-24 | Phase 4 complete | Done | Visible-area Redact, line-level detection, click-a-word, rebuilt-scroller follow, sidebar expand guard, address-change stop, Saving collapsed. Owner confirmed Claude and Stripe. Prompt API names skipped (hardware). |
 | 2026-10-24 | Phase 4 part 2 (2.4.0) | Done | Review screen, popup regrouped (Redact on the main screen; Page / Saving / Advanced), cover writer removed, version 2.4.0. |
 | 2026-10-24 | Phase 4 part 1 | Done | Share-safe Redact: detectors (redact.js), word list, black boxes burned before encoding, words removed from the PDF text, links/bookmarks/cover/file name scrubbed, no fallback to text-blind engines. E2E redact-png, redact-pdf; a control run without Redact fails both checks. |
 | 2026-10-24 | Phase 3 hardening 5 | Done | Document on app shells (Claude, ChatGPT) captured one screen; it now captures the scroll panel with a warning. File-name UI made self-explanatory. |
@@ -87,6 +125,10 @@ DevTools device toolbar); long-thread recapture. Then Phase 4.
 ## Decisions log
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-24 | Remove JPEG output and the PDF cover page | Owner: JPEG blurs text when zoomed; cover page not useful |
+| 2026-10-24 | Redact always shows a review screen; click a word hides it everywhere | Patterns cannot cover every site; owner wants it to work almost universally |
+| 2026-10-24 | Keep the 2.4.0 Redact card in the popup | Owner preferred it over a segmented row |
+| 2026-10-24 | Skip Prompt API name detection | Owner GPU cannot run it; untestable |
 | 2026-10-23 | Run only the Full E2E suite until Full is final; finalize Lite afterwards in one pass | Owner: complete Full first; never run both suites together |
 | 2026-10-22 | Product name: Tallshot (Full edition "Tallshot Full", Lite "Tallshot") | "Page Archive" sat next to a featured "Archive Page"; "Stackshot" and "Unscroll" are taken. Only user-visible strings changed; storage keys, data attributes, folder and repo names stay |
 | 2026-10-22 | Lite real-site testing deferred to the end | Owner tests Lite once Full is final, to avoid repeat work. Lite still runs in the E2E harness |
@@ -108,28 +150,11 @@ DevTools device toolbar); long-thread recapture. Then Phase 4.
 | 2026-10-21 | chrome.debugger Full render engine | Only way to render lazy/virtualised/fixed content correctly |
 
 ## Needs the owner's check
-- Claude redesign: fixed and confirmed by the owner (Smart PNG 7 parts, Smart PDF 37 pages, complete).
-- Claude redesign (2026-10-24): owner diagnostic showed a virtualised chat scroller (height 49,858 -> 25,341 while scrolling) under data-testid chat-column-body. Fix: adopt the rebuilt scroller. Recapture a long Claude chat (Smart PNG and PDF) [VERIFY ON FIRST RUN].
-- Recheck Stripe test cards page with Redact (table numbers) and Visible area + Redact.
-- Owner recapture 2026-10-24: Claude incognito Smart PNG and Smart PDF good; ChatGPT Smart PNG and PDF good. Document + PDF saved one screen on both; fixed (Document now captures the panel on app shells, with a warning). Recapture Document + PDF on both [VERIFY ON FIRST RUN].
-- Owner Redact test on Testaroo 2026-10-24: wrapped footer email half-boxed and two file names over-redacted; both fixed. Cover page option removed (owner decision).
-- Owner Redact tests 2026-10-24 (FreeRedact page, Chrome PDF viewer, ChatGPT document preview): web page partly redacted (emails, phone, key; name and account ID need the word list or the preview screen; SHA-256 hashes over-redacted as keys). Chrome PDF viewer now refused; drawn previews now warned. ChatGPT preview capture also missed its first page [VERIFY ON FIRST RUN, not yet investigated]. Next: the preview screen.
-- Owner Redact test on Amizone (2026-10-24): form field values (mobile, email, address) were missed; fixed. Still not detected by design: names, enrollment numbers, dates of birth and photos. Use the word list for the name and ID until the preview screen (drag to add a box) exists. Retest on Amizone [VERIFY ON FIRST RUN].
-- Owner Document + PDF recapture on Claude: full chat, fixed.
-- JPEG removed (owner decision 2026-10-24).
-- Phase 4: try Share-safe Redact on a real page with an email or key (PNG and PDF); boxes cover the words, PDF search finds nothing [VERIFY ON FIRST RUN].
-- Phase 4 decision: Redact is in the Full edition with no Pro gate yet; gating comes in Phase 5.
-- Popup file-name section reworded, tokens clickable, preview shows the real tab; check it reads clearly.
-- Long Claude thread: recapture (single PNG and parts); long user messages expanded, no 199,279 px end-spacer warning [VERIFY ON FIRST RUN].
-- Claude incognito Document PDF (Claude (3).pdf) was blurry at 19 KB; recapture with DevTools closed and send it if still blurry.
-- Phase 3: Claude Smart recapture passed (message box gone, examples are UI only). Optional: one more capture to confirm the ~280 px end strip is gone [VERIFY ON FIRST RUN].
-- Phase 3: open a captured long article and a captured chat PDF (with cover page) in Chrome and Acrobat Reader; links open, bookmarks jump, text selects [VERIFY ON FIRST RUN].
-- Trademark search for "Tallshot" (IP India, USPTO) before publishing.
-- Payment provider account and fees.
-- Phase 1 Full rows complete (2026-10-22). Lite real-site repeats deferred until Full is final (owner decision).
-- PRIVACY.md, docs/store/permissions.md, docs/store/listing.md: drafts to review (contact line, names).
-- Popup shows the requested file name ("Generative AI Learning Plan.png") when Chrome saved it as "... (3).png" on a name clash. Cosmetic honesty issue; fix later (use the final name from chrome.downloads).
-- popup-shot: the capturing/done states show the "browser pages" banner and a
-  disabled capture button; harness artifact (the popup is opened as an
-  extension page, which the popup treats as a browser page). Real popup on
-  real sites shows no banner (confirmed in owner screenshots).
+- Phase 5 prerequisites: payment provider account and fees; approve the one
+  license-check network call; answer the three gating questions above.
+- Phase 3 viewer check in Chrome and Acrobat Reader [VERIFY ON FIRST RUN].
+- Optional rechecks: ChatGPT and Claude Document + PDF; Amizone with Redact
+  (word box plus a drawn box over the photo); review tab left open 3-5 min.
+- Trademark search for "Tallshot"; PRIVACY.md and docs/store drafts review.
+- popup-shot shows the "browser pages" banner in captured states: harness
+  artifact, not a bug (the real popup shows none).
