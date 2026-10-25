@@ -134,6 +134,16 @@
   }
 
   // ASCII-only fallback for download names (keeps the extension).
+  // The file name Chrome really saved (it renames a clash to "name (3).png").
+  // Trust it only when it keeps the requested extension: automation hosts
+  // store downloads under random ids.
+  function savedLeaf(requested, savedPath) {
+    const asked = String(requested || '').split('/').pop();
+    const leaf = typeof savedPath === 'string' ? savedPath.split(/[\\/]/).pop() : '';
+    const ext = (asked.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+    return leaf && ext && leaf.toLowerCase().endsWith(ext) ? leaf : asked;
+  }
+
   function asciiFilename(name) {
     const raw = String(name || '');
     const m = raw.match(/^(.*?)(\.[A-Za-z0-9]{1,5})?$/);
@@ -443,7 +453,7 @@
     return Math.max(1, Math.min(width, 16000));
   }
 
-  const api = { applyNameTemplate, safeFolder, asciiFilename, renderChunkHeight, renderChunks, panelGrowthNeeded, panelFullyExposed, renderDocumentWidth, rootPageSize, anchorCorrection, isHeavilyClippedPanel, shouldUseInnerScroller, axisPositions, safeTileDriftTolerance, adjustedFinalPanelHeight, intersectRect, partSize, filenameBase, buildParts, pdfPageParts, partAt, unpaintedInk, endSpacerCut, validateTileCoverage, tileDrawMapping };
+  const api = { applyNameTemplate, savedLeaf, safeFolder, asciiFilename, renderChunkHeight, renderChunks, panelGrowthNeeded, panelFullyExposed, renderDocumentWidth, rootPageSize, anchorCorrection, isHeavilyClippedPanel, shouldUseInnerScroller, axisPositions, safeTileDriftTolerance, adjustedFinalPanelHeight, intersectRect, partSize, filenameBase, buildParts, pdfPageParts, partAt, unpaintedInk, endSpacerCut, validateTileCoverage, tileDrawMapping };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.PageArchiveGeometry = api;
 })(globalThis);

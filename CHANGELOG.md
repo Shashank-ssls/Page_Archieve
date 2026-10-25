@@ -1,5 +1,6 @@
 # Unreleased (after 2.4.0)
 
+- Fix: when Chrome renames a save on a name clash ("name (3).png"), the popup now shows the name actually saved.
 - Popup (owner): on Chrome's PDF viewer, Full page is switched off as soon as the popup opens, with a short reason, instead of failing after the click. The popup asks the page for its content type (activeTab, no new permission) and falls back to an address ending in .pdf.
 - Phase 3 viewer check done in Chrome: bookmarks, outside and in-page links, text copy and search all work; page breaks fall between lines.
 

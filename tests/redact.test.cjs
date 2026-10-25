@@ -175,3 +175,16 @@ test('expand clicks stay inside the capture and an address change stops it', () 
   assert.match(c, /function liveScroller\(\) \{\n    assertSamePage\(\);/);
   assert.match(c, /startUrl: location\.href/);
 });
+
+test('saved file names come from Chrome, so a renamed "name (3).png" shows as saved', () => {
+  const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'stitcher.js'), 'utf8');
+  assert.match(src, /async function savedName\(id, filename\)/);
+  assert.match(src, /chrome\.downloads\.search\(\{ id \}\)/);
+  const G = require('../geometry.js');
+  assert.equal(G.savedLeaf('Tallshot/Chat.png', 'C:\\Users\\me\\Downloads\\Tallshot\\Chat (3).png'), 'Chat (3).png');
+  assert.equal(G.savedLeaf('Chat.pdf', '/home/me/Downloads/Chat (1).pdf'), 'Chat (1).pdf');
+  assert.equal(G.savedLeaf('Chat.pdf', 'C:\\Temp\\fc1aaf07-a2d1-48c1'), 'Chat.pdf');
+  assert.equal(G.savedLeaf('Chat.png', undefined), 'Chat.png');
+  assert.match(src, /filename = await downloadBlob\(blob, withFolder\(filename\)\)/);
+  assert.match(src, /filename: pdfName/);
+});

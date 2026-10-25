@@ -264,6 +264,12 @@
     throw lastError || new Error('Download failed.');
   }
 
+  // Report the name Chrome really used (conflictAction 'uniquify').
+  async function savedName(id, filename) {
+    const [item] = await chrome.downloads.search({ id }).catch(() => []);
+    return G.savedLeaf(filename, item && item.filename);
+  }
+
   async function downloadBlob(blob, filename) {
     const url = URL.createObjectURL(blob);
     try {
@@ -271,7 +277,7 @@
       const result = await waitForDownload(id);
       if (result.state === 'interrupted') throw new Error(`Browser download failed for ${filename}: ${result.error || 'interrupted'}`);
       if (result.state === 'timeout') throw new Error(`Timed out waiting for ${filename} to finish downloading.`);
-      return id;
+      return await savedName(id, filename);
     } finally {
       URL.revokeObjectURL(url);
     }
@@ -329,7 +335,7 @@
         canvas.toBlob(result => result ? resolve(result) : reject(new Error('Image encoding failed. The browser may have run out of memory.')), mime, mime === 'image/jpeg' ? JPEG_QUALITY : undefined);
       });
       const ext = format === 'png' ? 'png' : 'jpg';
-      const filename = partCount === 1 ? `${baseName}.${ext}` : `${baseName}_part-${String(index + 1).padStart(2, '0')}-of-${String(partCount).padStart(2, '0')}.${ext}`;
+      let filename = partCount === 1 ? `${baseName}.${ext}` : `${baseName}_part-${String(index + 1).padStart(2, '0')}-of-${String(partCount).padStart(2, '0')}.${ext}`;
       if (format === 'pdf') {
         // Collect JPEG bytes; the PDF is written once after the last part.
         const runs = (textRuns.get(session.captureId) || [])
@@ -342,7 +348,7 @@
         status(`Encoded page ${index + 1} of ${partCount}\u2026`, 80 + ((index + 1) / partCount) * 15);
       } else {
         status(`Downloading ${ext.toUpperCase()} ${index + 1} of ${partCount}\u2026`, 80 + ((index + 1) / partCount) * 18);
-        await downloadBlob(blob, withFolder(filename));
+        filename = await downloadBlob(blob, withFolder(filename));
       }
       return { filename, width: Math.round(part.w * scale), height: Math.round(part.h * scale), drawnTiles: drawn, bytes: blob.size };
     } finally {
@@ -681,9 +687,9 @@
       pdfPages.length = 0;
       const pdfBlob = new Blob([bytes], { type: 'application/pdf' });
       status('Downloading PDF\u2026', 98);
-      await downloadBlob(pdfBlob, withFolder(`${baseName}.pdf`));
+      const pdfName = await downloadBlob(pdfBlob, withFolder(`${baseName}.pdf`));
       downloads = 1;
-      results.splice(0, results.length, { filename: `${baseName}.pdf`, width: results[0] ? results[0].width : 0, height: results.reduce((a, r) => a + r.height, 0), bytes: pdfBlob.size });
+      results.splice(0, results.length, { filename: pdfName, width: results[0] ? results[0].width : 0, height: results.reduce((a, r) => a + r.height, 0), bytes: pdfBlob.size });
     }
     if (message.redact) {
       const drawn = reviewed && reviewed.drawn ? `${redactSummary ? ' plus ' : ''}${reviewed.drawn} box${reviewed.drawn === 1 ? '' : 'es'} you drew` : '';

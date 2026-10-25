@@ -47,10 +47,13 @@ period, offline use keeps working. Decide with the owner before coding:
   final (owner, 2026-10-23). Lite then gets one full pass.
 - ChatGPT document preview: Redact cannot read text drawn in canvases (it now
   warns); that capture also started at page 2. Not investigated.
-- Popup shows the requested file name when Chrome saved "... (3).png" on a
-  name clash. Cosmetic; use the final name from chrome.downloads.
-- Review screen left open many minutes: the worker keep-alive ping is not
-  verified in a real browser [VERIFY ON FIRST RUN].
+- Review screen left open many minutes: cannot be verified by the harness.
+  A 5.5-minute E2E hold passed even with the keep-alive ping disabled
+  (Playwright's attachment keeps the worker alive), so the case was dropped.
+  Owner check on a real Chrome [VERIFY ON FIRST RUN].
+- Small scroll boxes inside a message (for example Claude's email draft card)
+  are captured as shown: only their visible part, the rest is cut. Seen in
+  the owner's Claude PDF, 2026-10-25. Not investigated.
 - Store launch items: trademark search for "Tallshot" (IP India, USPTO),
   PRIVACY.md and docs/store drafts review, landing site. Final phase.
 - Removed on purpose (owner): JPEG output, PDF cover page option.
@@ -81,6 +84,7 @@ tables fully redacted.
 ## Phase log
 | Date | Phase | Result | Notes |
 | --- | --- | --- | --- |
+| 2026-10-25 | Skipped items | Partly done | Popup shows the name Chrome really saved ("name (3).png"); geometry savedLeaf, unit-tested. Review keep-alive: harness cannot prove it (control run without the ping also passed), left for the owner. New item: inner scroll boxes in messages captured cut. check green, e2e 50/50. |
 | 2026-10-25 | Phase 3 viewer check | Done (Chrome) | Owner, Chrome PDF viewer: bookmarks sidebar shows the heading tree, outside links open, in-page links jump, text copies cleanly, Ctrl+F finds words (ARPANET 1/75). Claude PDF: 42 bookmarks. Page breaks checked by Claude from the page images of both PDFs (20 and 33 pages): every break falls between text lines; only tall images may split. Acrobat not installed, dropped. Also: Full page now switched off up front on PDF viewer tabs (owner). |
 | 2026-10-24 | Phase 4 complete | Done | Visible-area Redact, line-level detection, click-a-word, rebuilt-scroller follow, sidebar expand guard, address-change stop, Saving collapsed. Owner confirmed Claude and Stripe. Prompt API names skipped (hardware). |
 | 2026-10-24 | Phase 4 part 2 (2.4.0) | Done | Review screen, popup regrouped (Redact on the main screen; Page / Saving / Advanced), cover writer removed, version 2.4.0. |
@@ -153,6 +157,10 @@ tables fully redacted.
   license-check network call; answer the three gating questions above.
 - Optional: open one captured PDF in Firefox (a second PDF engine). Acrobat
   is not installed and is no longer required.
+- Review screen: turn on Redact, capture, leave the review tab open 6
+  minutes, then Save. Pass if the file saves.
+- Save the same page twice: the popup should show "name (1).png" the second
+  time [VERIFY ON FIRST RUN].
 - Full page switched off on Chrome PDF viewer tabs when the popup opens:
   unit-tested only, confirm once on a real PDF tab [VERIFY ON FIRST RUN].
 - Optional rechecks: ChatGPT and Claude Document + PDF; Amizone with Redact
