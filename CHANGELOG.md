@@ -1,5 +1,8 @@
 # Unreleased (after 2.4.0)
 
+- Popup (owner): on Chrome's PDF viewer, Full page is switched off as soon as the popup opens, with a short reason, instead of failing after the click. The popup asks the page for its content type (activeTab, no new permission) and falls back to an address ending in .pdf.
+- Phase 3 viewer check done in Chrome: bookmarks, outside and in-page links, text copy and search all work; page breaks fall between lines.
+
 - Popup (owner: Saving looked overwhelming): Saving now shows one line, "Saves as Downloads/<name>", with a Change link; the file name, insert chips (title, site, date, time) and folder open only when asked.
 - Owner recapture on redesigned Claude: Smart PNG (7 parts) and Smart PDF (37 pages, 42 bookmarks, text layer) complete from first to last message.
 

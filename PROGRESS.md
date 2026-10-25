@@ -45,8 +45,6 @@ period, offline use keeps working. Decide with the owner before coding:
   review covers names by hand. Revisit on capable hardware.
 - Lite edition: real-site repeats and `npm run e2e:lite` paused until Full is
   final (owner, 2026-10-23). Lite then gets one full pass.
-- Phase 3 viewer check: open a captured PDF in Chrome and Acrobat Reader
-  (links open, bookmarks jump, text selects). Not done yet.
 - ChatGPT document preview: Redact cannot read text drawn in canvases (it now
   warns); that capture also started at page 2. Not investigated.
 - Popup shows the requested file name when Chrome saved "... (3).png" on a
@@ -83,6 +81,7 @@ tables fully redacted.
 ## Phase log
 | Date | Phase | Result | Notes |
 | --- | --- | --- | --- |
+| 2026-10-25 | Phase 3 viewer check | Done (Chrome) | Owner, Chrome PDF viewer: bookmarks sidebar shows the heading tree, outside links open, in-page links jump, text copies cleanly, Ctrl+F finds words (ARPANET 1/75). Claude PDF: 42 bookmarks. Page breaks checked by Claude from the page images of both PDFs (20 and 33 pages): every break falls between text lines; only tall images may split. Acrobat not installed, dropped. Also: Full page now switched off up front on PDF viewer tabs (owner). |
 | 2026-10-24 | Phase 4 complete | Done | Visible-area Redact, line-level detection, click-a-word, rebuilt-scroller follow, sidebar expand guard, address-change stop, Saving collapsed. Owner confirmed Claude and Stripe. Prompt API names skipped (hardware). |
 | 2026-10-24 | Phase 4 part 2 (2.4.0) | Done | Review screen, popup regrouped (Redact on the main screen; Page / Saving / Advanced), cover writer removed, version 2.4.0. |
 | 2026-10-24 | Phase 4 part 1 | Done | Share-safe Redact: detectors (redact.js), word list, black boxes burned before encoding, words removed from the PDF text, links/bookmarks/cover/file name scrubbed, no fallback to text-blind engines. E2E redact-png, redact-pdf; a control run without Redact fails both checks. |
@@ -152,7 +151,10 @@ tables fully redacted.
 ## Needs the owner's check
 - Phase 5 prerequisites: payment provider account and fees; approve the one
   license-check network call; answer the three gating questions above.
-- Phase 3 viewer check in Chrome and Acrobat Reader [VERIFY ON FIRST RUN].
+- Optional: open one captured PDF in Firefox (a second PDF engine). Acrobat
+  is not installed and is no longer required.
+- Full page switched off on Chrome PDF viewer tabs when the popup opens:
+  unit-tested only, confirm once on a real PDF tab [VERIFY ON FIRST RUN].
 - Optional rechecks: ChatGPT and Claude Document + PDF; Amizone with Redact
   (word box plus a drawn box over the photo); review tab left open 3-5 min.
 - Trademark search for "Tallshot"; PRIVACY.md and docs/store drafts review.

@@ -15,11 +15,30 @@ let running = false;
 
 const defaults = { engine: 'auto', format: 'png', prepareImages: true, autoLoadMore: false, hideFloating: true, expandContent: true, nameTemplate: '{title}', folder: '', maxHeight: 200000, waitMs: 3500, captureTarget: 'auto', redact: false, redactWords: '' };
 let restrictedActiveTab = false;
+let pdfViewerTab = false;
 
 // Shared with the worker (url-policy.js): browser-internal pages and the
 // extension stores, which Chrome never lets extensions script.
 function isRestrictedBrowserUrl(url) {
   return typeof url === 'string' && url.length > 0 && PageArchiveUrlPolicy.isRestrictedUrl(url);
+}
+
+// Chrome's PDF viewer draws pages itself, so Full page can only fail there
+// (owner, 2026-10-25: switch the button off up front, not after a click).
+// Ask the page for its content type; activeTab allows this once the popup is
+// open. If the page cannot be asked (file:// without file access), fall back
+// to the address ending in .pdf.
+async function detectPdfViewer(tab) {
+  if (!tab || typeof tab.id !== 'number' || isRestrictedBrowserUrl(tab.url)) return false;
+  try {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => document.contentType === 'application/pdf'
+    });
+    return !!(result && result.result);
+  } catch (_) {
+    return PageArchiveUrlPolicy.looksLikePdfUrl(tab.url);
+  }
 }
 
 function updateTargetHint(url) {
@@ -28,9 +47,12 @@ function updateTargetHint(url) {
   // Newer Chrome builds may hide the URL of a restricted browser/extension tab
   // from Tab metadata when only activeTab is requested. Fail closed for Full page
   // instead of offering an operation that is guaranteed to fail after injection.
-  restrictedActiveTab = knownRestricted || urlHidden;
+  restrictedActiveTab = knownRestricted || urlHidden || pdfViewerTab;
   const hint = $('context-hint');
-  if (knownRestricted && PageArchiveUrlPolicy.isStorePage(url)) {
+  if (pdfViewerTab && !knownRestricted) {
+    hint.textContent = 'This tab is Chrome\u2019s built-in PDF viewer. Chrome draws its pages itself, so full-page capture is off here. Visible area PNG captures the current viewport only.';
+    hint.hidden = false;
+  } else if (knownRestricted && PageArchiveUrlPolicy.isStorePage(url)) {
     hint.textContent = 'Chrome doesn\u2019t let extensions into its store pages, so full-page capture is off here. Visible area PNG captures the current viewport only.';
     hint.hidden = false;
   } else if (knownRestricted) {
@@ -256,7 +278,9 @@ async function begin(mode) {
   currentTabId = tab.id;
   updateTargetHint(tab.url);
   if (mode === 'full' && restrictedActiveTab) {
-    const message = typeof tab.url === 'string' && tab.url.length
+    const message = pdfViewerTab
+      ? 'This tab is Chrome\u2019s built-in PDF viewer, so full-page capture is off here. Nothing was saved. Use Visible area for the current screen.'
+      : typeof tab.url === 'string' && tab.url.length
       ? 'Full-page capture is restricted on Chrome/Edge internal pages. Use Visible area or open a regular website.'
       : 'Chrome did not expose this tab URL, so Full page was disabled for safety. Use Visible area or open a regular website.';
     renderProgress({ phase: 'error', percent: 100, message });
@@ -382,6 +406,7 @@ chrome.runtime.onMessage.addListener(message => {
   renderCells(0, 'ready');
   const tab = await activeTab().catch(() => null);
   currentTabId = tab && tab.id;
+  pdfViewerTab = await detectPdfViewer(tab);
   updateTargetHint(tab && tab.url);
   try {
     if (tab && tab.title) previewTab.title = tab.title.replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 80) || previewTab.title;

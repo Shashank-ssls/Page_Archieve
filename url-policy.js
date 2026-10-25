@@ -30,6 +30,17 @@
         return true;
       }
     },
+    // A file or web address that names a .pdf. Used only when the page itself
+    // cannot be asked (no file access), so Chrome's PDF viewer still gets the
+    // capture buttons switched off before the user clicks.
+    looksLikePdfUrl(value) {
+      try {
+        const url = new URL(String(value || ''));
+        return /\.pdf$/i.test(decodeURIComponent(url.pathname));
+      } catch (_) {
+        return false;
+      }
+    },
     isStorePage(value) {
       try {
         const url = new URL(String(value || ''));

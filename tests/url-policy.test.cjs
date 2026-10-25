@@ -40,3 +40,16 @@ test('fails closed for invalid or empty URL values', () => {
   assert.equal(isRestrictedUrl(undefined), true);
   assert.equal(isRestrictedUrl('not a url'), true);
 });
+
+test('recognises PDF addresses so the popup can switch Full page off up front', () => {
+  const { looksLikePdfUrl } = require('../url-policy.js');
+  assert.equal(looksLikePdfUrl('file:///C:/Users/me/Downloads/History%20of%20the%20Internet.pdf'), true);
+  assert.equal(looksLikePdfUrl('https://example.com/paper.PDF'), true);
+  assert.equal(looksLikePdfUrl('https://example.com/pdf-guide'), false);
+  assert.equal(looksLikePdfUrl('https://example.com/view?file=a.pdf'), false);
+  assert.equal(looksLikePdfUrl(''), false);
+  const popup = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'popup.js'), 'utf8');
+  assert.match(popup, /document\.contentType === 'application\/pdf'/);
+  assert.match(popup, /restrictedActiveTab = knownRestricted \|\| urlHidden \|\| pdfViewerTab/);
+  assert.match(popup, /pdfViewerTab = await detectPdfViewer\(tab\)/);
+});
