@@ -49,7 +49,7 @@ copyRuntime(liteDir);
 const lite = structuredClone(base);
 lite.name = 'Tallshot';
 lite.permissions = lite.permissions.filter(p => p !== 'debugger');
-lite.description = 'Capture whole webpages and AI chat conversations as PNG, JPEG or PDF. No debugger permission. Local processing only.';
+lite.description = 'Capture whole webpages and AI chat conversations as PNG or searchable PDF. No debugger permission. Local processing only.';
 fs.writeFileSync(path.join(liteDir, 'manifest.json'), JSON.stringify(lite, null, 2));
 fs.rmSync(path.join(liteDir, 'cdp.js'));
 // The worker imports cdp.js; Lite ships a stub that reports the API as unavailable.

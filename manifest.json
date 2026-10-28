@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Tallshot Full",
   "version": "2.4.0",
-  "description": "Capture whole webpages and app scroll panels (chats, notebooks) as PNG, JPEG or PDF. Full-render engine with scroll-and-stitch fallback. Local processing only.",
+  "description": "Capture whole webpages and app scroll panels (chats, notebooks) as PNG or searchable PDF. Full-render engine with scroll-and-stitch fallback. Local processing only.",
   "minimum_chrome_version": "116",
   "action": {
     "default_title": "Tallshot: capture full page",

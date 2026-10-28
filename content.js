@@ -120,7 +120,9 @@
         // the document is the right target there.
         return { name: preset.name, scroller, turns: preset.turns || null };
       }
-      if (!preset.requireMarker) return { name: preset.name, scroller: null, turns: preset.turns || null };
+      // Known site, but none of its markers matched: the site has probably
+      // changed its layout. Report it so the capture can say so honestly.
+      if (!preset.requireMarker) return { name: preset.name, scroller: null, turns: preset.turns || null, unmatched: true };
     }
     return null;
   }
@@ -2001,6 +2003,7 @@
         if (inner) await stabilizeInnerScroller();
         const metrics = currentMetrics();
         if (expandWarning) warnings = [expandWarning, ...warnings];
+        if (preset && preset.unmatched) warnings = [`Tallshot did not recognise this ${preset.name} page layout (the site may have changed). It used automatic panel detection instead; check the start and end of the capture, and please report it if anything is missing.`, ...warnings];
         if (documentSwitched) warnings = ['This page does not scroll as a document, so Document would save only one screen. Captured the main scroll panel instead (as Smart does).', ...warnings];
         // Document target on an app shell: report how much a scroll panel
         // hides, so the worker can say the capture is only the shell. Text
@@ -2011,7 +2014,7 @@
           const panel = getInnerScroller(true);
           if (panel) panelHidden = Math.max(0, panel.scrollHeight - panel.clientHeight);
         }
-        return { ok: true, metrics, warnings, pinnedCount: state.pinned.length, preset: preset ? preset.name : null, panelHidden };
+        return { ok: true, metrics, warnings, pinnedCount: state.pinned.length, preset: preset && !preset.unmatched ? preset.name : null, panelHidden };
       }
       if (message.type === 'PAC_SET_TILE') {
         if (!state) throw new Error('The page capture session is not active.');
