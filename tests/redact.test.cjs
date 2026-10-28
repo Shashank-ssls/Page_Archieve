@@ -218,7 +218,8 @@ test('new detectors: labelled secrets, credentials in URLs, UPI, Aadhaar, PAN, b
     ['Authorization: Bearer abcdefghijklmnop1234', 'Bearer abcdefghijklmnop1234', 'key'],
     ['-----BEGIN PGP PRIVATE KEY BLOCK-----', '-----BEGIN PGP PRIVATE KEY BLOCK-----', 'key'],
     ['jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIx.abc', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIx.abc', 'key'],
-    ['Ref 20261028 4111 1111 1111 1111', '4111 1111 1111 1111', 'card']
+    ['Ref 20261028 4111 1111 1111 1111', '4111 1111 1111 1111', 'card'],
+    ['Server 192.168.10.24 hosts it', '192.168.10.24', 'ip']
   ];
   for (const [text, value, kind] of cases) assert.deepStrictEqual(kinds(text, []), [[value, kind]], text);
 });

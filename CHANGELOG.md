@@ -1,4 +1,26 @@
-# Unreleased (after 2.4.0)
+# Tallshot v2.5.0 (2026-10-28): hardening pass before Phase 5
+
+Redact, detection:
+- New detectors: values after secret labels ("password: hunter2", "OTP=482913"), credentials inside addresses (https://user:pass@host, postgres://u:p@h/db), Bearer tokens, UPI ids (name@okaxis), Aadhaar (Verhoeff checksum), PAN, PGP private key headers, more vendor key prefixes (SendGrid, npm, Hugging Face, Google OAuth, Stripe webhook, Groq, DigitalOcean, Shopify) and JWTs with a short signature.
+- URL token parameters now match prefixed names (refresh_token, client_secret, X-Amz-Signature) and credential, jwt, otp, bearer, csrf.
+- A card number after other digits ("Ref 20261028 4111 ...") is found; cards must also start with a real card-network prefix, so Luhn-valid order numbers are no longer boxed.
+- Fewer false boxes: "risk-assessment" and similar words no longer read as sk- keys; commit ids and checksums after commit/sha/hash are left alone; "Version 10.2.3.4" and browser versions are not IP addresses.
+- Box margins grow with the font size, so large type leaves no glyph edges.
+
+Redact, output:
+- A redacted PDF's subject keeps only the site (origin), never the path or query.
+- The file name is scrubbed after review, so words hidden in the review leave it too.
+- A hidden word now also hides tokens that contain it (possessives, dotted and hyphenated forms) in titles, bookmarks and the file name, and links whose address spells it are dropped.
+- New self-check before saving a redacted PDF: if a hidden word is still in the title, subject, bookmarks, links or file name, nothing is saved.
+
+Capture:
+- On a known chat site whose layout markers no longer match (the site changed), the capture now says so, uses automatic panel detection, and no longer reports the preset as matched.
+
+Other:
+- Store descriptions no longer mention JPEG (removed in 2.4.0); package description uses the Tallshot name; Phase 6 watermark text is "made with Tallshot".
+- New WORKFLOW.md: how to keep Tallshot working as sites change (canary, user reports, triage, release and hotfix playbook).
+
+# Tallshot v2.4.x follow-ups (2026-10-25 to 2026-10-28)
 
 - Fix (owner): small scroll boxes inside the content (code blocks, ChatGPT plain-text diagrams, Claude email drafts) were captured showing only their first screen. With Expand on, they now grow to full height for the capture and are restored after; boxes as tall as the window on a document capture (side panes) and anything outside a panel target are left alone. Lines wider than the box stay cut at its right edge. Fixture inner-scroll-box.html, E2E inner-scroll-box.
 - Redact review: the "Will be blacked out" swatch in the legend now has a visible outline in dark mode.

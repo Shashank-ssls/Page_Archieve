@@ -134,7 +134,7 @@
     });
     each(/(?<![\w.])(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}(?![\w.]*\d)/g, m => {
       // "Version 10.2.3.4" and "build 1.0.0.12" are versions, not addresses.
-      if (/(?:\bv|version|ver|build|release|chrome|firefox|edge|safari)\s*$/i.test(text.slice(Math.max(0, m.index - 12), m.index))) return;
+      if (/\b(?:v|version|ver|build|release|chrome|firefox|edge|safari)\s*$/i.test(text.slice(Math.max(0, m.index - 12), m.index))) return;
       add(m.index, m.index + m[0].length, 'ip');
     });
     each(/(?<![\w:])(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}(?![\w:])|(?<![\w:])(?:[0-9a-fA-F]{1,4}:){1,6}:(?:[0-9a-fA-F]{1,4}:?){1,6}(?![\w:])/g, m => {

@@ -1,45 +1,143 @@
 # PROGRESS.md
 
 Update this at the end of every phase. Newest entries at the top of each section.
+This file is written to be read on its own (the owner uploads it to Claude on
+the web), so it explains the product briefly before the status.
 
-## Current status
-- Version: 2.4.0 (on GitHub: Shashank-ssls/Page_Archieve, private).
-- Phase 4 (Share-safe Redact): DONE on 2026-10-24, except on-device name
-  detection (skipped, see below). Phase 3 (Living PDF): built and hardened.
-- NEXT: Phase 5, Licensing and Pro gating (see "Next phase" below). Start it in
-  a new session.
-- Store launch (old Phase 2) is the final phase (owner decision). Lite
-  real-site repeats and the Lite E2E suite wait until Full is final.
-- Skipped-items pass after Phase 4: DONE on 2026-10-28 (see session summary).
+## What Tallshot is (one paragraph)
+Tallshot is a Chrome (MV3) extension that captures whole web pages and the
+scroll panels of web apps (ChatGPT, Claude, Gemini, notebooks) as PNG or a
+searchable PDF with links and bookmarks ("Living PDF"). Share-safe Redact
+finds secrets (emails, phones, cards, keys, IDs) and burns black boxes into
+the pixels and removes the words from the PDF text. Everything runs on the
+device: no backend, no analytics, no telemetry. Two editions come from one
+source: Full (uses the `debugger` permission for the Full render engine;
+unlisted store item) and Lite (scroll-and-stitch only; public listing).
+Owner: a solo first-time developer in India, Windows 11 laptop
+(GEHRMAN_SPARROW). Built with Claude Code. Repo: Shashank-ssls/Page_Archieve
+(private). Other docs: ROADMAP.md (phases), PRODUCT.md (Free vs Pro,
+pricing), ARCHITECTURE.md (capture engine), DESIGN.md (popup), TESTING.md
+(tests), WORKFLOW.md (keeping it working after launch), CLAUDE.md (rules).
+
+## Current status (2026-10-28)
+- Version: 2.5.0 (hardening pass). Branch `hardening-wip` holds the work; to
+  be merged to main after the owner reloads `dist/full` and spot-checks.
+- Phases done: 0 (setup), 1 (real-site matrix, Full), 3 (Living PDF),
+  4 (Share-safe Redact, except on-device name detection), skipped-items pass,
+  2.5.0 hardening pass.
+- ON HOLD (owner, 2026-10-28): Phase 5, Pro licensing. The owner asked to
+  finish and harden the extension first. Research and recommendations for
+  Phase 5 are recorded below so the decisions can be made later.
+- Final phase: store launch (Lite public, Full unlisted, Edge later).
 - Last green run (Windows, GEHRMAN_SPARROW, 2026-10-28): `npm run check`
-  151/151, `npm run e2e` 51/51 (Full). Lite suite not run (paused by owner).
-  Loaded build: `dist/full` "2.4.0 build 1028-2127 f8eab3e".
+  158/158, `npm run e2e` 51/51 (Full). Lite suite not run (paused by owner
+  until Full is final). Built: `dist/full` "2.5.0 build 1028-2350".
 - Not yet verified: HiDPI screens; real sites other than Claude, ChatGPT,
-  Stripe docs, GitHub, Amizone, FreeRedact and Testaroo.
+  Gemini, DeepSeek, Colab, Notion, Stripe docs, GitHub, Amizone, Wikipedia,
+  YouTube, Reddit; the new 2.5.0 detectors on real pages [VERIFY ON FIRST RUN].
 
-## Next phase: Phase 5 - Licensing and Pro gating (ROADMAP.md)
-Goal: turn on paid Pro without breaking the local-only promise.
-1. Owner first: open a payment provider account (Dodo Payments preferred:
-   merchant of record, INR payouts, license-key API). Confirm fees and payout.
-   Without the provider's license API, build against a stub and mark the real
-   endpoint [VERIFY ON FIRST RUN].
-2. License entry in the popup: paste key, verify online once, cache the
-   result in chrome.storage.local, re-check every 30 days with a 14-day
-   offline grace. Offline use keeps working.
-3. Gating per PRODUCT.md. Pro: Living PDF (links, bookmarks), Share-safe
-   Redact, Scroll Reel without watermark (Phase 6), later Library, Breakpoint
-   Board, Proof Stamp. Free keeps full-page capture, presets, auto-expand,
-   PNG, PDF with text layer, naming and folders. A locked feature shows a
-   clear upgrade card, never a broken or silently disabled button.
-4. The license check is the ONLY new network call: it needs the owner's
-   approval, a host permission decision (permissions are frozen: ask first),
-   and a PRIVACY.md line. No page content is ever sent.
-5. Refund policy and terms pages (drafts for the owner).
+## Session summary (2026-10-28, evening): Phase 5 research, hardening 2.5.0
+Process: research ran as subagents (Sonnet researchers, Opus ensemblers) at
+the owner's request; Claude implemented and verified. A machine crash
+interrupted the session once; all edits survived, and a WIP commit was
+pushed to `hardening-wip` straight after as a backup.
+
+Found and fixed:
+- Capture: a known chat site whose layout markers stop matching (site
+  redesign) used to be reported as the preset silently. It now warns
+  ("did not recognise this <site> page layout") and uses automatic panel
+  detection (content.js detectPreset `unmatched`). Unit-tested.
+- Redact detection (redact.js): labelled secrets ("password: x"), URL
+  credentials, Bearer tokens, UPI ids, Aadhaar (Verhoeff checksum), PAN, PGP
+  keys, more vendor key prefixes, short-signature JWTs, prefixed URL token
+  params (refresh_token, X-Amz-Signature); card window scan plus a
+  card-network prefix check; guards against sk- inside words, commit hashes
+  and version numbers. A regression caught by E2E during this work
+  ("Server 192.168..." read as a version because of "ver") was fixed with a
+  word boundary and a test.
+- Redact output (stitcher.js): PDF subject is the origin only; file name
+  scrubbed after review; hidden words also scrub tokens that contain them
+  and drop links that spell them; a pre-save self-check refuses to save if a
+  hidden word survives in title, subject, bookmarks, links or file name; box
+  margin scales with font size.
+- Stale text: manifest, Lite and package descriptions said JPEG; ROADMAP
+  Phase 6 watermark said "Page Archive".
+- Dead code scan: no unused functions and no TODO/FIXME in the shipped JS.
+Tests: +7 unit tests (158 total); E2E 51/51.
+
+Researched but NOT built yet (candidates for the next hardening pass,
+ranked):
+1. Redact: text the text map never reads (CSS ::before/::after content,
+   placeholders, alt text, canvases and iframes under 200 px) should at least
+   be counted and warned about.
+2. Redact: re-check text positions after the last tile and refuse if any
+   moved (late layout shifts could misplace boxes).
+3. Redact: secrets split across elements on different lines (multi-line
+   addresses, wrapped IBANs) and multi-line PEM key bodies.
+4. Redact: use form-field attributes (autocomplete=cc-number, name, tel,
+   email, bday; name/id such as pass, otp, aadhaar) to box field values.
+5. Redact: propagate a found value to every other occurrence on the page;
+   names from honorifics, "From:/To:" lines and "Name:" labels.
+6. Redact review UX: per-type counts, undo, keyboard shortcuts,
+   search-to-redact, show the final file name and PDF title before Save.
+7. Capture: several selectors for chat `turns`; replace class-based markers
+   (Perplexity `.prose`, DeepSeek `[class*=message]`) and the dead Copilot
+   `cib-message` once live pages are checked.
+8. Workflow tooling from WORKFLOW.md: "Report a problem" (user-sent through
+   mailto or a GitHub link, no network call), a weekly local canary on public
+   share links, structural fingerprints, redacted DOM snapshot fixtures.
+
+## Phase 5 research (2026-10-28): recommendations awaiting owner decisions
+Payments (checked on provider docs 2026-10-28):
+- Dodo Payments: merchant of record, buyers can pay in INR (UPI, RuPay),
+  license-key API with public activate/validate/deactivate (no secret key in
+  the extension; the live endpoint answered a CORS preflight from a
+  chrome-extension origin), refund disables the key. BUT INR payouts are
+  discontinued: payouts are USD SWIFT wires, $5 per payout under $1,000,
+  minimum $100 (lowest $50), plus bank conversion; the bank issues a FIRC.
+  Whether an Indian individual can onboard (Persona ID check) is not stated
+  [VERIFY with support@dodopayments.com].
+- Lemon Squeezy lists India, but bank payout needs Stripe approval (Stripe
+  India is invite-only); otherwise PayPal only. Gumroad (10% + 50c)
+  reportedly pays out in INR [VERIFY]. Paddle and ExtensionPay look worse
+  for an Indian individual.
+Recommended answers (none approved yet):
+1. Provider: Dodo; fallback Gumroad.
+2. Price: keep $19 lifetime for the first 500, then $29; about INR 499.
+3. Keys: Dodo-issued; activate once, recheck lazily every 30 days; a network
+   failure never locks (grace to last good check + 44 days); only an
+   explicit invalid answer (refund) locks; 3 devices; "Deactivate this
+   device"; light tamper resistance only.
+4. PDF links and bookmarks stay Free (already shipped; removing them invites
+   bad reviews). Redact is the headline Pro feature. PRODUCT.md needs
+   updating once approved.
+5. One license for both editions; on Lite the Redact card says it needs the
+   Full edition and has no Buy button.
+6. License UI: a "License" group in More options, a "Have a key?" link on
+   each upgrade card, "Pro" in the footer.
+7. Network call: key, a random device label and the version, to Dodo only,
+   on key entry and about every 30 days; keyless users make no calls. Try
+   without a host permission first; if one is needed, an optional
+   single-host permission requested at key entry (owner approval)
+   [VERIFY ON FIRST RUN].
+8. Refund within 14 days; short terms page (3 devices, support by email, no
+   guarantee for every site).
+Owner steps before coding: email Dodo three questions (Indian individual
+onboarding; USD payout route and FIRC; INR pricing), complete KYC, check the
+bank receives SWIFT, one session with a CA (GST export zero-rating,
+registration above INR 20 lakh, LUT RFD-11, income tax), create the product,
+then give Claude a test key and the product id.
+Docs vs code mismatches found (PROGRESS.md treated as the truth): PRODUCT.md
+lists Living PDF as Pro but it ships free; no host permission exists yet for
+a license server.
+
+## Next phase: Phase 5 - Licensing and Pro gating (ROADMAP.md) - ON HOLD
+Goal: turn on paid Pro without breaking the local-only promise. Steps:
+provider account (owner), license entry in the popup with cached validation
+and offline grace, gating per PRODUCT.md with upgrade cards (never a broken
+button), refund and terms pages, a PRIVACY.md line for the license call.
 Acceptance: a test key unlocks Pro, a revoked key locks it after the grace
-period, offline use keeps working. Decide with the owner before coding:
-- Keep PDF links and bookmarks free, or gate them as Pro?
-- Does Lite get Pro at all (Redact needs Full render's text map)?
-- Where the license UI sits in the popup.
+period, offline use keeps working. Recommendations above.
 
 ## Skipped or deferred (with reasons)
 - Phase 4: names via Chrome's on-device Prompt API. Skipped: the owner's GTX
@@ -107,6 +205,7 @@ tables fully redacted.
 ## Phase log
 | Date | Phase | Result | Notes |
 | --- | --- | --- | --- |
+| 2026-10-28 | Hardening 2.5.0 | Done (owner check pending) | Preset-mismatch warning; Redact detectors and false-positive guards; Redact output scrubbing and pre-save self-check; font-scaled box margin; stale JPEG/name text; WORKFLOW.md. check 158, e2e 51/51. Phase 5 on hold by owner; research recorded. |
 | 2026-10-28 | Skipped items | Done | Inner scroll boxes (code blocks, email drafts, ChatGPT plain-text diagrams) inside the target now grow to full height during capture and are restored; also after the render engine grows the panel. Fixture inner-scroll-box.html, E2E inner-scroll-box. Review legend swatch visible in dark mode. Owner confirmed saved name, PDF tab and long review. check green (151), e2e 51/51. |
 | 2026-10-25 | Skipped items | Partly done | Popup shows the name Chrome really saved ("name (3).png"); geometry savedLeaf, unit-tested. Review keep-alive: harness cannot prove it (control run without the ping also passed), left for the owner. New item: inner scroll boxes in messages captured cut. check green, e2e 50/50. |
 | 2026-10-25 | Phase 3 viewer check | Done (Chrome) | Owner, Chrome PDF viewer: bookmarks sidebar shows the heading tree, outside links open, in-page links jump, text copies cleanly, Ctrl+F finds words (ARPANET 1/75). Claude PDF: 42 bookmarks. Page breaks checked by Claude from the page images of both PDFs (20 and 33 pages): every break falls between text lines; only tall images may split. Acrobat not installed, dropped. Also: Full page now switched off up front on PDF viewer tabs (owner). |
@@ -177,8 +276,13 @@ tables fully redacted.
 | 2026-10-21 | chrome.debugger Full render engine | Only way to render lazy/virtualised/fixed content correctly |
 
 ## Needs the owner's check
-- Phase 5 prerequisites: payment provider account and fees; approve the one
-  license-check network call; answer the three gating questions above.
+- 2.5.0: reload dist/full (footer should read 2.5.0 build 1028-2350), then
+  one Redact capture on a page with an email, a phone and a "password:"
+  line, and one normal Claude or ChatGPT capture. If both look right,
+  Claude merges hardening-wip into main.
+- Read WORKFLOW.md and answer its decisions-for-the-owner section.
+- Phase 5 (on hold): the 8 recommendations and owner steps under
+  "Phase 5 research" above.
 - Optional: open one captured PDF in Firefox (a second PDF engine). Acrobat
   is not installed and is no longer required.
 - Owner recapture 2026-10-28: ChatGPT plain-text diagram and Claude email
