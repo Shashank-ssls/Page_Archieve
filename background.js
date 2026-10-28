@@ -436,6 +436,12 @@ async function renderDocumentBeyondViewport(job, report, settleMsg) {
 // Virtualised chats mount messages only once the panel is grown, so the
 // render settle step clicks "Show more" again; report those clicks honestly.
 function noteLateExpand(report, settled) {
+  const boxes = settled && settled.lateBoxes;
+  if (boxes) {
+    report.lateBoxes = (report.lateBoxes || 0) + boxes;
+    report.warnings = report.warnings.filter(w => !w.startsWith('Let inner scroll boxes'));
+    report.warnings.push(`Let inner scroll boxes grow to full height while rendering (${report.lateBoxes} inner scroll box${report.lateBoxes === 1 ? '' : 'es'}).`);
+  }
   const n = settled && settled.lateExpanded;
   if (!n) return;
   report.lateExpanded = (report.lateExpanded || 0) + n;

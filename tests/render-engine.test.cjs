@@ -162,3 +162,15 @@ test('stitcher derives tile scale from the longer bitmap side', () => {
   assert.match(stitcher, /if \(tile\.viewportH > tile\.viewportW && tile\.viewportH > 0\) scale = bitmap\.height \/ tile\.viewportH;/);
   assert.ok(fs.existsSync(path.join(__dirname, 'site-fixture', 'dpr-seam.html')));
 });
+
+test('inner scroll boxes inside the target grow to full height and are restored', () => {
+  assert.match(content, /function unclipInnerBoxes\(\)/);
+  assert.match(content, /for \(const p of \['height', 'max-height', 'overflow-y'\]\) snapshotStyleOnce\(el, p\);/);
+  assert.match(content, /if \(!target && h > window\.innerHeight \* 0\.7\) continue;/);
+  assert.match(content, /lateBoxes = unclipInnerBoxes\(\);/);
+  assert.match(background, /Let inner scroll boxes grow to full height while rendering/);
+  const suite = fs.readFileSync(path.join(__dirname, 'e2e', 'suite.json'), 'utf8');
+  assert.match(suite, /"name":"inner-scroll-box"/);
+  const stitcherHtml = fs.readFileSync(path.join(root, 'stitcher.html'), 'utf8');
+  assert.match(stitcherHtml, /\.rv-key\.on \{[^}]*outline:1\.5px solid var\(--ink\)/);
+});

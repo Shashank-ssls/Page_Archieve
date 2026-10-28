@@ -51,9 +51,8 @@ period, offline use keeps working. Decide with the owner before coding:
   A 5.5-minute E2E hold passed even with the keep-alive ping disabled
   (Playwright's attachment keeps the worker alive), so the case was dropped.
   Owner check on a real Chrome [VERIFY ON FIRST RUN].
-- Small scroll boxes inside a message (for example Claude's email draft card)
-  are captured as shown: only their visible part, the rest is cut. Seen in
-  the owner's Claude PDF, 2026-10-25. Not investigated.
+- Inner scroll boxes: fixed 2026-10-28 for height. Lines wider than a box
+  (wide code or diagrams) are still cut at its right edge, as on the page.
 - Store launch items: trademark search for "Tallshot" (IP India, USPTO),
   PRIVACY.md and docs/store drafts review, landing site. Final phase.
 - Removed on purpose (owner): JPEG output, PDF cover page option.
@@ -84,6 +83,7 @@ tables fully redacted.
 ## Phase log
 | Date | Phase | Result | Notes |
 | --- | --- | --- | --- |
+| 2026-10-28 | Skipped items | Done | Inner scroll boxes (code blocks, email drafts, ChatGPT plain-text diagrams) inside the target now grow to full height during capture and are restored; also after the render engine grows the panel. Fixture inner-scroll-box.html, E2E inner-scroll-box. Review legend swatch visible in dark mode. Owner confirmed saved name, PDF tab and long review. check green (151), e2e 51/51. |
 | 2026-10-25 | Skipped items | Partly done | Popup shows the name Chrome really saved ("name (3).png"); geometry savedLeaf, unit-tested. Review keep-alive: harness cannot prove it (control run without the ping also passed), left for the owner. New item: inner scroll boxes in messages captured cut. check green, e2e 50/50. |
 | 2026-10-25 | Phase 3 viewer check | Done (Chrome) | Owner, Chrome PDF viewer: bookmarks sidebar shows the heading tree, outside links open, in-page links jump, text copies cleanly, Ctrl+F finds words (ARPANET 1/75). Claude PDF: 42 bookmarks. Page breaks checked by Claude from the page images of both PDFs (20 and 33 pages): every break falls between text lines; only tall images may split. Acrobat not installed, dropped. Also: Full page now switched off up front on PDF viewer tabs (owner). |
 | 2026-10-24 | Phase 4 complete | Done | Visible-area Redact, line-level detection, click-a-word, rebuilt-scroller follow, sidebar expand guard, address-change stop, Saving collapsed. Owner confirmed Claude and Stripe. Prompt API names skipped (hardware). |
@@ -157,6 +157,8 @@ tables fully redacted.
   license-check network call; answer the three gating questions above.
 - Optional: open one captured PDF in Firefox (a second PDF engine). Acrobat
   is not installed and is no longer required.
+- ChatGPT plain-text diagram and Claude email draft: recapture and check the
+  boxes show in full [VERIFY ON FIRST RUN].
 - Confirmed on the owner's Chrome 2026-10-28: popup shows the uniquified name
   ("GitHub (4).png"); Full page is greyed out on a PDF viewer tab; the Redact review tab stayed
   open a long time on GitHub and still saved (keep-alive works).

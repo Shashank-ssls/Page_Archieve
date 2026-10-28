@@ -1,5 +1,7 @@
 # Unreleased (after 2.4.0)
 
+- Fix (owner): small scroll boxes inside the content (code blocks, ChatGPT plain-text diagrams, Claude email drafts) were captured showing only their first screen. With Expand on, they now grow to full height for the capture and are restored after; boxes as tall as the window on a document capture (side panes) and anything outside a panel target are left alone. Lines wider than the box stay cut at its right edge. Fixture inner-scroll-box.html, E2E inner-scroll-box.
+- Redact review: the "Will be blacked out" swatch in the legend now has a visible outline in dark mode.
 - Fix: when Chrome renames a save on a name clash ("name (3).png"), the popup now shows the name actually saved.
 - Popup (owner): on Chrome's PDF viewer, Full page is switched off as soon as the popup opens, with a short reason, instead of failing after the click. The popup asks the page for its content type (activeTab, no new permission) and falls back to an address ending in .pdf.
 - Phase 3 viewer check done in Chrome: bookmarks, outside and in-page links, text copy and search all work; page breaks fall between lines.

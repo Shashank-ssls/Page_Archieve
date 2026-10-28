@@ -1079,7 +1079,42 @@
     }
     state.expandClicks = 0;
     clicks = await clickExpanders();
-    return { details, clamps, clicks };
+    const boxes = unclipInnerBoxes();
+    return { details, clamps, clicks, boxes };
+  }
+
+  // Small scroll boxes inside the content (code blocks, email drafts in chat
+  // replies) would be captured showing only their first screen. Let them grow
+  // to full height; restore undoes it. Only boxes inside the capture target,
+  // never the target or its ancestors, and never page chrome such as a
+  // sidebar outside the target panel.
+  function unclipInnerBoxes() {
+    if (!state) return 0;
+    state.unclippedBoxes = state.unclippedBoxes || new WeakSet();
+    const target = state.scrollerType === 'inner' && state.scroller && state.scroller.isConnected ? state.scroller : null;
+    let count = 0;
+    for (const el of walkOpenDom()) {
+      if (state.unclippedBoxes.has(el) || el === document.documentElement || el === document.body) continue;
+      if (target ? (el === target || !composedContains(target, el)) : false) continue;
+      if (el.tagName === 'TEXTAREA' || el.isContentEditable) continue;
+      let cs;
+      try { cs = getComputedStyle(el); } catch (_) { continue; }
+      if (!['auto', 'scroll', 'overlay'].includes(cs.overflowY)) continue;
+      if (cs.position === 'fixed' || cs.position === 'sticky') continue;
+      const h = el.clientHeight;
+      if (h < 40 || el.scrollHeight <= h + 8 || el.scrollHeight > 30000) continue;
+      // On a document capture, a box nearly as tall as the window is page
+      // layout (a side pane), not content.
+      if (!target && h > window.innerHeight * 0.7) continue;
+      if (target && composedContains(el, target)) continue;
+      for (const p of ['height', 'max-height', 'overflow-y']) snapshotStyleOnce(el, p);
+      el.style.setProperty('max-height', 'none', 'important');
+      el.style.setProperty('height', 'auto', 'important');
+      el.style.setProperty('overflow-y', 'visible', 'important');
+      state.unclippedBoxes.add(el);
+      count++;
+    }
+    return count;
   }
 
   // Clicks are bounded (EXPAND_CLICK_CAP per capture) and repeated a few rounds
@@ -1930,8 +1965,8 @@
         if (settings.expandContent !== false) {
           const ex = await expandCollapsed();
           await waitForSettle(250);
-          if (ex.details || ex.clamps || ex.clicks) {
-            expandWarning = `Expanded collapsed content (${[ex.clicks && `${ex.clicks} \u201cshow more\u201d button${ex.clicks === 1 ? '' : 's'}`, ex.details && `${ex.details} folded section${ex.details === 1 ? '' : 's'}`, ex.clamps && `${ex.clamps} truncated text block${ex.clamps === 1 ? '' : 's'}`].filter(Boolean).join(', ')}).${ex.clicks ? ' Clicked buttons stay expanded on the page after capture.' : ''}`;
+          if (ex.details || ex.clamps || ex.clicks || ex.boxes) {
+            expandWarning = `Expanded collapsed content (${[ex.clicks && `${ex.clicks} \u201cshow more\u201d button${ex.clicks === 1 ? '' : 's'}`, ex.details && `${ex.details} folded section${ex.details === 1 ? '' : 's'}`, ex.clamps && `${ex.clamps} truncated text block${ex.clamps === 1 ? '' : 's'}`, ex.boxes && `${ex.boxes} inner scroll box${ex.boxes === 1 ? '' : 'es'}`].filter(Boolean).join(', ')}).${ex.clicks ? ' Clicked buttons stay expanded on the page after capture.' : ''}`;
           }
         }
         // The render engine resizes the emulated viewport instead of shrinking a
@@ -2067,17 +2102,18 @@
         throwIfCancelled();
         setScroll(0, 0);
         await waitForSettle(message.waitMs || 800);
-        let lateExpanded = 0;
+        let lateExpanded = 0, lateBoxes = 0;
         if (state.settings.expandContent !== false) {
           lateExpanded = await clickExpanders();
-          if (lateExpanded) await waitForSettle(400);
+          lateBoxes = unclipInnerBoxes();
+          if (lateExpanded || lateBoxes) await waitForSettle(400);
         }
         const hidden = message.hideFloating === false ? 0 : renderHideFloating();
         const audit = await waitForVisibleImages(message.imageWaitMs || message.waitMs || 800);
         await afterPaint();
         throwIfCancelled();
         return {
-          ok: true, hidden, lateExpanded, measure: renderMeasure(),
+          ok: true, hidden, lateExpanded, lateBoxes, measure: renderMeasure(),
           hiddenExamples: [...(state.hiddenExamples || [])], hiddenCapReached: !!state.hiddenCapReached,
           brokenImages: audit.brokenImages,
           cssImageFailures: audit.cssImageFailures,

@@ -13,6 +13,7 @@
   {"name":"claude-preset","url":"http://claude.ai/fx/chat-preset.html","settings":{"waitMs":1000,"format":"pdf"},"expect":{"engineIncludes":"Claude","pdf":{"bookmarks":20,"cover":false}},"lite":false},
   {"name":"virtual-showmore","url":"/fx/virtual-showmore.html","settings":{"waitMs":1000},"expect":{"engineIncludes":"Full render","warningIncludes":"Expanded more collapsed content while rendering","presentColor":{"color":[255,0,255],"minPixels":172800}},"lite":false},
   {"name":"expand","url":"/fx/expand-content.html","settings":{"waitMs":1000},"expect":{"titleUnchanged":"Page Archive Test Fixture - Collapsed Content"}},
+  {"name":"inner-scroll-box","url":"/fx/inner-scroll-box.html","settings":{"waitMs":500,"format":"pdf"},"expect":{"engineIncludes":"Full render","warningIncludes":"inner scroll box","pdf":{"textIncludes":["CODE-BOX-0-LAST","CODE-BOX-5-LAST","DRAFT-BOX-0-LAST","DRAFT-BOX-5-LAST","INNER BOX FINAL MARKER"]}}},
   {"name":"jpeg-falls-back","url":"/fx/app-scroll-panel.html","settings":{"engine":"stitch","format":"jpeg","waitMs":1000},"expect":{"presentColor":{"color":[255,255,255],"minPixels":1}}},
   {"name":"switch-away","url":"/fx/virtual-chat.html","switchAway":true,"settings":{"waitMs":1000},"lite":false},
   {"name":"visible","url":"/fx/","mode":"visible"},

@@ -142,7 +142,11 @@ Opens `<details>` (closed again on restore), lifts CSS line clamps (restored),
 clicks at most 40 controls in 3 rounds whose text matches `EXPAND_TEXT` and
 which pass `safeToClick`: no real links, no form submits, nothing matching
 `NEVER_CLICK` (delete, buy, subscribe, report, log out, ...). Clicked controls
-cannot be un-clicked; the user is told.
+cannot be un-clicked; the user is told. Small scroll boxes inside the target
+(`unclipInnerBoxes`: overflow auto/scroll, 40 px or taller, content up to
+30000 px, not fixed or sticky, not editable; on a document capture under 70% of
+the window height) get height and max-height lifted; restored afterwards. Runs
+again in the render settle step for messages mounted late.
 
 ## 7. Known limits
 - DevTools open on the tab blocks the debugger -> stitch fallback.
