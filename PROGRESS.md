@@ -10,8 +10,10 @@ Update this at the end of every phase. Newest entries at the top of each section
   a new session.
 - Store launch (old Phase 2) is the final phase (owner decision). Lite
   real-site repeats and the Lite E2E suite wait until Full is final.
-- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-24): `npm run check`
-  148/148, `npm run e2e` 50/50 (Full). Lite suite not run (paused by owner).
+- Skipped-items pass after Phase 4: DONE on 2026-10-28 (see session summary).
+- Last green run (Windows, GEHRMAN_SPARROW, 2026-10-28): `npm run check`
+  151/151, `npm run e2e` 51/51 (Full). Lite suite not run (paused by owner).
+  Loaded build: `dist/full` "2.4.0 build 1028-2127 f8eab3e".
 - Not yet verified: HiDPI screens; real sites other than Claude, ChatGPT,
   Stripe docs, GitHub, Amizone, FreeRedact and Testaroo.
 
@@ -53,6 +55,31 @@ period, offline use keeps working. Decide with the owner before coding:
 - Store launch items: trademark search for "Tallshot" (IP India, USPTO),
   PRIVACY.md and docs/store drafts review, landing site. Final phase.
 - Removed on purpose (owner): JPEG output, PDF cover page option.
+
+## Session summary (2026-10-25 to 2026-10-28): Phase 3 viewer check and skipped items
+Done (all committed and pushed; last commit b28c280):
+- Phase 3 viewer check in Chrome (owner): bookmarks, outside and in-page
+  links, text copy, Ctrl+F all work. Page breaks checked by Claude from page
+  images of two real PDFs: breaks fall between text lines. Acrobat dropped.
+- Popup: Full page is greyed out up front on Chrome PDF viewer tabs, with a
+  reason (activeTab probe of document.contentType, .pdf address fallback).
+  Owner confirmed.
+- Popup shows the name Chrome actually saved on a clash ("GitHub (4).png"),
+  geometry savedLeaf. Owner confirmed.
+- Redact review tab stays alive for a long wait and still saves (owner
+  confirmed on GitHub; the harness cannot prove keep-alive).
+- Inner scroll boxes (code blocks, ChatGPT plain-text diagrams, Claude email
+  drafts) grow to full height during capture and are restored (content.js
+  unclipInnerBoxes, also in the render settle step). Fixture
+  inner-scroll-box.html, E2E inner-scroll-box. Owner recaptured ChatGPT and
+  Claude: complete.
+- Review legend "Will be blacked out" swatch visible in dark mode.
+Lessons:
+- After code changes run `npm run build` and have the owner reload
+  `dist/full`; check the popup footer build stamp before trusting a retest.
+- Playwright saves downloads under GUID names, so name checks must keep
+  working when Chrome's reported name has no extension.
+Open: Phase 5 owner decisions (below and in "Next phase").
 
 ## Session summary (2026-10-24): Phase 4 Share-safe Redact and Claude redesign
 Built:
