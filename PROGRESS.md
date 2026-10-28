@@ -157,11 +157,9 @@ tables fully redacted.
   license-check network call; answer the three gating questions above.
 - Optional: open one captured PDF in Firefox (a second PDF engine). Acrobat
   is not installed and is no longer required.
-- Review screen held open: confirmed it opens and saves on GitHub
-  (2026-10-28, a drawn box was kept). Still open: leave it 6 minutes before
-  Save and confirm the file saves.
 - Confirmed on the owner's Chrome 2026-10-28: popup shows the uniquified name
-  ("GitHub (4).png"); Full page is greyed out on a PDF viewer tab.
+  ("GitHub (4).png"); Full page is greyed out on a PDF viewer tab; the Redact review tab stayed
+  open a long time on GitHub and still saved (keep-alive works).
 - Optional rechecks: ChatGPT and Claude Document + PDF; Amizone with Redact
   (word box plus a drawn box over the photo); review tab left open 3-5 min.
 - Trademark search for "Tallshot"; PRIVACY.md and docs/store drafts review.
