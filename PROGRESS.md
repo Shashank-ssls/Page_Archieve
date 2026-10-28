@@ -46,11 +46,8 @@ period, offline use keeps working. Decide with the owner before coding:
 - Lite edition: real-site repeats and `npm run e2e:lite` paused until Full is
   final (owner, 2026-10-23). Lite then gets one full pass.
 - ChatGPT document preview: Redact cannot read text drawn in canvases (it now
-  warns); that capture also started at page 2. Not investigated.
-- Review screen left open many minutes: cannot be verified by the harness.
-  A 5.5-minute E2E hold passed even with the keep-alive ping disabled
-  (Playwright's attachment keeps the worker alive), so the case was dropped.
-  Owner check on a real Chrome [VERIFY ON FIRST RUN].
+  warns). An older note said that capture started at page 2; the owner does
+  not recall it (2026-10-28), so it is dropped unless it shows up again.
 - Inner scroll boxes: fixed 2026-10-28 for height. Lines wider than a box
   (wide code or diagrams) are still cut at its right edge, as on the page.
 - Store launch items: trademark search for "Tallshot" (IP India, USPTO),
@@ -157,8 +154,8 @@ tables fully redacted.
   license-check network call; answer the three gating questions above.
 - Optional: open one captured PDF in Firefox (a second PDF engine). Acrobat
   is not installed and is no longer required.
-- ChatGPT plain-text diagram and Claude email draft: recapture and check the
-  boxes show in full [VERIFY ON FIRST RUN].
+- Owner recapture 2026-10-28: ChatGPT plain-text diagram and Claude email
+  drafts now come out in full (Claude PDF 34 pages, checked by Claude).
 - Confirmed on the owner's Chrome 2026-10-28: popup shows the uniquified name
   ("GitHub (4).png"); Full page is greyed out on a PDF viewer tab; the Redact review tab stayed
   open a long time on GitHub and still saved (keep-alive works).
