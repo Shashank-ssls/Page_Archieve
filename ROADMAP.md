@@ -104,7 +104,7 @@ period, offline use keeps working.
       scrolls smoothly; optional pauses on highlighted lines.
 - [ ] Encode locally with WebCodecs (H.264) and a small vendored MP4 muxer;
       license in THIRD_PARTY_NOTICES.md (owner approves the library).
-- [ ] Free: small corner watermark "made with Page Archive". Pro: none.
+- [ ] Free: small corner watermark "made with Tallshot". Pro: none.
 - [ ] Progress UI and cancel; memory stays bounded on 20,000 px captures.
 
 Acceptance: a 60-message chat becomes a playable MP4 under 60 seconds on the

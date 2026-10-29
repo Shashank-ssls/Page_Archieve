@@ -37,7 +37,7 @@ test('site presets locate conversations by stable markers and walk up to the rea
   assert.match(content, /data-message-author-role/);
   assert.match(content, /data-testid="user-message"/);
   assert.match(content, /function scrollableAncestor\(/);
-  assert.match(content, /preset: preset \? preset\.name : null/);
+  assert.match(content, /preset: preset && !preset\.unmatched \? preset\.name : null/);
 });
 
 test('auto-expand never clicks real links, form submits or destructive labels', () => {

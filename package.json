@@ -1,8 +1,8 @@
 {
   "name": "page-archive-capture",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "private": true,
-  "description": "Page Archive: capture whole webpages and AI chats as PNG, JPEG or searchable PDF. Chrome/Edge MV3 extension.",
+  "description": "Tallshot: capture whole webpages and AI chats as PNG or searchable PDF. Chrome/Edge MV3 extension.",
   "scripts": {
     "browsers": "node scripts/install-browsers.mjs",
     "test": "node --test tests/*.test.cjs",

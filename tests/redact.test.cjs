@@ -188,3 +188,63 @@ test('saved file names come from Chrome, so a renamed "name (3).png" shows as sa
   assert.match(src, /filename = await downloadBlob\(blob, withFolder\(filename\)\)/);
   assert.match(src, /filename: pdfName/);
 });
+
+test('a hidden word also scrubs tokens that contain it, and links that spell it', () => {
+  const hidden = new Set(['priya']);
+  assert.strictEqual(R.scrubWords("Notes for Priya's priya.sharma Priya-Sharma", hidden), 'Notes for [redacted] [redacted] [redacted]');
+  assert.strictEqual(R.containsHidden('https://x.com/u/Priya', hidden), true);
+  assert.strictEqual(R.containsHidden('https://x.com/u/other', hidden), false);
+  // Short words are left alone so a box over "and" does not eat "Andrew".
+  assert.strictEqual(R.scrubWords('Andrew', new Set(['and'])), 'Andrew');
+});
+
+test('a redacted PDF keeps only the site as its subject and scrubs the file name after review', () => {
+  const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'stitcher.js'), 'utf8');
+  assert.match(src, /origin = new URL\(session\.url\)\.origin/);
+  assert.match(src, /RD\.containsHidden\(decoded\(l\[4\]\), hidden\)/);
+  assert.match(src, /hiddenForName \? RD\.scrubWords\(message\.baseName/);
+});
+
+test('new detectors: labelled secrets, credentials in URLs, UPI, Aadhaar, PAN, bearer, PGP', () => {
+  const cases = [
+    ['password: hunter2', 'hunter2', 'key'],
+    ['OTP=482913 sent', '482913', 'key'],
+    ['db postgres://admin:s3cret@db.example.com/app', 'postgres://admin:s3cret@db.example.com/app', 'key'],
+    ['https://x.io/cb?refresh_token=abcdef123', 'https://x.io/cb?refresh_token=abcdef123', 'url'],
+    ['https://b.s3.amazonaws.com/f?X-Amz-Signature=deadbeef', 'https://b.s3.amazonaws.com/f?X-Amz-Signature=deadbeef', 'url'],
+    ['pay priya@okaxis today', 'priya@okaxis', 'upi'],
+    ['Aadhaar 2345 6789 0124', '2345 6789 0124', 'id'],
+    ['PAN ABCPE1234F', 'ABCPE1234F', 'id'],
+    ['Authorization: Bearer abcdefghijklmnop1234', 'Bearer abcdefghijklmnop1234', 'key'],
+    ['-----BEGIN PGP PRIVATE KEY BLOCK-----', '-----BEGIN PGP PRIVATE KEY BLOCK-----', 'key'],
+    ['jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIx.abc', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIx.abc', 'key'],
+    ['Ref 20261028 4111 1111 1111 1111', '4111 1111 1111 1111', 'card'],
+    ['Server 192.168.10.24 hosts it', '192.168.10.24', 'ip']
+  ];
+  for (const [text, value, kind] of cases) assert.deepStrictEqual(kinds(text, []), [[value, kind]], text);
+});
+
+test('new false-positive guards stay quiet', () => {
+  for (const t of ['risk-assessment-framework-2026', 'task-force-meeting-notes', 'password: ********', 'Password is required',
+    'commit 3f786850e387550fdab836ed7e6dc881de23001b', 'Version 10.2.3.4', 'Chrome 118.0.5993.88', 'order 1730112000003',
+    'Aadhaar 2345 6789 0125 checksum fails']) {
+    assert.deepStrictEqual(kinds(t, []).filter(k => k[1] !== 'phone'), [], t);
+  }
+});
+
+test('the pre-save self-check finds hidden words in metadata, split on URL punctuation', () => {
+  const hidden = new Set(['jo', 'priya']);
+  assert.strictEqual(R.leakedWord(['Capture of https://x.com/u/jo?x=1'], hidden), 'jo');
+  assert.strictEqual(R.leakedWord(['[redacted] notes', 'site-2026'], hidden), null);
+  // Whatever the scrubber leaves must pass the check.
+  assert.strictEqual(R.leakedWord([R.scrubWords('notes.jo for Priya', hidden)], hidden), null);
+  const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'stitcher.js'), 'utf8');
+  assert.match(src, /self-check found a hidden word/);
+});
+
+test('box margin grows with the font size', () => {
+  const small = R.redactRuns([[10, 10, 120, 16, 16, 'a@b.io']], []).boxes[0];
+  const big = R.redactRuns([[10, 10, 300, 48, 48, 'a@b.io']], []).boxes[0];
+  assert.strictEqual(small[0], 8);
+  assert.strictEqual(big[0], 10 - 6);
+});

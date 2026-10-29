@@ -610,6 +610,7 @@
     };
     let redactSummary = '';
     let reviewed = null;
+    let hiddenForName = null;
     if (message.redact) {
       if (!RD) throw new Error('The redaction module failed to load. Nothing was exported.');
       const original = textRuns.get(message.captureId) || [];
@@ -634,20 +635,29 @@
       const extras = pdfExtras.get(message.captureId);
       if (extras) {
         const hit = l => boxes.some(b => l[0] < b[0] + b[2] && l[0] + l[2] > b[0] && l[1] < b[1] + b[3] && l[1] + l[3] > b[1]);
-        extras.links = (extras.links || []).filter(l => !hit(l) && (!l[4] || RD.findSecrets(l[4], redactWords).length === 0));
+        // An address that spells out a hidden word (a name in a profile path)
+        // leaks it even when the link text is not under a box.
+        const decoded = u => { try { return decodeURIComponent(u); } catch (_) { return u; } };
+        extras.links = (extras.links || []).filter(l => !hit(l) && (!l[4] || (RD.findSecrets(l[4], redactWords).length === 0 && !RD.containsHidden(decoded(l[4]), hidden) && !RD.leakedWord([decoded(l[4])], hidden))));
         // A bookmark whose heading sits under a box would repeat its text.
         const covers = m => boxes.some(b => m[0] + 2 >= b[0] && m[0] + 2 <= b[0] + b[2] && m[1] + 2 >= b[1] && m[1] + 2 <= b[1] + b[3]);
         extras.marks = (extras.marks || []).filter(m => !covers(m)).map(m => [m[0], m[1], m[2], RD.scrubWords(scrub(m[3]), hidden)]);
       }
       session.title = RD.scrubWords(scrub(session.title || ''), hidden);
-      session.url = scrub(session.url || '');
+      // The PDF subject keeps only the site: a path or query can carry
+      // names and ids that no box covered.
+      let origin = '';
+      try { origin = new URL(session.url).origin; } catch (_) {}
+      session.url = RD.scrubWords(scrub(origin), hidden);
+      hiddenForName = hidden;
     }
     // PDFs get readable pages broken between text lines; images keep the largest parts.
     const parts = format === 'pdf'
       ? G.pdfPageParts(width, height, scale, (textRuns.get(message.captureId) || []).map(r => [r[1], r[3]]), MAX_DIMENSION_PX, MAX_PART_PIXELS)
       : G.buildParts(width, height, scale, MAX_DIMENSION_PX, MAX_PART_PIXELS);
     if (!parts.length) throw new Error('Could not create output PNG dimensions.');
-    const baseName = G.filenameBase(message.baseName, 'page-capture');
+    // The name was built before review; words hidden there leave it too.
+    const baseName = G.filenameBase(hiddenForName ? RD.scrubWords(message.baseName || '', hiddenForName).replace(/\[redacted\]/g, 'redacted') : message.baseName, 'page-capture');
     const folder = G.safeFolder(message.folder || '');
     const withFolder = name => folder ? `${folder}/${name}` : name;
     const results = [];
@@ -681,6 +691,12 @@
         .map(m => ({ dest: toDest(m[0], m[1]), level: m[2], title: m[3] }))
         .filter(m => m.dest)
         .map(m => ({ page: m.dest.page, y: m.dest.y, level: m.level, title: m.title }));
+      if (hiddenForName) {
+        const decoded = u => { try { return decodeURIComponent(u); } catch (_) { return u; } };
+        const uris = pdfPages.flatMap(p => (p.links || []).map(l => l.uri || l.url || '')).map(decoded);
+        const leak = RD.leakedWord([session.title, session.url, baseName, ...outline.map(m => m.title), ...uris], hiddenForName);
+        if (leak) throw new Error('Share-safe Redact self-check found a hidden word in the PDF title, bookmarks, links or file name. Nothing was saved.');
+      }
       const bytes = PDF.buildPdf(pdfPages, { title: session.title || baseName, subject: session.url || '', outline });
       if (textCount) warnings.push(`PDF includes a searchable, selectable text layer (${textCount.toLocaleString()} lines).`);
       if (linkCount || outline.length) warnings.push(`PDF includes ${linkCount.toLocaleString()} clickable link area(s) and ${outline.length.toLocaleString()} bookmark(s).`);
