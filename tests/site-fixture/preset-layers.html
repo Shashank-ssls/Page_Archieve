@@ -11,7 +11,10 @@
        ?mode=second ChatGPT: only [data-message-id] (first selectors gone).
        ?mode=none   no preset marker at all: automatic detection + warning.
        ?mode=composer the composer scrolls inside the thread: postcondition
-                    fails, automatic detection + warning. */
+                    fails, automatic detection + warning.
+       ?mode=abs    ChatGPT 2026-10: the composer lives inside the thread
+                    in an absolute bottom wrapper; it is pinned, so the
+                    preset must still win. */
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; overflow: hidden; font: 15px/1.5 system-ui, sans-serif; background: #fff; color: #111; }
   .app { display: flex; height: 100vh; }
@@ -39,6 +42,7 @@
   const mark = (el, user) => {
     if (mode === 'gemini') return document.createElement(user ? 'user-query' : 'model-response');
     if (mode === 'second') { el.setAttribute('data-message-id', 'm' + Math.random().toString(36).slice(2)); return null; }
+    if (mode === 'abs') { if (user) el.setAttribute('data-conversation-role', 'user'); else el.setAttribute('data-conversation-role', 'assistant'); el.setAttribute('data-turn-key', 'k'); return null; }
     if (mode === 'composer') { el.setAttribute(user ? 'data-testid' : 'data-is-streaming', user ? 'user-message' : 'false'); return null; }
     return null;
   };
@@ -66,6 +70,13 @@
   }
   const end = document.createElement('p'); end.textContent = 'LAYERS FINAL TURN'; thread.append(end);
   if (mode === 'composer') thread.append(document.getElementById('composer'));
+  if (mode === 'abs') {
+    thread.style.position = 'relative';
+    const c = document.getElementById('composer');
+    c.innerHTML = '<div contenteditable="true"></div>';
+    c.style.cssText = 'position:absolute;left:0;right:0;bottom:0;background:#fff';
+    thread.append(c);
+  }
 </script>
 </body>
 </html>

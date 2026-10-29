@@ -156,8 +156,9 @@
     return out;
   }
 
-  // A composer that scrolls with the thread (not pinned sticky or fixed)
-  // means the target is the wrong, wider box.
+  // A composer that scrolls with the thread (not pinned sticky, fixed or
+  // absolute) means the target is the wrong, wider box. ChatGPT (2026-10)
+  // keeps its pinned composer inside the thread scroller.
   function looseComposerInside(target) {
     let list = [];
     try { list = Array.from(target.querySelectorAll('textarea,[contenteditable="true"],[contenteditable=""]')).slice(0, 20); } catch (_) {}
@@ -165,7 +166,7 @@
       if (!isLaidOut(c)) continue;
       let pinned = false;
       for (let a = c; a && a !== target; a = a.parentElement) {
-        try { const p = getComputedStyle(a).position; if (p === 'sticky' || p === 'fixed') { pinned = true; break; } } catch (_) {}
+        try { const p = getComputedStyle(a).position; if (p === 'sticky' || p === 'fixed' || p === 'absolute') { pinned = true; break; } } catch (_) {}
       }
       if (!pinned) return true;
     }

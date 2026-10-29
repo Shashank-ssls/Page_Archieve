@@ -18,7 +18,7 @@
   {"name":"switch-away","url":"/fx/virtual-chat.html","switchAway":true,"settings":{"waitMs":1000},"lite":false},
   {"name":"visible","url":"/fx/","mode":"visible"},
   {"name":"dpr-seam","url":"/fx/dpr-seam.html","dpr":1.2,"settings":{"waitMs":1000},"expect":{"solidEdge":{"color":[27,27,27]}}},
-  {"name":"chatgpt-composer","url":"https://chatgpt.com/fx/chatgpt-thread.html","settings":{"waitMs":1000},"expect":{"engineIncludes":"ChatGPT","absentColor":{"color":[255,0,255]}},"lite":false},
+  {"name":"chatgpt-composer","url":"https://chatgpt.com/fx/chatgpt-thread.html","settings":{"waitMs":1000},"expect":{"engineIncludes":"ChatGPT","warningAbsent":"did not recognise","absentColor":{"color":[255,0,255]}},"lite":false},
   {"name":"dpr-seam-panel","url":"/fx/dpr-seam.html?panel=1","dpr":1.2,"settings":{"waitMs":1000},"expect":{"solidEdge":{"color":[27,27,27]}}},
   {"name":"end-spacer","url":"http://claude.ai/fx/end-spacer.html","settings":{"waitMs":1000},"expect":{"engineIncludes":"Claude","maxTrailingBlank":{"color":[27,27,27],"px":120}},"lite":false},
   {"name":"end-min-height","url":"https://gemini.google.com/fx/end-spacer.html?last=1","settings":{"waitMs":1000},"expect":{"engineIncludes":"Gemini","absentColor":{"color":[255,0,255]},"maxTrailingBlank":{"color":[27,27,27],"px":120}},"lite":false},
@@ -53,5 +53,6 @@
   {"name":"layers-gemini-sr","url":"https://gemini.google.com/fx/preset-layers.html","settings":{"waitMs":1000,"format":"pdf"},"expect":{"engineIncludes":"Gemini","warningAbsent":"did not recognise","pdf":{"bookmarks":10,"textIncludes":["LAYERS FINAL TURN","Question number 1 about"],"textAbsent":["You said","Assistant replied","Old chat"]}},"lite":false},
   {"name":"layers-second-anchor","url":"https://chatgpt.com/fx/preset-layers.html?mode=second","settings":{"waitMs":1000,"format":"pdf"},"expect":{"engineIncludes":"ChatGPT","warningAbsent":"did not recognise","pdf":{"textIncludes":["LAYERS FINAL TURN"],"textAbsent":["Old chat"]}},"lite":false},
   {"name":"layers-no-anchor","url":"http://claude.ai/fx/preset-layers.html?mode=none","settings":{"waitMs":1000,"format":"pdf"},"expect":{"warningIncludes":"did not recognise this Claude page layout (the site","pdf":{"textIncludes":["LAYERS FINAL TURN"]}},"lite":false},
-  {"name":"layers-postcondition","url":"http://claude.ai/fx/preset-layers.html?mode=composer","settings":{"waitMs":1000,"format":"pdf"},"expect":{"warningIncludes":"the message box scrolls with them","pdf":{"textIncludes":["LAYERS FINAL TURN"]}},"lite":false}
+  {"name":"layers-postcondition","url":"http://claude.ai/fx/preset-layers.html?mode=composer","settings":{"waitMs":1000,"format":"pdf"},"expect":{"warningIncludes":"the message box scrolls with them","pdf":{"textIncludes":["LAYERS FINAL TURN"]}},"lite":false},
+  {"name":"layers-abs-composer","url":"https://chatgpt.com/fx/preset-layers.html?mode=abs","settings":{"waitMs":1000},"expect":{"engineIncludes":"ChatGPT","warningAbsent":"did not recognise"},"lite":false}
 ]
