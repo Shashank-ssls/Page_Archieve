@@ -19,6 +19,19 @@ Owner: a solo first-time developer in India, Windows 11 laptop
 pricing), ARCHITECTURE.md (capture engine), DESIGN.md (popup), TESTING.md
 (tests), WORKFLOW.md (keeping it working after launch), CLAUDE.md (rules).
 
+## RESUME HERE (2026-10-29): Phase 5 keep-alive hardening, in progress
+- Branch `phase5-keepalive` (from main after the 2.5.0 merge). Owner answers:
+  2.5.0 check passed and merged; Lite e2e allowed; build Report a problem;
+  drop the Copilot cib-message preset; no rating prompt; support email,
+  support repo and Known Issues URL are placeholders.
+- Audit findings for every package: `docs/phase5-audit-notes.md`.
+- Done: package A (layered detection, commit 8096bf7). check 165/165,
+  e2e 55/55 (Full), e2e:lite 21/22 (inner-scroll-box is Full-only by
+  design: mark it lite:false in package F).
+- Next: package B (W_* warning codes), then C, D, E, F, G as in the owner's
+  Phase 5 brief. ROADMAP/PROGRESS phase renumbering (licensing becomes
+  Phase 6) is part of package G and not done yet.
+
 ## Current status (2026-10-28)
 - Version: 2.5.0 (hardening pass). Branch `hardening-wip` holds the work; to
   be merged to main after the owner reloads `dist/full` and spot-checks.
