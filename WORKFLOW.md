@@ -1,346 +1,449 @@
-# WORKFLOW.md - Keeping Tallshot working after launch
+# WORKFLOW.md (v2) - Keeping Tallshot working after launch
 
-This is the owner's operating manual for the time after Tallshot is on the
-Chrome Web Store (CWS). Chat sites like ChatGPT, Claude, Gemini, Perplexity,
-Copilot and DeepSeek change their page code often, sometimes weekly. This
-file explains how to notice breakage early, hear about it from users, fix it
-fast and ship the fix, without ever breaking the product rules in
-`CLAUDE.md` section 2.
+This is the owner's operating manual. Chat sites like ChatGPT, Claude,
+Gemini, Perplexity and DeepSeek change their page code often. This file
+explains how to notice breakage early, hear about it from users, fix it,
+and ship the fix, without breaking the rules in `CLAUDE.md` section 2.
 
-Every section is labelled one of these ways:
+v2 (2026-10-29) applies three research reports: DOM resilience, Chrome Web
+Store (CWS) release facts, and a workflow audit.
 
-- **[EXISTS]** - this is in the repo and works today.
-- **[TO BUILD]** - planned. It does not exist yet. Each item goes through
-  `ROADMAP.md` like any other work.
-- **[VERIFY ON FIRST RUN]** - a claim we could not test on this machine, or
-  a store or Google detail that may have changed. Check it before relying on it.
+Every item is labelled:
+
+- **[EXISTS]** - in the repo and working today.
+- **[TO BUILD]** - planned, not built. Goes through `ROADMAP.md` (most of it
+  is Phase 5, "Keep-alive and launch-readiness hardening").
+- **[VERIFY ON FIRST RUN]** - not tested here, or a store detail that may
+  have changed. Check it before relying on it.
+
+---
+
+## 0. Minimum viable workflow
+
+You are one person with exams. Do not build everything at once.
+
+**Must have before launch:**
+
+- [ ] Detection layering with postcondition check and warning codes (sec 3).
+- [ ] Zero-turn bookmark warning (sec 3).
+- [ ] Lite edition: one full pass (`npm run e2e:lite` plus a manual check).
+- [ ] `npm run release-check` covering both editions (sec 8).
+- [ ] Report a problem (Copy / Email / GitHub issue) (sec 5).
+- [ ] Support email and support repo created (sec 5.2).
+- [ ] Known Issues page drafted and hosted (sec 6).
+- [ ] RESTORE.md, 2FA backup codes stored, hotfix cheat sheet (sec 13).
+- [ ] The "Friday 3" weekly check, done by hand (sec 8).
+
+**After launch (when there are users):**
+
+- Canary on public share links (sec 4).
+- Structural fingerprints and selector-count diffs.
+- Edge Add-ons listing.
+- Rating prompt (if decided).
 
 ---
 
 ## 1. The rules that never bend
 
-These come from `CLAUDE.md`. Every idea in this file was checked against them.
+These come from `CLAUDE.md`. Every idea here was checked against them.
 
 1. Local-only. No backend, no analytics, no telemetry, no remote code.
-2. The only network call is the Pro license check (later: a SHA-256 hash to
-   a timestamp authority for Proof Stamp). Anything else needs your approval
-   and a line in the privacy policy.
+2. The only planned network call is the Pro license check (later: a
+   SHA-256 hash to a timestamp authority for Proof Stamp). Anything else
+   needs your approval and a line in the privacy policy.
 3. Permissions are frozen. Adding one makes Chrome disable the extension for
-   existing users until they accept it. Treat that as a disaster.
+   existing users until they accept it. Treat that as a disaster. So any
+   host permission the license check needs must be in the v1 manifest
+   (see sec 16).
 4. Never a silent downgrade, never export a known-broken image, always
    restore the page.
-5. Remote code is banned by the store. So every fix, even a one-line
-   selector change, is a new version that goes through review.
+5. No private APIs. Many chat exporters stopped reading the page and now
+   call private endpoints (for example Claude
+   `/api/organizations/.../chat_conversations`, Copilot
+   `/c/api/conversations/.../history`) or intercept `fetch`. Tallshot must
+   NOT do this. It breaks the network rule and depends on private APIs.
+   Tallshot captures pixels, so it only needs the scroll panel and the turns.
+6. Every fix, even one selector, is a new version through store review.
 
-Consequence: we cannot "push a fix to users" from a server. Our speed comes
-from (a) noticing early, (b) a tested hotfix routine, (c) code that degrades
-gracefully so a site change is an inconvenience, not an outage.
+Consequence: we cannot push a fix from a server. Speed comes from (a)
+noticing early, (b) a tested hotfix routine, (c) code that degrades
+gracefully, and (d) rollback for a bad release (sec 9).
 
 ---
 
-## 2. How the site support works today [EXISTS]
+## 2. How site support works today [EXISTS]
 
-- `content.js` has `SITE_PRESETS` (around lines 55-66): one entry per chat
-  site with selectors for the conversation area and for each turn (used to
-  make PDF bookmarks).
-- How fragile each preset is (from a code review, 2026-10):
+- `content.js` has `SITE_PRESETS`: one entry per chat site, with selectors
+  for the conversation area and for turns (used for PDF bookmarks).
+- Fixed in 2.5.0: when a known site's markers stop matching, Tallshot now
+  warns ("did not recognise this <site> page layout") and uses automatic
+  panel detection (`detectPreset` `unmatched`). It is no longer silent.
+- Under the presets is a generic detector (semantic tags plus geometry
+  scoring). This is the real safety net.
+- Still missing [TO BUILD]:
+  - Zero turns found -> PDF bookmarks vanish with no warning.
+  - Warning codes (`W_*`).
+  - Recording which detection layer won.
+- Tests: unit tests (`npm run check`), real-browser E2E on local fixtures
+  (`npm run e2e`, `npm run e2e:lite`), manual real-site matrix in
+  `TESTING.md`.
 
-| Site | What it matches on | Risk of breaking |
+Risk per site (2026-10):
+
+| Site | Matches on | Risk |
 | --- | --- | --- |
 | ChatGPT | `data-*` attributes | medium |
-| Claude | `data-testid`, `.font-claude-message` | medium-high |
-| Gemini | custom element tags | medium |
-| Perplexity | `.prose` class | high |
-| Copilot | `cib-message` tags | probably already dead [VERIFY ON FIRST RUN] |
-| DeepSeek | generated class names | high |
+| Claude | `data-testid`, font classes | medium-high |
+| Gemini | custom tags, `data-test-id` | high (changes very often) |
+| Perplexity | `.prose` class today | high |
+| DeepSeek | generated classes | high |
+| Copilot | `cib-*` tags | dead (UI redesigned Mar 2025); drop |
 
-- Under the presets there is a generic detector (semantic tags plus geometry
-  scoring). This is the real safety net: when a preset misses, capture
-  usually still works.
-- Known weak spots (silent failures):
-  - If the host matches but no marker is found, the preset name is still
-    reported and the code falls back to heuristics with no warning
-    (around `content.js` line 123).
-  - If the turn selector matches zero elements, PDF bookmarks just vanish
-    with no warning.
-- Tests that exist: unit tests (`npm run check`), the real-browser E2E
-  suite on local fixtures (`npm run e2e`, `tests/e2e/run.mjs`,
-  `tests/e2e/suite.json`), and the manual real-site matrix in `TESTING.md`.
+Plan for a fix on SOME site every 1-2 months. One Gemini exporter
+(Gemini2Markdown) needed about 7 DOM fixes in 6 months, 3 in one week.
 
 ---
 
-## 3. Making the code harder to break [TO BUILD]
+## 3. Making detection harder to break [TO BUILD]
 
-Do these before or soon after launch. Each is a normal roadmap item with a
-fixture and a unit test.
+### 3.1 Layers (in this order)
 
-- [ ] **Preset is a hint, not a gate.** Try in order: preset selectors ->
-      ARIA roles / landmarks -> geometry heuristic -> whole document.
-      Record which layer won.
-- [ ] **Honest self-check warnings.** If the host is known but the preset
-      did not match, show: "Layout not recognised, used automatic
-      detection." If turns were expected but zero found: "Chapter bookmarks
-      unavailable for this page." These are specific, not scary.
-- [ ] **Several selectors per turn**, best first, so one rename does not
-      kill bookmarks.
-- [ ] **Drop dead and class-only selectors** (Copilot `cib-message`,
-      generated DeepSeek classes) or move them behind stabler ones.
-- [ ] **Warning codes** (short ids like `W_PRESET_MISS`) attached to each
-      warning, so a user report can say exactly what happened.
+1. **`data-*` anchors** from the preset. The preset only has to find the
+   FIRST turn.
+2. **Structure and geometry.** Find the scroller: the first ancestor of a
+   turn with `overflowY` auto or scroll and `scrollHeight - clientHeight >
+   20`.
+3. **Whole document.**
 
-**Remote selector config (JSON fetched from a server): NOT now.** The store
-might allow it if it is purely data, but it is a new network call and
-weakens "local-only". If you ever want it, it needs: your approval, a signed
-static JSON, a kill switch, a privacy policy line. See section 12.
+ARIA roles are weak on these sites. Do not rely on them as a layer.
+Record which layer won.
 
----
+### 3.2 Postcondition check
 
-## 4. The canary: catching breakage before users do [TO BUILD]
+A selector that matches something is NOT success (lesson from Readability).
+After detection, check:
 
-A canary is a small automatic test run against the REAL sites once a week.
+- turn count >= 1;
+- roles roughly alternate (user, assistant, user...);
+- the composer / textarea is outside the target;
+- the target is tall and scrollable.
 
-### 4.1 Design
+If a check fails: warn with a code and fall through to the next layer.
 
-- Runs on YOUR Windows laptop with Task Scheduler, not GitHub Actions.
-  Reason: cloud machines get blocked by Cloudflare, and storing logins in
-  CI is unsafe.
-- Uses **public share links** (chatgpt.com/share/..., claude.ai/share/...,
-  Gemini share, Perplexity share) created from a throwaway account. No
-  login needed, no private chats.
-- The list lives in `.local/canary-sites.json` (gitignored). A template
-  `tests/e2e/canary-sites.example.json` is committed. Each entry: url,
-  expected preset, a start marker string and an end marker string (a word
-  near the top and bottom of that conversation).
-- If a captcha or "verify you are human" page shows up, the case is
-  **SKIPPED**, not FAILED. Never try to bypass it.
-- Read each site's terms of service before adding it. One run per week of
-  a few pages is gentle; do not increase it.
+### 3.3 Selector lists (best first)
 
-### 4.2 What each run checks
+- **ChatGPT:** `[data-message-author-role]` -> `[data-message-id]` ->
+  `[data-testid^="conversation-turn"]`.
+- **Claude:** `[data-testid="user-message"]` -> `.font-claude-response` ->
+  `.font-claude-message` (last one probably stale) [VERIFY ON FIRST RUN].
+- **Gemini:** custom tags, `[data-test-id="model-line"]`, hidden labels
+  `.screen-reader-user-query-label` / `.screen-reader-model-response-label`.
+- **Perplexity:** `data-testid` (`answer`, `copy-query-button`),
+  `[data-pplx-citation-url]`.
+- **DeepSeek:** `ds-*` classes, `[data-virtual-list-item-key]`,
+  `[data-message-id]`.
+- **Copilot:** drop `cib-message`. Use the generic detector plus a warning
+  until checked on a live page.
 
-- [ ] The preset name detected is the expected one.
-- [ ] Both marker strings are in the PDF text (so the capture is complete).
-- [ ] Bookmark count is above zero (and near last week's).
-- [ ] No composer/input-box text in the output.
-- [ ] The image is not blank (non-white pixels present).
-- [ ] Structural fingerprint: tag names, roles, `data-*` attribute names and
-      how many elements each preset selector matched. Diffed against last
-      run. **A selector count dropping to zero is the early warning**, even
-      if the capture still passed through the fallback.
+### 3.4 Other rules
 
-### 4.3 Files to add
+- Exclude page chrome by structure: `aside`, `nav`, `[role=navigation]`,
+  `[role=banner]`, `textarea`, `[contenteditable]`, `[class*="sidebar" i]`.
+- Never use UI text or `aria-label` strings as main anchors. They change
+  with the user's language.
+- Strip hidden screen-reader labels from the PDF text.
+- Warnings, each with a code: layout not recognised (`W_PRESET_MISS`),
+  zero turns ("Chapter bookmarks unavailable for this page"), postcondition
+  failed. The layout warning links to the Known Issues page (sec 6).
 
-- `tests/e2e/lib.mjs` - shared helpers pulled out of `run.mjs`.
-- `tests/e2e/canary.mjs` - the canary runner.
-- `tools/snapshot-page.mjs` - saves a DOM snapshot with all text replaced
-  by lorem ipsum, for turning into a fixture. Raw snapshots never get
-  committed.
-- npm scripts: `npm run canary`, `npm run snapshot`.
-- A Windows toast notification on failure.
-- The weekly Task Scheduler (`schtasks`) entry is a system-level change:
-  Claude must show you the exact command and you approve it.
+### 3.5 Remote selector config: NO (product decision)
 
-### 4.4 Limit
-
-Share pages have no composer and no sidebar, so they do not test those
-parts. That is why there is also a monthly manual logged-in check (section 7).
+The store allows remote data if all logic is bundled. We still say no: it
+is a new network call and weakens the local-only promise. That is our
+choice, not a store ban.
 
 ---
 
-## 5. Hearing from users [TO BUILD unless noted]
+## 4. The canary [TO BUILD, after launch]
 
-### 5.1 "Report a problem" inside the extension
+The canary is NOT the first investment. Most Phase 1 bugs only showed in
+the logged-in app (end spacers, composer, Show more, panel height). Share
+pages do not have these. Do the manual Friday 3 first (sec 8).
 
-- Builds a short report ON THE DEVICE and SHOWS it to the user first.
-- Contains: extension version, edition (Full/Lite), Chrome version, OS,
-  engine used, whether it fell back, warning codes, page height bucket
-  (for example "10k-20k px"), the error message.
-- Hostname only if the user ticks a box (unchecked by default).
-- NEVER: page text, URL paths, page titles, screenshots.
-- The user sends it themselves with one of: **Copy**, **Email** (mailto
-  link, keep under ~1800 characters), **Open GitHub issue** (prefilled
-  URL). Opening a link is the user navigating, not the extension making a
-  network call, so the local-only rule holds. [VERIFY ON FIRST RUN] that
-  the privacy policy wording covers this; suggested line: "If you choose
-  to report a problem, Tallshot shows you the report and you decide whether
-  to send it by email or GitHub. Nothing is sent automatically."
+When built:
+
+- Runs on your laptop with Playwright Chromium and `--load-extension`
+  (branded Chrome dropped that flag in 139).
+- Public share links from a throwaway account. ChatGPT and Claude share
+  links are snapshots and stay until deleted.
+- ChatGPT is behind Cloudflare. Headed mode on your home connection works
+  better [VERIFY ON FIRST RUN].
+- Captcha or "verify you are human" = SKIPPED, never bypassed.
+- List in `.local/canary-sites.json` (gitignored); template committed.
+- Checks: expected preset and layer, start and end markers in the PDF
+  text, bookmarks > 0, no composer text, image not blank, selector counts
+  (a count dropping to zero is the early warning).
+- Task Scheduler entry: "run only when user is logged on". It is a system
+  change: Claude shows the command, you approve it.
+- If the canary was skipped 2-3 weeks running, alert. Silence is not health.
+- Share-page results are partial evidence only.
+
+---
+
+## 5. Hearing from users
+
+### 5.1 Report a problem [TO BUILD]
+
+- Builds a short report on the device and SHOWS it first.
+- Contains: version, edition, Chrome version, OS, engine, fallback yes/no,
+  warning codes, winning layer, page height bucket, error message.
+- Hostname only if the user ticks a box (off by default).
+- NEVER: page text, URL paths, titles, screenshots.
+- User sends it: **Copy**, **Email** (mailto, under 1800 characters), or
+  **Open GitHub issue** (prefilled). The user navigates; the extension makes
+  no network call.
+- PRIVACY.md line: "If you choose to report a problem, Tallshot shows you
+  the report and you decide whether to send it by email or GitHub. Nothing
+  is sent automatically."
 
 ### 5.2 Channels
 
 | Channel | Use | Status |
 | --- | --- | --- |
-| Support email (dedicated address) | Primary | [TO BUILD] create it |
-| Public repo `tallshot-support`, issues only, form `capture-bug.yml` | Bug reports | [TO BUILD] |
-| CWS reviews | Reply within 48 hours | after launch |
-| Reddit / forums | Only when someone asks directly | after launch |
+| Dedicated support email | Primary | [TO BUILD] |
+| Public `tallshot-support` repo, issues only | Bug reports | [TO BUILD] |
+| CWS reviews | Reply within 48 h | after launch |
 
-Keep the main code repo private. The support repo holds no code.
+A support repo under your personal handle shows your identity. Decide
+first (sec 16). The main code repo stays private.
 
-### 5.3 Canned replies (keep in a text file, edit per case)
+### 5.3 Canned replies
 
-- **Ack:** "Thanks, I can see the problem. I am working on it and will
-  reply when a fix is published."
-- **Fixed:** "Fixed in version X.Y.Z. Chrome updates extensions on its own
-  within about a day; you can force it at chrome://extensions with
-  Developer mode -> Update."
-- **Cannot fix / refused on purpose:** "Tallshot stopped instead of saving
-  this page because the image would have been incomplete. It never saves a
-  broken capture. Here is what you can try: ..."
+- **Ack:** "Thanks, I can see the problem. A fix is being prepared. Store
+  review can take several days. Status: <Known Issues link>."
+- **Fixed:** "Fixed in version X.Y.Z. Chrome updates extensions within
+  about a day. To force it: chrome://extensions, Developer mode, Update."
+- **Refused on purpose:** "Tallshot stopped instead of saving because the
+  image would have been incomplete. It never saves a broken capture. You
+  can try: ..."
 
-### 5.4 Ratings
+### 5.4 Ratings [TO BUILD only if decided]
 
-- Ask for a rating only after a few successful captures, never after a
-  failure. "Not quite" button opens Report a problem.
-- No incentives for reviews. [VERIFY ON FIRST RUN] current CWS policy on
-  review prompts / "review gating" before shipping this.
+- Neutral prompt. Show "Rate" and "Report a problem" side by side, to
+  everyone. The old "Not quite -> Report" idea is review gating. Do not
+  build it.
+- No rewards for reviews.
 
 ---
 
-## 6. Triage: how urgent is a report
+## 6. Telling users while a fix is in review [TO BUILD]
 
-| Level | What it means | Response |
+- A static Known Issues page (for example on the landing site or the
+  support repo). Plain text: site, symptom, workaround, "fix submitted on
+  <date>".
+- The layout-mismatch warning shows a "Known issues" link. Clicking opens a
+  tab. No fetch. The URL is one constant in the code.
+- Update the page when you submit a fix and again when it is live.
+
+---
+
+## 7. Triage
+
+| Level | Meaning | Response |
 | --- | --- | --- |
-| **P0** | Silent downgrade, broken image exported, data loss, page left modified, crash on a major site | Hotfix in 24-72 hours (section 9) |
-| **P1** | A major site (ChatGPT, Claude, Gemini) fails to capture | Fix in the next few days, own release |
-| **P2** | A mid site broken, or wrong/missing warnings, bookmarks missing | Fixture + suite case, batch into next release |
-| **P3** | Obscure site, cosmetic issue | Add to a known-limits list; fix when convenient |
+| **P0** | Silent downgrade; broken image exported; page left modified; data loss; crash on a major site; **a secret survived Redact**; **license wrongly locks a paying user**; **a license or Dodo outage affects free features** | Same day: honest warning or refuse in the code path, or rollback if a release caused it. Fix ready in 72 h; live when review ends (often 5-10 days). |
+| **P1** | ChatGPT, Claude or Gemini fails to capture | Known Issues entry same day; fix in its own release |
+| **P2** | Mid site broken; wrong or missing warnings; bookmarks missing | Fixture + suite case; next release |
+| **P3** | Obscure site, cosmetic | Known-limits list |
 
-- 3 or more separate reports of the same thing: promote it one level.
+- 3 separate reports of the same thing: promote one level.
 - Every P0-P2 gets a fixture in `tests/site-fixture/` and a case in
-  `tests/e2e/suite.json` BEFORE the fix (`CLAUDE.md` section 3).
+  `tests/e2e/suite.json` BEFORE the fix.
+- Free features must never depend on the license server.
 
 ---
 
-## 7. Cadences
+## 8. Cadences (realistic budget)
 
-### Weekly (about 30 minutes)
+### Weekly "Friday 3" (about 10 minutes)
 
-- [ ] Look at the canary result (toast or `.e2e/` output). [TO BUILD]
-- [ ] Any selector count dropped? Open a P1/P2 item even if capture passed.
-- [ ] Read support email, support repo issues, CWS reviews. Triage each.
-- [ ] Reply to every CWS review older than 48 hours.
+- [ ] ChatGPT, Claude, Gemini on your own accounts: one Smart capture each.
+      Composer and sidebar not in the output; all turns present.
+- [ ] One PDF: bookmarks present.
+- [ ] One Redact on a page with a seeded fake secret (for example a fake
+      "password: hunter2-test"). It must be boxed and gone from the PDF text.
+- [ ] Glance at support email, issues, reviews.
 
-### Monthly (about 2 hours)
+### Monthly (about 1 hour)
 
-- [ ] Logged-in manual check on ChatGPT, Claude, Gemini with your own
-      accounts, following the real-site matrix in `TESTING.md`. Check
-      composer and sidebar are not in the output.
-- [ ] Check the CWS developer dashboard for policy emails and warnings.
-- [ ] Re-read the CWS program policies summary for changes. [VERIFY ON FIRST RUN]
-- [ ] Review the known-limits list; close anything now fixed.
-- [ ] Refresh redacted fixtures if a site redesigned.
+- [ ] Early-warning signals (sec 10).
+- [ ] 10-minute load + capture on current stable Chrome (E2E uses bundled
+      Chromium, which can differ).
+- [ ] CWS dashboard for policy emails.
+- [ ] Known Issues and known-limits lists: close what is fixed.
+- [ ] Check backups (sec 13).
 
-### Per release
+### Before a major release
 
-- [ ] `npm run check` green.
-- [ ] `npm run e2e` green (Full edition only, per `CLAUDE.md` section 6).
+- [ ] Try it on Chrome Beta.
+- [ ] Playwright version stays pinned; upgrade on purpose only.
+
+### Per release [TO BUILD: `npm run release-check`]
+
+The script does the mechanical steps:
+
+- permission diff against the last tag, BOTH manifests;
+- grep for new network calls (`fetch`, `XMLHttpRequest`, `WebSocket`,
+  `sendBeacon`);
+- version sync: `manifest.json`, Lite manifest, `package.json`;
+- build both editions; check `manifest.json` is at each zip root.
+
+You still do:
+
+- [ ] `npm run check`, `npm run e2e`, `npm run e2e:lite` green.
 - [ ] `npm run popup-shot` reviewed if UI changed.
-- [ ] Version bumped in BOTH `manifest.json` and `package.json`.
-- [ ] `CHANGELOG.md` and `PROGRESS.md` updated.
-- [ ] `manifest.json` permissions unchanged (diff it against the last tag).
-- [ ] No new network calls (search the diff for `fetch`, `XMLHttpRequest`,
-      `WebSocket`, `sendBeacon`).
-- [ ] `npm run build`, zip with `manifest.json` at the zip root.
-- [ ] Load the zip contents unpacked in a clean profile and do one capture.
-- [ ] Commit, tag (`vX.Y.Z`), push BEFORE submitting.
+- [ ] CHANGELOG and PROGRESS updated.
+- [ ] Load both zips unpacked in a clean profile; one capture each.
+- [ ] Commit, tag `vX.Y.Z`, push BEFORE submitting.
 
 ---
 
-## 8. Releasing on the Chrome Web Store
+## 9. Releasing on the Chrome Web Store
 
-Facts as researched in 2026-10; all [VERIFY ON FIRST RUN] on your account.
+Facts from 2026-10. All [VERIFY ON FIRST RUN] on your account.
 
-- Review usually takes a few days; Google's doc says most within ~3 days.
-  Extensions with `debugger` or permission changes can take longer.
-- After publish, Chrome auto-updates users within about a day.
-- There is no official expedited review. Plan for the delay.
-- **No rollback.** To undo a bad release, ship a higher version with the
-  old code.
-- **Staged rollout:** you can publish to a percentage of users and only
-  increase it. Use 10-20% for risky changes.
-- **Defer publish:** submit, and after approval publish manually when you
-  are ready. Use this for every release so you control the moment.
-- Version numbers: `MAJOR.MINOR.PATCH`. Hotfix = PATCH +1. Each upload must
-  be higher than the last.
-- Edge Add-ons is a separate account and review. Plan: Lite edition first
-  there. [TO BUILD]
-- The CWS publish API exists; not worth automating at this size.
-
----
-
-## 9. Hotfix playbook (P0 or P1)
-
-Follow in order. Do not skip steps under pressure; the steps are the speed.
-
-1. [ ] Reproduce. Write down: site, browser version, what the output looked
-       like.
-2. [ ] `git checkout -b hotfix/<short-name>` from `main`.
-3. [ ] Make a minimal fixture in `tests/site-fixture/` (use
-       `npm run snapshot` once it exists, text redacted) and add a case to
-       `tests/e2e/suite.json`. Run it: it must FAIL first.
-4. [ ] Fix at the narrowest layer (usually a selector or a fallback in
-       `content.js`). Do not loosen stitch tolerances.
-5. [ ] Add a unit test in `tests/*.test.cjs`.
-6. [ ] `npm run check` green.
-7. [ ] `npm run e2e` green (Full only). The new case now passes.
-8. [ ] Bump PATCH in `manifest.json` and `package.json`.
-9. [ ] Update `CHANGELOG.md` and `PROGRESS.md`.
-10. [ ] `npm run build`; zip `dist/full` with `manifest.json` at the root.
-11. [ ] Load unpacked from the built folder; capture the broken site once.
-12. [ ] Merge to `main`, tag, push.
-13. [ ] Upload to CWS with "defer publish". Mention in the notes that it is a
-        bug fix with no permission changes.
-14. [ ] When approved, publish (100% for a P0 fix; staged if the fix itself
-        is risky).
-15. [ ] Reply to every reporter with the "Fixed" canned reply.
-
-If a site change cannot be fixed quickly: make sure Tallshot shows an honest
-warning or refuses, rather than exporting a broken capture. Refusing is a
-correct outcome.
+- Review: a few days to a few weeks. New developers and powerful
+  permissions get more scrutiny (docs do not name `debugger`). No expedite.
+  Contact support after 3 weeks.
+- **Rollback exists.** It republishes the previous version under a new
+  higher version number, with no review, live in about a minute. It cancels
+  pending and staged submissions. Test that the older version reads data
+  saved by the newer one.
+- **Staged rollout** needs more than 10,000 7-day active users. Not
+  available at launch.
+- **Defer publish:** use it every time. You must publish within 30 days of
+  approval or it goes back to draft.
+- Publishers start with 2 extension slots (fits Full + Lite).
+- Versions: `MAJOR.MINOR.PATCH`; hotfix = PATCH + 1; always higher.
+- Edge Add-ons: separate Partner Center, up to 7 business days review, no
+  staged rollout. Lite first.
 
 ---
 
-## 10. Day 0 to launch
+## 10. Early-warning signals (monthly)
 
-1. [ ] Finish the current `ROADMAP.md` phases; Full edition first.
-2. [ ] Register a CWS developer account (one-time fee) and verify it.
-       [VERIFY ON FIRST RUN] current fee and identity/payment steps for India.
-3. [ ] Create the support email and the `tallshot-support` repo.
-4. [ ] Write and host the privacy policy (must match section 1 and 5.1).
-5. [ ] Prepare listing: description without competitor names, screenshots,
-       icon, a clear explanation of why `debugger` is needed.
-6. [ ] Make the throwaway account and the canary share links.
-7. [ ] Run the per-release checklist (section 7).
-8. [ ] Submit with defer publish. Expect a few days of review.
-9. [ ] Publish. Install from the store yourself and capture once.
+Other people hit layout changes before you. Check:
 
-## 11. First week after launch
+- GitHub issues of open-source exporters, for example
+  `pionxzh/chatgpt-exporter`.
+- Greasy Fork changelog of Gemini2Markdown.
+- Any similar exporter for Claude or DeepSeek you find.
 
-- Daily: read email, issues and reviews; reply within 24 hours.
-- Day 1: install from the store on a second Chrome profile; confirm the
-  store build matches your local build.
-- Day 2-3: run the logged-in manual check on the three big sites.
-- Day 3: run the canary by hand (or the manual matrix if not built yet).
-- Day 7: write down what broke and what people asked for in `PROGRESS.md`;
-  decide what goes into the first PATCH release.
-- Do not ship new features this week. Only P0/P1 fixes.
+A burst of "broken after update" issues means check that site now.
 
 ---
 
-## 12. Decisions for the owner
+## 11. Hotfix playbook (P0 or P1)
 
-Each needs your yes or no. Nothing here happens without it.
+1. [ ] Reproduce. Note site, Chrome version, what the output looked like.
+2. [ ] If a release caused it: **rollback now** (sec 9). Then fix calmly.
+3. [ ] Add a Known Issues entry.
+4. [ ] `git checkout -b hotfix/<name>` from `main`.
+5. [ ] Fixture: `npm run snapshot` if built; otherwise by hand: save the
+       page DOM, cut it down to the panel and two turns, replace all text
+       with lorem ipsum. Add a case to `tests/e2e/suite.json`. It must FAIL.
+6. [ ] Fix at the narrowest layer. Do not loosen stitch tolerances.
+       Quick option: disable the broken preset. Detection falls back to
+       automatic, with a warning.
+7. [ ] Unit test. `npm run check`, `npm run e2e`, `npm run e2e:lite` green.
+8. [ ] Bump PATCH; `npm run release-check` green.
+9. [ ] CHANGELOG, PROGRESS.
+10. [ ] Load both built folders unpacked; capture the broken site once.
+11. [ ] Merge, tag, push.
+12. [ ] Upload BOTH editions with defer publish. Note: "bug fix, no
+        permission changes".
+13. [ ] When approved, publish. Update Known Issues.
+14. [ ] Reply to every reporter.
 
-1. **Build the canary?** Recommended yes. Needs approval for the weekly
-   Task Scheduler entry on this laptop.
-2. **Report a problem feature** with Copy / Email / GitHub issue, hostname
-   opt-in. Recommended yes. Needs a privacy policy line.
-3. **Support email address and public support repo**: which address, which
-   GitHub account.
-4. **Remote selector config**: recommended NO for now. If yes later: signed
-   JSON, kill switch, privacy line, it is a new network call.
-5. **Drop the Copilot preset** if confirmed dead, or keep it behind the
-   fallback.
-6. **Rating prompt**: yes or no, and after how many successful captures.
-7. **Edge Add-ons**: when, and Lite only at first?
-8. **Staged rollout default**: always staged, or only for risky releases.
+If it cannot be fixed quickly: make sure Tallshot warns or refuses.
+Refusing is a correct outcome.
+
+---
+
+## 12. Day 0 to launch
+
+1. [ ] Finish ROADMAP Phase 5 (keep-alive hardening). Phase 6 (licensing)
+       is ON HOLD; decide whether launch waits for it (sec 16).
+2. [ ] Lite full pass.
+3. [ ] Create a dedicated developer email (cannot be changed later).
+4. [ ] Register the CWS account ($5). India eligibility [VERIFY ON FIRST RUN].
+       Turn on 2FA and save backup codes.
+5. [ ] Trader declaration if selling Pro: an individual trader's ID and
+       contact are shown publicly (EU). Decide what to show.
+6. [ ] Support email, support repo, Known Issues page.
+7. [ ] Privacy policy hosted; matches sec 1 and 5.1.
+8. [ ] Listings. Spam policy forbids items with the same experience. The
+       Full listing says it is the companion edition (debugger engine +
+       Redact), links Lite, and uses different text and screenshots.
+       Consider asking CWS support first [VERIFY ON FIRST RUN].
+9. [ ] Per-release checklist (sec 8).
+10. [ ] Submit with defer publish. Publish. Install from the store; capture.
+
+## 13. Restore and bus factor
+
+You have one laptop (it crashed once) and one GitHub / Google account.
+
+- [ ] `RESTORE.md`: how to rebuild on a new machine (clone, Node version,
+      `npm ci`, Playwright into `.local/`, build, where the store zips are).
+- [ ] 2FA backup codes for Google (CWS), GitHub and email: printed and in a
+      second safe place.
+- [ ] `docs/hotfix-cheatsheet.md`: one page. Key line: disabling a broken
+      preset falls back to automatic detection with a warning.
+- [ ] Push WIP to a branch often (at least after every work package).
+- [ ] A second copy of the repo off the laptop (GitHub counts; plus one
+      offline backup monthly).
+
+## 14. Exam / away mode
+
+Before exams or travel:
+
+- [ ] Do not ship a release in the 2 weeks before. Ship small or nothing.
+- [ ] Know the rollback button (sec 9). It takes a minute from a phone.
+- [ ] Known Issues page ready to edit from a phone.
+- [ ] Auto-reply on the support email: "Replies may take up to a week."
+- [ ] Skip Friday 3 if needed. Do it the first Friday after.
+- During exams, respond only to P0. Rollback and a Known Issues line are
+  enough; fix later.
+
+## 15. First week after launch
+
+- Daily: email, issues, reviews; reply within 24 h.
+- Day 1: install from the store on a second profile; matches local build.
+- Day 2-3: Friday 3 on all three big sites.
+- Day 7: note what broke and what people asked for in PROGRESS.md.
+- No new features this week. P0 / P1 only.
+
+---
+
+## 16. Decisions for the owner
+
+Nothing here happens without your yes or no.
+
+1. **Report a problem** (Copy / Email / GitHub, hostname opt-in).
+   Recommended yes. Needs a PRIVACY.md line.
+2. **Support email and repo**: which address; which GitHub account (your
+   handle shows your identity).
+3. **Known Issues page host**: landing site or support repo.
+4. **Drop the Copilot preset**: recommended yes (redesigned Mar 2025).
+5. **Rating prompt**: neutral only, or not at all; after how many captures.
+6. **Canary**: after launch; Task Scheduler entry needs approval.
+7. **Remote selector config**: recommended NO (product choice).
+8. **Trader declaration**: needed if selling Pro; what ID and contact to show.
+9. **Two-edition listing risk**: accept with the companion-edition
+   mitigation, and/or ask CWS support before launch.
+10. **License host permission in the v1 manifest**: if Pro will ever call a
+    license server, its host permission (or an optional one) must be
+    decided before the first public release, or adding it later disables
+    the extension for users.
+11. **Launch before or after licensing** (Phase 6).
+12. **Edge Add-ons**: when; Lite first.
