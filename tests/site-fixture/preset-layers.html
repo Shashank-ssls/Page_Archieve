@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tallshot Test Fixture - Preset detection layers</title>
+<style>
+  /* Phase 5 detection layers. Served under chat hostnames by the harness.
+     Every mode has a scrolling sidebar (aside) that holds the SAME markers as
+     the chat, first in the DOM, plus a composer pinned below the thread.
+       (default)    Gemini: custom tags plus screen-reader-only role labels.
+       ?mode=second ChatGPT: only [data-message-id] (first selectors gone).
+       ?mode=none   no preset marker at all: automatic detection + warning.
+       ?mode=composer the composer scrolls inside the thread: postcondition
+                    fails, automatic detection + warning. */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; font: 15px/1.5 system-ui, sans-serif; background: #fff; color: #111; }
+  .app { display: flex; height: 100vh; }
+  aside { width: 260px; overflow-y: auto; background: #f1f1f1; padding: 8px; }
+  .side-item { height: 60px; margin: 6px 0; background: #ddd; }
+  .col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .thread { flex: 1; overflow-y: auto; padding: 16px 24px; }
+  .msg { margin: 12px 0; padding: 12px; border: 1px solid #ccc; border-radius: 8px; min-height: 110px; }
+  .composer { height: 70px; border-top: 1px solid #ccc; padding: 10px; }
+  .composer textarea { width: 100%; height: 44px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside id="side"></aside>
+  <div class="col">
+    <main class="thread" id="thread"></main>
+    <div class="composer" id="composer"><textarea aria-label="Message"></textarea></div>
+  </div>
+</div>
+<script>
+  const mode = (location.search.match(/mode=(\w+)/) || [])[1] || 'gemini';
+  const side = document.getElementById('side'), thread = document.getElementById('thread');
+  const mark = (el, user) => {
+    if (mode === 'gemini') return document.createElement(user ? 'user-query' : 'model-response');
+    if (mode === 'second') { el.setAttribute('data-message-id', 'm' + Math.random().toString(36).slice(2)); return null; }
+    if (mode === 'composer') { el.setAttribute(user ? 'data-testid' : 'data-is-streaming', user ? 'user-message' : 'false'); return null; }
+    return null;
+  };
+  for (let i = 1; i <= 12; i++) {
+    const s = document.createElement('div'); s.className = 'side-item'; s.textContent = 'Old chat ' + i;
+    mark(s, true);
+    side.append(s);
+  }
+  for (let i = 1; i <= 20; i++) {
+    const user = i % 2 === 1;
+    const m = document.createElement('div'); m.className = 'msg';
+    const tag = mark(m, user);
+    const host = tag || m;
+    if (tag) m.append(tag);
+    if (mode === 'gemini') {
+      const sr = document.createElement('span');
+      sr.className = 'sr ' + (user ? 'screen-reader-user-query-label' : 'screen-reader-model-response-label');
+      sr.textContent = user ? 'You said' : 'Assistant replied';
+      host.append(sr);
+    }
+    const p = document.createElement('p');
+    p.textContent = user ? `Question number ${i} about layers` : `Answer number ${i} with a searchable sentence.`;
+    host.append(p);
+    thread.append(m);
+  }
+  const end = document.createElement('p'); end.textContent = 'LAYERS FINAL TURN'; thread.append(end);
+  if (mode === 'composer') thread.append(document.getElementById('composer'));
+</script>
+</body>
+</html>

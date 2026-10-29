@@ -22,7 +22,7 @@ test('file name tokens are clickable and the preview uses the real tab', () => {
 
 test('a known site whose layout markers no longer match warns instead of claiming the preset', () => {
   const src = read('content.js');
-  assert.match(src, /turns: preset\.turns \|\| null, unmatched: true \}/);
+  assert.match(src, /turns: pickTurns\(preset, null\), unmatched: true, reason \}/);
   assert.match(src, /did not recognise this \$\{preset\.name\} page layout/);
   assert.match(src, /preset: preset && !preset\.unmatched \? preset\.name : null/);
 });

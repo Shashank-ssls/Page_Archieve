@@ -58,7 +58,7 @@
     // Transparent so the blank band reads as page background.
     lastTurn.style.background = 'transparent';
     const fab = document.createElement('div'); fab.className = 'fab'; document.querySelector('.app').append(fab);
-    for (const t of list.children) t.append(document.createElement('model-response'));
+    for (const t of list.children) t.append(document.createElement(t.matches('[data-testid="user-message"]') ? 'user-query' : 'model-response'));
     const chat = document.querySelector('.chat');
     size = () => { lastTurn.style.minHeight = Math.max(0, chat.clientHeight - 112) + 'px'; };
   } else {

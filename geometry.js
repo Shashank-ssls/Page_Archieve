@@ -43,6 +43,35 @@
     return visibleFraction < 0.45 && originFarOutside;
   }
 
+  // Detection layer 2: `chain` lists a turn's ancestors from the turn upward
+  // as { overflowY, scrollHeight, clientHeight, chrome }. Returns the index of
+  // the first one that genuinely scrolls and is not app chrome, else -1.
+  function firstScrollingAncestor(chain = []) {
+    for (let i = 0; i < chain.length; i++) {
+      const c = chain[i] || {};
+      if (c.chrome) continue;
+      if ((c.overflowY === 'auto' || c.overflowY === 'scroll') && (Number(c.scrollHeight) || 0) - (Number(c.clientHeight) || 0) > 20) return i;
+    }
+    return -1;
+  }
+
+  // Roles ('u' or 'a') in page order. Real threads have repeats (an answer in
+  // two parts), so only a long thread with a single role fails.
+  function rolesAlternate(roles = []) {
+    if (roles.length < 4) return true;
+    return roles.includes('u') && roles.includes('a');
+  }
+
+  // A non-null match is not success: the detected target must look like a
+  // conversation. Returns the first failing check so it can be reported.
+  function detectionPostcondition(o = {}) {
+    if (!(Number(o.turnCount) >= 1)) return { ok: false, reason: 'zero-turns' };
+    if (Array.isArray(o.roles) && !rolesAlternate(o.roles)) return { ok: false, reason: 'roles' };
+    if (o.composerInside) return { ok: false, reason: 'composer' };
+    if (!o.isDocument && !((Number(o.scrollRange) || 0) > 20)) return { ok: false, reason: 'not-scrollable' };
+    return { ok: true, reason: null };
+  }
+
   function shouldUseInnerScroller(options = {}) {
     const rootHeight = Math.max(0, Number(options.rootHeight) || 0);
     const viewportHeight = Math.max(1, Number(options.viewportHeight) || 1);
@@ -453,7 +482,7 @@
     return Math.max(1, Math.min(width, 16000));
   }
 
-  const api = { applyNameTemplate, savedLeaf, safeFolder, asciiFilename, renderChunkHeight, renderChunks, panelGrowthNeeded, panelFullyExposed, renderDocumentWidth, rootPageSize, anchorCorrection, isHeavilyClippedPanel, shouldUseInnerScroller, axisPositions, safeTileDriftTolerance, adjustedFinalPanelHeight, intersectRect, partSize, filenameBase, buildParts, pdfPageParts, partAt, unpaintedInk, endSpacerCut, validateTileCoverage, tileDrawMapping };
+  const api = { firstScrollingAncestor, rolesAlternate, detectionPostcondition, applyNameTemplate, savedLeaf, safeFolder, asciiFilename, renderChunkHeight, renderChunks, panelGrowthNeeded, panelFullyExposed, renderDocumentWidth, rootPageSize, anchorCorrection, isHeavilyClippedPanel, shouldUseInnerScroller, axisPositions, safeTileDriftTolerance, adjustedFinalPanelHeight, intersectRect, partSize, filenameBase, buildParts, pdfPageParts, partAt, unpaintedInk, endSpacerCut, validateTileCoverage, tileDrawMapping };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.PageArchiveGeometry = api;
 })(globalThis);

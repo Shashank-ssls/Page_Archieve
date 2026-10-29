@@ -102,8 +102,8 @@ test('links and outline marks travel content -> worker -> stitcher', () => {
   const content = read('content.js');
   const background = read('background.js');
   const stitcher = read('stitcher.js');
-  assert.match(content, /turns: '\[data-testid="user-message"\]'/);
-  assert.match(content, /turns: '\[data-message-author-role="user"\]'/);
+  assert.match(content, /turns: \['\[data-testid="user-message"\]'\]/);
+  assert.match(content, /turns: \['\[data-message-author-role="user"\]'/);
   assert.match(content, /\/\^H\[1-3\]\$\/\.test\(tag\)/);
   assert.match(content, /links: links\.map[\s\S]{0,200}marks: marks\.map/);
   assert.match(background, /PAC_STORE_TEXT[\s\S]{0,200}links: pdfLinks, marks: pdfMarks/);

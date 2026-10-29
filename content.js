@@ -53,17 +53,28 @@
   // tags), then walk up to the nearest ancestor that genuinely scrolls. This
   // survives most redesigns because it never depends on hashed class names.
   const SITE_PRESETS = [
-    // `turns` (optional) matches one element per user prompt; it names the PDF
-    // outline entries for chat captures.
-    { name: 'ChatGPT', host: /(^|\.)(chatgpt\.com|chat\.openai\.com)$/, turns: '[data-message-author-role="user"]', markers: ['[data-turn-key]', '[data-conversation-role]', '[data-user-message-bubble]', '[data-message-author-role]', 'article[data-testid^="conversation-turn"]', '[data-testid^="conversation-turn"]'] },
-    { name: 'Claude', host: /(^|\.)claude\.ai$/, turns: '[data-testid="user-message"]', markers: ['[data-testid="user-message"]', '.font-claude-message', '[data-is-streaming]', '[data-test-render-count]'] },
-    { name: 'Gemini', host: /(^|\.)gemini\.google\.com$/, turns: 'user-query', markers: ['user-query', 'model-response', 'message-content'] },
-    { name: 'Perplexity', host: /(^|\.)perplexity\.ai$/, markers: ['[data-testid="answer"]', '.prose', '[id^="markdown-content"]'] },
-    { name: 'Copilot', host: /(^|\.)copilot\.microsoft\.com$/, turns: '[data-content="user-message"]', markers: ['[data-content="user-message"]', '[data-content="ai-message"]', 'cib-message'] },
-    { name: 'DeepSeek', host: /(^|\.)chat\.deepseek\.com$/, markers: ['.ds-markdown', '[class*="message"]'] },
-    { name: 'Google Colab', host: /(^|\.)colab\.research\.google\.com$/, markers: ['.cell', 'colab-run-button', '.notebook-cell-list .cell'] },
-    { name: 'Jupyter', host: /./, markers: ['.jp-Notebook .jp-Cell', '.jp-Notebook'], requireMarker: true }
+    // Detection layers (WORKFLOW.md sec 3): 1 `anchors` (data-* and custom
+    // tags only, tried in order; one message is enough), 2 the first ancestor
+    // of that message that scrolls, 3 automatic panel detection, then the
+    // document. Every layer must pass a postcondition; a match alone is not
+    // success. `user` marks the user's messages (role check), `turns` names
+    // the PDF outline entries, tried in order.
+    { name: 'ChatGPT', host: /(^|\.)(chatgpt\.com|chat\.openai\.com)$/, anchors: ['[data-turn-key]', '[data-conversation-role]', '[data-message-author-role]', '[data-message-id]', '[data-testid^="conversation-turn"]'], user: '[data-conversation-role="user"],[data-message-author-role="user"]', turns: ['[data-message-author-role="user"]', '[data-conversation-role="user"]'] },
+    // .font-claude-message is likely stale (2026-10) [VERIFY ON FIRST RUN].
+    { name: 'Claude', host: /(^|\.)claude\.ai$/, anchors: ['[data-testid="user-message"]', '.font-claude-response', '.font-claude-message', '[data-is-streaming]'], user: '[data-testid="user-message"]', turns: ['[data-testid="user-message"]'] },
+    { name: 'Gemini', host: /(^|\.)gemini\.google\.com$/, anchors: ['user-query', 'model-response', '[data-test-id="model-line"]', 'message-content'], user: 'user-query', turns: ['user-query'] },
+    { name: 'Perplexity', host: /(^|\.)perplexity\.ai$/, anchors: ['[data-testid="answer"]', '[data-testid="copy-query-button"]', '[data-pplx-citation-url]', '[id^="markdown-content"]'] },
+    // Copilot's old custom message tags are gone; these may be stale too, and a
+    // miss falls back to automatic detection with a warning.
+    { name: 'Copilot', host: /(^|\.)copilot\.microsoft\.com$/, anchors: ['[data-content="user-message"]', '[data-content="ai-message"]'], user: '[data-content="user-message"]', turns: ['[data-content="user-message"]'] },
+    { name: 'DeepSeek', host: /(^|\.)chat\.deepseek\.com$/, anchors: ['[data-virtual-list-item-key]', '[data-message-id]', '.ds-message', '.ds-markdown'] },
+    { name: 'Google Colab', host: /(^|\.)colab\.research\.google\.com$/, notebook: true, anchors: ['.cell', 'colab-run-button', '.notebook-cell-list .cell'] },
+    { name: 'Jupyter', host: /./, notebook: true, anchors: ['.jp-Notebook .jp-Cell', '.jp-Notebook'], requireMarker: true }
   ];
+  // App chrome never holds the conversation (structure, not UI text).
+  const CHROME_SELECTOR = 'aside,nav,[role="navigation"],[role="banner"],textarea,[contenteditable],[class*="sidebar" i]';
+  const POSTCONDITION_TEXT = { roles: 'they were all from one side', composer: 'the message box scrolls with them', 'not-scrollable': 'their panel does not scroll' };
+  const inChrome = el => { try { return !!(el && el.closest && el.closest(CHROME_SELECTOR)); } catch (_) { return false; } };
 
   function isScrollableBox(el) {
     try {
@@ -78,10 +89,11 @@
     try { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; } catch (_) { return false; }
   }
 
-  function queryDeep(selector) {
+  function queryDeep(selector, accept = () => true) {
     let first = null;
     try {
       for (const hit of document.querySelectorAll(selector)) {
+        if (!accept(hit)) continue;
         if (isLaidOut(hit)) return hit;
         first = first || hit;
       }
@@ -90,6 +102,7 @@
       if (!el.shadowRoot) continue;
       try {
         for (const hit of el.shadowRoot.querySelectorAll(selector)) {
+          if (!accept(hit)) continue;
           if (isLaidOut(hit)) return hit;
           first = first || hit;
         }
@@ -107,22 +120,107 @@
     return null;
   }
 
-  // Returns { name, scroller|null } when a preset matches this site, else null.
+  const parentOrHost = a => {
+    if (a.parentElement) return a.parentElement;
+    const root = a.getRootNode && a.getRootNode();
+    return root && root.host ? root.host : null;
+  };
+
+  // Layer 2: the first ancestor of a message with overflowY auto/scroll and
+  // more than 20 px to scroll (geometry.js firstScrollingAncestor).
+  function geometryScroller(el) {
+    const list = [];
+    for (let a = el && parentOrHost(el); a && a !== document.documentElement && a !== document.body && list.length < 200; a = parentOrHost(a)) list.push(a);
+    const chain = list.map(a => {
+      let overflowY = '';
+      try { overflowY = getComputedStyle(a).overflowY; } catch (_) {}
+      let chrome = false;
+      try { chrome = a.matches(CHROME_SELECTOR); } catch (_) {}
+      return { overflowY, scrollHeight: a.scrollHeight, clientHeight: a.clientHeight, chrome };
+    });
+    const i = G.firstScrollingAncestor(chain);
+    return i >= 0 ? list[i] : null;
+  }
+
+  // Messages of a preset inside `root`, outermost only, chrome excluded.
+  function presetMessages(preset, root) {
+    const out = [];
+    try {
+      for (const el of (root || document).querySelectorAll(preset.anchors.join(','))) {
+        if (out.length >= 400) break;
+        if (out.length && out[out.length - 1].contains(el)) continue;
+        if (!isLaidOut(el) || inChrome(el)) continue;
+        out.push(el);
+      }
+    } catch (_) {}
+    return out;
+  }
+
+  // A composer that scrolls with the thread (not pinned sticky or fixed)
+  // means the target is the wrong, wider box.
+  function looseComposerInside(target) {
+    let list = [];
+    try { list = Array.from(target.querySelectorAll('textarea,[contenteditable="true"],[contenteditable=""]')).slice(0, 20); } catch (_) {}
+    for (const c of list) {
+      if (!isLaidOut(c)) continue;
+      let pinned = false;
+      for (let a = c; a && a !== target; a = a.parentElement) {
+        try { const p = getComputedStyle(a).position; if (p === 'sticky' || p === 'fixed') { pinned = true; break; } } catch (_) {}
+      }
+      if (!pinned) return true;
+    }
+    return false;
+  }
+
+  function checkTarget(preset, target) {
+    const msgs = presetMessages(preset, target);
+    const user = preset.user;
+    let roles = user ? msgs.map(m => { try { return m.matches(user) || m.querySelector(user) ? 'u' : 'a'; } catch (_) { return 'a'; } }) : null;
+    // No user marker at all (a fallback anchor such as [data-message-id])
+    // means the roles are unknown, not one-sided.
+    if (roles && !roles.includes('u')) roles = null;
+    let scrollRange = 0;
+    if (target) scrollRange = target.clientHeight > 120 ? target.scrollHeight - target.clientHeight : 0;
+    return G.detectionPostcondition({
+      // The anchor itself sits inside the target, so one message is known
+      // even when the rest live in shadow roots.
+      turnCount: Math.max(1, msgs.length),
+      roles,
+      composerInside: !!target && !preset.notebook && looseComposerInside(target),
+      isDocument: !target,
+      scrollRange
+    });
+  }
+
+  function pickTurns(preset, target) {
+    for (const sel of preset.turns || []) {
+      try { if ((target || document).querySelector(sel)) return sel; } catch (_) {}
+    }
+    return null;
+  }
+
+  // Returns null when no preset applies. Otherwise { name, layer, scroller,
+  // turns } where layer is 'preset' or 'geometry', or { ..., unmatched: true,
+  // reason } when this known site did not pass (site probably changed).
   function detectPreset() {
     const host = String(location.hostname || '').toLowerCase();
     for (const preset of SITE_PRESETS) {
       if (!preset.host.test(host)) continue;
-      for (const selector of preset.markers) {
-        const marker = queryDeep(selector);
-        if (!marker) continue;
-        const scroller = scrollableAncestor(marker);
-        // A matching marker whose page scrolls as a whole is still a match:
-        // the document is the right target there.
-        return { name: preset.name, scroller, turns: preset.turns || null };
+      let reason = 'no-anchor';
+      for (let i = 0; i < preset.anchors.length; i++) {
+        const anchor = queryDeep(preset.anchors[i], el => !inChrome(el));
+        if (!anchor) continue;
+        // A matching anchor whose page scrolls as a whole is still a match:
+        // the document is the right target there (scroller null).
+        const first = scrollableAncestor(anchor);
+        const check = checkTarget(preset, first);
+        if (check.ok) return { name: preset.name, layer: 'preset', anchorIndex: i, scroller: first, turns: pickTurns(preset, first) };
+        const loose = geometryScroller(anchor);
+        if (loose && loose !== first && checkTarget(preset, loose).ok) return { name: preset.name, layer: 'geometry', anchorIndex: i, scroller: loose, turns: pickTurns(preset, loose) };
+        reason = check.reason;
+        break;
       }
-      // Known site, but none of its markers matched: the site has probably
-      // changed its layout. Report it so the capture can say so honestly.
-      if (!preset.requireMarker) return { name: preset.name, scroller: null, turns: preset.turns || null, unmatched: true };
+      if (!preset.requireMarker) return { name: preset.name, layer: null, scroller: null, turns: pickTurns(preset, null), unmatched: true, reason };
     }
     return null;
   }
@@ -1179,6 +1277,19 @@
   // rectangles and outline marks (h1-h3, or one per user turn on a chat preset).
   // Coordinates are viewport CSS px; the render engine lays the whole page out
   // at scroll 0.
+  // Text meant only for screen readers ("You said", Gemini 2026-10) is
+  // clipped to a 1 px box: it is never painted, so it must not reach the
+  // PDF text layer or the outline.
+  function isScreenReaderOnly(el) {
+    try {
+      if (/(^|\s|-)(sr-only|screen-reader[\w-]*|visually-?hidden)(\s|$)/i.test(el.getAttribute('class') || '') || /screen-reader-user-query-label|screen-reader-model-response-label/.test(el.className || '')) return true;
+      const cs = getComputedStyle(el);
+      if (cs.position !== 'absolute' && cs.position !== 'fixed') return false;
+      const r = el.getBoundingClientRect();
+      return (r.width <= 1 && r.height <= 1) || /rect\(0(px)?,? 0(px)?,? 0(px)?,? 0(px)?\)/.test(cs.clip) || cs.clipPath === 'inset(50%)';
+    } catch (_) { return false; }
+  }
+
   function collectTextRuns(maxWords = 120000) {
     const runs = [];
     const links = [];
@@ -1192,7 +1303,18 @@
     if (!rootNode) return result;
     const turnSelector = state && state.presetTurns;
     const pageBase = location.href.split('#')[0];
-    const label = el => String(el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    const srCache = new WeakMap();
+    const srOnly = el => {
+      if (!el) return false;
+      if (!srCache.has(el)) srCache.set(el, isScreenReaderOnly(el) || (!!el.parentElement && isScreenReaderOnly(el.parentElement)));
+      return srCache.get(el);
+    };
+    const label = el => {
+      let out = '';
+      const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      for (let t; (t = tw.nextNode()) && out.length < 400; ) if (!srOnly(t.parentElement)) out += ' ' + t.nodeValue;
+      return out.replace(/\s+/g, ' ').trim().slice(0, 120);
+    };
     const firstRect = el => {
       for (const r of el.getClientRects()) if (r.width > 0 && r.height > 0) return r;
       return null;
@@ -1233,7 +1355,7 @@
         const text = node.nodeValue;
         if (!text || !/\S/.test(text)) continue;
         const parent = node.parentElement;
-        if (!parent || /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|TEXTAREA)$/.test(parent.tagName) || !isVisible(parent)) continue;
+        if (!parent || /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|TEXTAREA)$/.test(parent.tagName) || !isVisible(parent) || srOnly(parent)) continue;
         let fontPx = 16;
         try { fontPx = parseFloat(getComputedStyle(parent).fontSize) || 16; } catch (_) {}
         const re = /\S+/g;
@@ -2003,7 +2125,10 @@
         if (inner) await stabilizeInnerScroller();
         const metrics = currentMetrics();
         if (expandWarning) warnings = [expandWarning, ...warnings];
-        if (preset && preset.unmatched) warnings = [`Tallshot did not recognise this ${preset.name} page layout (the site may have changed). It used automatic panel detection instead; check the start and end of the capture, and please report it if anything is missing.`, ...warnings];
+        if (preset && preset.unmatched) {
+          const why = preset.reason === 'no-anchor' ? '' : ` (found its messages, but ${POSTCONDITION_TEXT[preset.reason] || 'the area around them did not look like a conversation'})`;
+          warnings = [`Tallshot did not recognise this ${preset.name} page layout${why} (the site may have changed). It used automatic panel detection instead; check the start and end of the capture, and please report it if anything is missing.`, ...warnings];
+        }
         if (documentSwitched) warnings = ['This page does not scroll as a document, so Document would save only one screen. Captured the main scroll panel instead (as Smart does).', ...warnings];
         // Document target on an app shell: report how much a scroll panel
         // hides, so the worker can say the capture is only the shell. Text
@@ -2014,7 +2139,7 @@
           const panel = getInnerScroller(true);
           if (panel) panelHidden = Math.max(0, panel.scrollHeight - panel.clientHeight);
         }
-        return { ok: true, metrics, warnings, pinnedCount: state.pinned.length, preset: preset && !preset.unmatched ? preset.name : null, panelHidden };
+        return { ok: true, metrics, warnings, pinnedCount: state.pinned.length, preset: preset && !preset.unmatched ? preset.name : null, detectionLayer: preset && !preset.unmatched ? preset.layer : (inner ? 'auto' : 'document'), panelHidden };
       }
       if (message.type === 'PAC_SET_TILE') {
         if (!state) throw new Error('The page capture session is not active.');
